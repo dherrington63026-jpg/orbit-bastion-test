@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#070b1c">
+<title>Orbit Bastion</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:#050816;color:#e8f1ff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;touch-action:none}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+#top{flex:0 0 46px;display:flex;align-items:center;gap:6px;padding:0 10px;background:linear-gradient(#15204a,#0c1330);border-bottom:1px solid #2a3b7a}
+.chip{background:#00000055;border:1px solid #6fb7ff33;border-radius:999px;padding:4px 10px;font-weight:700;font-size:15px;white-space:nowrap}
+#top .sp{flex:1}
+.ib{background:#00000055;border:1px solid #6fb7ff44;color:#e8f1ff;border-radius:10px;height:34px;min-width:38px;font-size:16px;font-weight:700;padding:0 10px}
+#stage{position:relative;flex:1;min-height:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#bottom{flex:0 0 66px;display:flex;align-items:center;gap:7px;padding:0 8px;background:linear-gradient(#0c1330,#070b1c);border-top:1px solid #2a3b7a}
+#go{flex:1;height:48px;border:0;border-radius:14px;font-size:17px;font-weight:800;color:#052033;background:linear-gradient(#7defff,#2bb6e6);box-shadow:0 3px 0 #146a8c}
+#go:active{transform:translateY(2px);box-shadow:0 1px 0 #146a8c}
+#go[disabled]{opacity:.45}
+.ab{position:relative;width:52px;height:48px;border-radius:14px;border:1px solid #6fb7ff66;background:#13204f;color:#fff;font-size:22px;overflow:hidden;padding:0}
+.ab .cd{position:absolute;left:0;right:0;bottom:0;background:#000a;height:0}
+.ib.on{border-color:#7defff;background:#0f3f55;box-shadow:0 0 10px #7defff77}
+.ab.armed{border-color:#ffd24a;box-shadow:0 0 12px #ffd24a99}
+.ab small{position:absolute;bottom:1px;left:0;right:0;font-size:9px;opacity:.8}
+#sheet{position:absolute;left:8px;right:8px;background:#0e1738f4;border:1px solid #4a63c0;border-radius:16px;padding:10px;display:none;box-shadow:0 8px 24px #000a;z-index:5}
+#sheet.top{top:8px}#sheet.bot{bottom:8px}
+#sheet h4{margin:0 0 6px;font-size:14px;color:#a9c4ff;font-weight:700}
+.row{display:flex;gap:6px}
+.tb{flex:1;min-width:0;background:#182a63;border:1px solid #4a63c0;border-radius:12px;padding:6px 1px;color:#e8f1ff;text-align:center;font-size:11px;line-height:1.25}
+.tb b{display:block;font-size:22px}
+.tb.no{opacity:.4}
+.info{font-size:12px;color:#a9c4ff;margin:6px 2px 0;min-height:30px}
+.act{flex:1;height:44px;border-radius:12px;border:0;font-weight:800;font-size:14px;color:#fff;padding:0 4px}
+.up{background:#1f8f6a}.sell{background:#8f3a4a}.mer{background:#7a4ad0}.no{opacity:.4}
+#coach{position:absolute;left:10px;right:10px;top:8px;background:#7defffee;color:#052033;border-radius:14px;padding:8px 12px;font-weight:700;font-size:14px;z-index:4;display:none;pointer-events:none}
+#intro{position:absolute;left:8px;right:8px;top:8px;display:none;align-items:center;gap:10px;background:#101a42f2;border:1px solid #ffd24a;border-radius:14px;padding:8px 10px;z-index:6;font-size:13px;line-height:1.3;pointer-events:none;box-shadow:0 6px 18px #000a}#intro img{height:44px;width:auto;max-width:70px;object-fit:contain}#intro b{color:#ffd24a;font-size:14px}#intro span{color:#bfd2ff}
+.tag{display:block;font-style:normal;font-size:9px;font-weight:800;margin-top:2px;padding:1px 0;border-radius:6px}.tag.both{background:#1f8f6a}.tag.air{background:#2b6fd0}.tag.ground{background:#8a5a22}.tg{color:#7defff}
+#msg{position:absolute;left:0;right:0;top:36%;text-align:center;font-size:30px;font-weight:900;color:#7defff;text-shadow:0 2px 10px #000;pointer-events:none;opacity:0;transition:opacity .4s}
+.ov{position:fixed;inset:0;background:#050816ea;display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.card{width:100%;max-width:400px;max-height:92vh;overflow:auto;background:#101a42;border:1px solid #4a63c0;border-radius:20px;padding:18px;text-align:center}
+.card h2{margin:0 0 6px;font-size:26px}
+.card p{margin:6px 0;color:#bfd2ff;font-size:15px;line-height:1.4}
+.btn{display:block;width:100%;margin:8px 0 0;height:48px;border-radius:14px;border:0;font-size:17px;font-weight:800;background:linear-gradient(#7defff,#2bb6e6);color:#052033}
+.btn.alt{background:#1a2860;color:#e8f1ff;border:1px solid #4a63c0}
+.stars{font-size:38px;letter-spacing:6px;margin:4px 0;color:#ffd24a}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.tile{background:#00000055;border-radius:12px;padding:8px}.tile b{display:block;font-size:22px}.tile span{font-size:12px;color:#a9c4ff}
+.fun{display:flex;gap:8px}.fun .btn{margin-top:6px;font-size:26px}
+.lv{display:flex;align-items:center;gap:10px;text-align:left;width:100%;margin:8px 0 0;padding:10px 12px;border-radius:14px;border:1px solid #4a63c0;background:#16255a;color:#e8f1ff;font-size:16px;font-weight:700}
+.lv small{display:block;font-weight:500;color:#a9c4ff;font-size:12px}
+.lv .n{font-size:24px;width:34px;text-align:center}
+.lv .s{margin-left:auto;color:#ffd24a;letter-spacing:2px}
+.lv.lock{opacity:.4}
+
+#abx{position:absolute;right:6px;bottom:8px;display:flex;flex-direction:column;gap:6px;z-index:3}
+#abx .ab{width:48px;height:44px;font-size:20px;background:#13204fd9}
+#map{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) center/cover;display:flex;flex-direction:column}
+#mapHead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 8px;background:linear-gradient(#050816ee,#05081600);font-size:13px;color:#a9c4ff}
+#mapHead b{font-size:20px;color:#ffd24a}
+#mapBody{position:relative;flex:1}
+#mapFoot{flex:0 0 auto;text-align:center;padding:8px 10px calc(12px + env(safe-area-inset-bottom));font-size:13px;color:#a9c4ff;background:linear-gradient(#05081600,#050816ee)}
+.pl{position:absolute;transform:translate(-50%,-50%);width:112px;text-align:center;background:none;border:0;color:#e8f1ff;padding:0}
+.pl img{width:86px;height:86px;object-fit:contain;filter:drop-shadow(0 0 14px #7defff88)}
+.pl b{display:block;font-size:14px;text-shadow:0 2px 6px #000}
+.pl small{display:block;font-size:11px;color:#a9c4ff}
+.pl .s{color:#ffd24a;letter-spacing:2px;font-size:13px}
+.pl.lock img{filter:grayscale(1) brightness(.5)}
+.pl.lock{opacity:.8}
+.pl.next img{animation:pp 1.6s ease-in-out infinite}
+@keyframes pp{50%{transform:scale(1.08);filter:drop-shadow(0 0 22px #ffd24acc)}}
+.story{width:100%;max-width:560px;margin:0 auto;background:#0e1738f7;border:1px solid #4a63c0;border-radius:20px 20px 0 0;padding:14px 14px calc(16px + env(safe-area-inset-bottom));display:grid;grid-template-columns:84px 1fr;gap:6px 12px;align-items:start}
+.story img{width:84px;height:100px;object-fit:contain;grid-row:1}
+.stt b{color:#ffd24a;font-size:15px}.stt p{margin:4px 0 0;font-size:16px;line-height:1.4;color:#e8f1ff;min-height:66px}
+.stb{grid-column:1/3;display:flex;gap:8px}.stb .btn{margin-top:4px;height:44px}
+.quote{background:#0000004d;border-radius:12px;padding:8px 10px;margin:8px 0 0;font-size:14px;color:#cfe0ff;text-align:left}.quote b{color:#ffd24a}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <span class="chip" id="hLives">❤ 20</span>
+    <span class="chip" id="hGold">⚡ 0</span>
+    <span class="chip" id="hWave">Wave 0/8</span>
+    <span class="sp"></span>
+    <button class="ib" id="bMenu">☰</button>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="coach"></div>
+    <div id="intro"></div>
+    <div id="msg"></div>
+    <div id="sheet"></div>
+    <div id="abx"><button class="ab" id="aRepair" style="display:none">🔧<small>Repair</small><span class="cd"></span></button><button class="ab" id="aOver" style="display:none">⚡<small>Boost</small><span class="cd"></span></button></div>
+  </div>
+  <div id="bottom">
+    <button class="ib" id="bSpeed" style="height:48px">1×</button>
+    <button class="ib" id="bAuto" style="height:48px;font-size:13px">Auto<br>off</button>
+    <button class="ab" id="aStrike">☄<small>Strike</small><span class="cd"></span></button>
+    <button class="ab" id="aFreeze">❄<small>Freeze</small><span class="cd"></span></button>
+    <button id="go">Send wave 1</button>
+  </div>
+</div>
+
+<div class="ov" id="ovLevels" style="padding:0;background:#050816">
+  <div id="map">
+    <div id="mapHead"><div><b id="mapRank">Cadet</b><br><span id="mapSub"></span></div><button class="ib" id="lvStats">Stats</button></div>
+    <div id="mapBody"></div>
+    <div id="mapFoot">Tap a world to begin.</div>
+  </div>
+</div>
+
+<div class="ov" id="ovStory" style="align-items:flex-end;background:#050816cc"><div class="story">
+  <img id="stImg" alt="">
+  <div class="stt"><b id="stName"></b><p id="stText"></p></div>
+  <div class="stb"><button class="btn alt" id="stSkip">Skip</button><button class="btn" id="stNext">Next ▸</button></div>
+</div></div>
+
+<div class="ov" id="ovCall"><div class="card">
+  <h2>Welcome, cadet</h2>
+  <p>I am Nine, your instructor. What should I call you?</p>
+  <input id="callIn" maxlength="14" value="" placeholder="Rookie" autocomplete="off" style="width:100%;height:46px;border-radius:12px;border:1px solid #4a63c0;background:#16255a;color:#fff;font-size:18px;text-align:center;margin-top:8px">
+  <button class="btn" id="callOk">Begin</button>
+</div></div>
+
+<div class="ov" id="ovMenu"><div class="card">
+  <h2>Paused</h2>
+  <p style="font-size:12px;margin:0 0 4px">Test version. All art was made with AI tools.</p>
+  <button class="btn" id="mResume">Keep playing</button>
+  <button class="btn alt" id="mRestart">Restart this sector</button>
+  <button class="btn alt" id="mLevels">World map</button>
+  <button class="btn alt" id="mUnlock">🔓 Unlock all sectors · $3.99</button>
+  <button class="btn alt" id="mStats">My stats</button>
+  <button class="btn alt" id="mTips">Show tips: <span id="tipState">on</span></button>
+</div></div>
+
+<div class="ov" id="ovEnd"><div class="card">
+  <h2 id="eTitle"></h2>
+  <div class="stars" id="eStars"></div>
+  <p id="eText"></p>
+  <p>Was this fun?</p>
+  <div class="fun"><button class="btn alt" data-fun="1">👍</button><button class="btn alt" data-fun="0">👎</button></div>
+  <div id="eQuote" class="quote"></div>
+  <button class="btn" id="eNext">Back to map</button>
+  <button class="btn alt" id="eAgain">Play again</button>
+  
+</div></div>
+
+<div class="ov" id="ovFun"><div class="card">
+  <h2>Quick question</h2>
+  <p>Are you having fun so far?</p>
+  <div class="fun"><button class="btn alt" data-fun="1">👍</button><button class="btn alt" data-fun="0">👎</button></div>
+</div></div>
+
+<div class="ov" id="ovStats"><div class="card">
+  <h2>My stats</h2>
+  <div class="tiles" id="tiles"></div>
+  <button class="btn" id="sCopy">Copy my stats</button>
+  <button class="btn alt" id="sClose">Close</button>
+</div></div>
+
+<script src="game.js?v=1792531912"></script>
+</body>
+</html>
