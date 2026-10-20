@@ -316,7 +316,7 @@ function resize() {
 window.addEventListener('resize', resize);
 const trace = pts => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); };
 function glow(x, y, r, col, a) { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = a; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
-const ease = x => { x = Math.min(1, Math.max(0, x)); const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const ease = x => { x = Math.min(1, Math.max(0, x)); const c = 1.7; return Math.max(.001, 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2)); };
 
 function drawEnemy(e, time) {
   const q = ePos(e), def = ENEMY[e.type], r = EH[e.type] / 2, air = def.air, col = def.col;
@@ -569,7 +569,8 @@ function loop(ts) {
   const paused = document.querySelector('.ov[style*="flex"]');
   if (!paused && !G.over) { for (let i = 0; i < G.speed; i++) step(dt); stats.secs += dt; if (Math.random() < .01) save(); abilityUI(); }
   else if (G.over) { G.clock += dt; for (let i = G.parts.length - 1; i >= 0; i--) { const q = G.parts[i]; q.life -= dt; if (q.life <= 0) G.parts.splice(i, 1); else { q.x += q.vx * dt; q.y += q.vy * dt; } } for (const f of G.fx) f.t += dt; }
-  draw(ts); requestAnimationFrame(loop);
+  requestAnimationFrame(loop);
+  try { draw(ts); } catch (e) { window.__drawErr = e; try { ctx.restore(); } catch (e2) {} }
 }
 window.__td = { endGame, step, get G() { return G; }, startLevel, sendWave, buildTower, upgradeTower, mergeTowers, mergePartners, useFreeze, useStrike, LEVELS, TOWERS, ENEMY, KINDS, PADS, canHit, get WAVES() { return WAVES; }, prog };
 autoUI(); resize(); startLevel(0, true); if (!prog.call) { hideAll(); show('ovCall'); } else showLevels(); requestAnimationFrame(loop); setTimeout(resize, 200);
