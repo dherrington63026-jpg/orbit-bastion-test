@@ -16,7 +16,7 @@ const LEVELS = [
 
 /* hits: which layers a tower can shoot. type: damage type. ap: armor piercing. */
 const TOWERS = {
-  pulse:   { name:'Pulse',   icon:'🔵', cost:55,  range:70,  dmg:7,  rate:.45, col:'#6fe3ff', hits:['ground','air'], type:'energy',    ap:0, desc:'Fast laser that hits ground AND air.', strong:'scouts, drones', weak:'armor, shields' },
+  pulse:   { name:'Pulse',   icon:'🔵', cost:55,  range:64,  dmg:6,  rate:1.0,  col:'#6fe3ff', hits:['ground','air'], type:'energy',    ap:0, aoe:1, desc:'Sends out a shockwave that hits EVERY enemy in range, ground and air.', strong:'crowds, swarms, scouts', weak:'armor, shields' },
   rail:    { name:'Rail',    icon:'➖', cost:110, range:130, dmg:48, rate:1.5, col:'#ffffff', hits:['ground'],       type:'kinetic',   ap:6, desc:'Ground only. Long range, pierces armor.', strong:'brutes, stalkers', weak:'swarms, air (cannot hit)' },
   missile: { name:'Missile', icon:'🚀', cost:120, range:82,  dmg:20, rate:1.4, col:'#ff9a4a', hits:['ground'],       type:'explosive', ap:0, splash:36, desc:'Ground only. Blast hits groups.', strong:'swarms, groups', weak:'brutes, air (cannot hit)' },
   flak:    { name:'Flak',    icon:'✈️', cost:100, range:92,  dmg:14, rate:.7,  col:'#ffcf6b', hits:['air'],          type:'explosive', ap:0, splash:30, desc:'Air only. Bursts shred flyers.', strong:'scouts, bombers, boss', weak:'ground (cannot hit)' },
@@ -38,7 +38,7 @@ const ENEMY = {
   boss:   { name:'Dreadnought',hp:2300,sp:18, gold:170, leak:10, col:'#ff3b6b', cost:140, air:true,  armor:4, mods:{ electric:.8, explosive:1.2 },      intro:[0,99], note:'BOSS. Flying! Bring Flak.' }
 };
 const EH = { drone: 30, scout: 30, swarm: 22, stalker: 34, shield: 42, bomber: 60, brute: 54, boss: 96 };
-const MUZ = { pulse: [.36, -.05], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
+const MUZ = { pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
 
 
 /* ---------- story ---------- */
@@ -111,7 +111,7 @@ function posAt(pi, d) {
 const ePos = e => posAt(e.pi, e.d);
 function startLevel(L, quiet) {
   LV = L; PL = pathData(L); WAVES = makeWaves(L);
-  G = { lives: START_LIVES, gold: LEVELS[L].gold, wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
+  G = { lives: START_LIVES, gold: LEVELS[L].gold, wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return LEVELS[LV].waves; }
@@ -120,7 +120,7 @@ function flash(t) { const m = $('msg'); m.textContent = t; m.style.opacity = 1; 
 function intro(type) {
   if (prog.seen.includes(type)) return; prog.seen.push(type); save();
   const d = ENEMY[type], el = $('intro');
-  el.innerHTML = '<img src="art/e_' + type + '.webp"><div><b>NINE: NEW · ' + d.name + '</b> · ' + (d.air ? '✈ Air' : '⛰ Ground') + '<br><span>' + d.note + '</span></div>';
+  el.innerHTML = '<img src="art/e_' + type + '.webp?v=' + ART_V + '"><div><b>NINE: NEW · ' + d.name + '</b> · ' + (d.air ? '✈ Air' : '⛰ Ground') + '<br><span>' + d.note + '</span></div>';
   el.style.display = 'flex'; clearTimeout(intro.t); intro.t = setTimeout(() => el.style.display = 'none', 5500);
 }
 
@@ -144,7 +144,7 @@ function spawn(type) {
 function tStats(t) {
   const b = TOWERS[t.kind], k = t.lvl;
   const dm = k <= 3 ? 1 + .65 * (k - 1) : 5.6, rng = k <= 3 ? (k - 1) * 8 : 24, rt = k <= 3 ? 1 - .1 * (k - 1) : .6;
-  return { range: b.range + rng, dmg: b.dmg * dm, rate: b.rate * rt, slow: b.slow ? Math.min(.7, b.slow + (k <= 3 ? .09 * (k - 1) : .3)) : 0, splash: b.splash ? b.splash + (k <= 3 ? 6 * (k - 1) : 20) : 0, chain: b.chain ? b.chain + (k <= 3 ? k - 1 : 4) : 0 };
+  return { range: Math.round(b.range * (k <= 3 ? 1 + .15 * (k - 1) : 1.5)), dmg: b.dmg * dm, rate: b.rate * rt, slow: b.slow ? Math.min(.7, b.slow + (k <= 3 ? .09 * (k - 1) : .3)) : 0, splash: b.splash ? b.splash + (k <= 3 ? 6 * (k - 1) : 20) : 0, chain: b.chain ? b.chain + (k <= 3 ? k - 1 : 4) : 0 };
 }
 const upCost = t => Math.round(TOWERS[t.kind].cost * (t.lvl === 1 ? .75 : 1.1));
 const sellVal = t => Math.round(t.spent * .6);
@@ -153,7 +153,7 @@ const PADS = () => LEVELS[LV].pads;
 const canHit = (kind, e) => TOWERS[kind].hits.includes(ENEMY[e.type].air ? 'air' : 'ground');
 function buildTower(pad, kind) {
   const c = TOWERS[kind].cost; if (G.gold < c || G.towers.some(t => t.pad === pad)) return false;
-  G.gold -= c; G.towers.push({ pad, kind, lvl: 1, cd: .2, spent: c, ang: -Math.PI/2, rec: 0, born: G.clock, acc: 0, ring: 0 });
+  G.gold -= c; G.towers.push({ pad, kind, lvl: 1, cd: .2, spent: c, ang: -Math.PI/2, aim: -Math.PI/2, rec: 0, born: G.clock, acc: 0, ring: 0 });
   const p = PADS()[pad]; G.fx.push({ k: 'build', p, t: 0 }); burst(p[0], p[1], 10, TOWERS[kind].col, 50, .5, 2, true);
   stats.builds[kind] = (stats.builds[kind] || 0) + 1; save(); hud(); return true;
 }
@@ -175,13 +175,15 @@ function dealDamage(e, base, type, ap) {
   const dmg = Math.max(raw * .2, raw - arm); e.hp -= dmg; e.flash = .1; return dmg;
 }
 function muzzle(t) {
-  const p = PADS()[t.pad], sp = spr('t_' + t.kind + '_' + t.lvl), m = MUZ[t.kind];
+  const p = PADS()[t.pad], hi = headInfo(t);
+  if (hi) { const d = (1 - hi.cx) * hi.w; return [p[0] + Math.cos(t.aim) * d, p[1] - 3 + Math.sin(t.aim) * d]; }
+  const sp = spr('t_' + t.kind + '_' + t.lvl), m = MUZ[t.kind];
   if (!sp) return [p[0], p[1]];
   const h = TH[t.lvl], w = sp.naturalWidth / sp.naturalHeight * h, sg = flipOf(t) ? -1 : 1;
   return [p[0] + sg * m[0] * w, p[1] - h * .32 + m[1] * h];
 }
 const TH = [0, 50, 56, 62, 68];
-const flipOf = t => Math.cos(t.ang) < 0 && (t.kind === 'pulse' || t.kind === 'rail' || t.kind === 'missile');
+const flipOf = t => Math.cos(t.ang) < 0 && (t.kind === 'rail' || t.kind === 'missile');
 
 function useStrike(x, y) {
   if (G.strike > 0) return;
@@ -233,11 +235,21 @@ function step(dt) {
     let best = null, bd = -1;
     for (const e of G.enemies) { if (!canHit(t.kind, e)) continue; const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range && e.d > bd) { best = e; bd = e.d; } }
     if (best) { const q = ePos(best); t.ang = Math.atan2(q[1] - (ENEMY[best.type].air ? 14 : 0) - p[1], q[0] - p[0]); t.has = true; } else t.has = false;
+    let ready = true;
+    if (ROT[t.kind]) {
+      if (best) { const df = angDiff(t.ang, t.aim), mx = TURN[t.kind] * dt * (G.overT > 0 ? 1.3 : 1); t.aim += Math.max(-mx, Math.min(mx, df)); ready = Math.abs(angDiff(t.ang, t.aim)) < .2; }
+      else t.aim += Math.sin(G.clock * .7 + t.pad) * .35 * dt;
+    } else t.aim = t.ang;
     t.cd -= dt * (G.overT > 0 ? 1.5 : 1); if (t.cd > 0) continue;
-    if (!best) { t.cd = 0; if (t.kind === 'tesla') { t.acc -= dt; } continue; }
+    if (!best || !ready) { t.cd = 0; if (t.kind === 'tesla') { t.acc -= dt; } continue; }
     t.cd = s.rate; t.rec = 1; fire(t, p, best, s);
   }
   for (const t of G.towers) if (t.kind === 'tesla' && Math.random() < dt * 5) { const p = PADS()[t.pad]; part(p[0] + (Math.random()-.5) * 14, p[1] - 28 + Math.random() * 8, (Math.random()-.5) * 30, (Math.random()-.5) * 30, .25, 1.3, '#e6c8ff', true); }
+  for (let i = G.waves.length - 1; i >= 0; i--) {
+    const w = G.waves[i]; w.r += 300 * dt;
+    for (const e of G.enemies) { if (w.hit.includes(e)) continue; const q = ePos(e), qy = q[1] - (ENEMY[e.type].air ? 14 : 0); if (Math.hypot(q[0] - w.x, qy - w.y) <= w.r) { w.hit.push(e); dealDamage(e, w.dmg, 'energy', 0); burst(q[0], qy, 3, '#bff4ff', 40, .25, 1.4, true); } }
+    if (w.r >= w.max) G.waves.splice(i, 1);
+  }
   for (let i = G.shots.length - 1; i >= 0; i--) {
     const s = G.shots[i], tg = s.tgt;
     if (tg.hp <= 0 || G.enemies.indexOf(tg) < 0) { if (s.kind === 'missile' || s.kind === 'flak') { hitShot(s, null, [s.x, s.y]); } G.shots.splice(i, 1); continue; }
@@ -259,6 +271,7 @@ function step(dt) {
 function fire(t, p, best, s) {
   const m = muzzle(t), b = TOWERS[t.kind], q = ePos(best), air = ENEMY[best.type].air, ty = q[1] - (air ? 14 : 0);
   burst(m[0], m[1], 4, b.col, 55, .25, 1.8, true);
+  if (t.kind === 'pulse') { G.waves.push({ x: PADS()[t.pad][0], y: PADS()[t.pad][1] - 4, r: 8, max: s.range, dmg: s.dmg, hit: [] }); burst(m[0], m[1], 6, '#aef2ff', 40, .3, 1.6, true); return; }
   if (t.kind === 'tesla') { chain(t, m, best, s); return; }
   if (t.kind === 'rail') { // instant beam
     dealDamage(best, s.dmg, b.type, b.ap); G.fx.push({ k: 'beam', a: m, b: [q[0], ty], t: 0 }); burst(q[0], ty, 8, '#cfe6ff', 70, .3, 1.8, true); G.shake = Math.max(G.shake, .08); return;
@@ -302,9 +315,19 @@ function endGame(win) {
 }
 
 /* ---------- drawing ---------- */
+const ART_V = '1792533875';
 const IM = {};
-['bg_1','bg_2','bg_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp'; IM[n] = i; });
+['bg_1','bg_2','bg_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
+const ROT = { rail: 1, missile: 1, flak: 1 }, TURN = { rail: 5, missile: 5.5, flak: 8 }, HL = [0, 44, 48, 53, 58];
+let HM = {}; fetch('art/heads.json?v=' + ART_V).then(r => r.json()).then(j => { HM = j; }).catch(() => {});
+function headInfo(t) {
+  const n = 'h_' + t.kind + '_' + t.lvl, im = spr(n), m = HM[n];
+  if (!ROT[t.kind] || !im || !m) return null;
+  const w = HL[t.lvl] * (t.kind === 'rail' ? 1.15 : 1), h = w * im.naturalHeight / im.naturalWidth;
+  return { im, w, h, cx: m.cx, cy: m.cy };
+}
+const angDiff = (a, b) => { let d = a - b; while (d > Math.PI) d -= 6.283185; while (d < -Math.PI) d += 6.283185; return d; };
 const cv = $('cv'), ctx = cv.getContext('2d');
 let SC = 1, OX = 0, OY = 0;
 const STARS = Array.from({ length: 90 }, () => [Math.random() * W, Math.random() * H, Math.random() * 1.4 + .3, Math.random() * 6]);
@@ -346,14 +369,33 @@ function drawEnemy(e, time) {
   if (air) { ctx.fillStyle = '#cfe6ff'; ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.fillText('✈', q[0], by - 2); }
 }
 function drawTower(t, time) {
-  const p = PADS()[t.pad], b = TOWERS[t.kind], k = t.lvl, c = b.col, sp = spr('t_' + t.kind + '_' + k);
+  const p = PADS()[t.pad], b = TOWERS[t.kind], k = t.lvl, c = b.col, sp = spr('t_' + t.kind + '_' + k), hi = headInfo(t);
+  if (hi) {
+    const age = G.clock - t.born, bs = age < .5 ? ease(age / .5) : 1, r = t.rec, ps = spr('p_pad'), ca = Math.cos(t.aim), sa = Math.sin(t.aim);
+    ctx.save();
+    ctx.translate(p[0], p[1]);
+    glow(0, 0, 28, c, k === 4 ? .35 : .18);
+    if (ps) { const pw = 46 * bs, ph = ps.naturalHeight / ps.naturalWidth * pw; ctx.drawImage(ps, -pw/2, -ph/2, pw, ph); }
+    ctx.translate(-ca * 4 * r, -3 - sa * 4 * r);
+    ctx.rotate(t.aim); ctx.scale(bs * (1 - .04 * r), bs * (1 + .03 * r));
+    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 5; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 4;
+    ctx.drawImage(hi.im, -hi.cx * hi.w, -hi.cy * hi.h, hi.w, hi.h);
+    ctx.shadowColor = k === 4 ? '#ffd24a' : c; ctx.shadowBlur = (k === 4 ? 12 : 4) + 8 * r; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    ctx.globalAlpha = .35 + .2 * Math.sin(time / 200 + t.pad) + r * .4; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(hi.im, -hi.cx * hi.w, -hi.cy * hi.h, hi.w, hi.h);
+    ctx.restore();
+    const m = muzzle(t);
+    if (r > .3) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 12 * r, c, Math.min(1, r * 1.1)); ctx.globalCompositeOperation = 'source-over'; }
+    for (let i = 0; i < Math.min(k, 3); i++) { ctx.beginPath(); ctx.arc(p[0] - (Math.min(k,3)-1)*4 + i*8, p[1] + 25, 2.4, 0, 7); ctx.fillStyle = k === 4 ? '#ffd24a' : '#fff'; ctx.fill(); }
+    if (k === 4) { ctx.font = 'bold 9px system-ui'; ctx.fillStyle = '#ffd24a'; ctx.textAlign = 'center'; ctx.fillText('PRIME', p[0], p[1] + 35); }
+    return;
+  }
   if (!sp) { ctx.beginPath(); ctx.arc(p[0], p[1], 18, 0, 7); ctx.fillStyle = c; ctx.fill(); return; }
   const h = TH[k], w = sp.naturalWidth / sp.naturalHeight * h, flip = flipOf(t), r = t.rec, dx = Math.cos(t.ang), dy = Math.sin(t.ang);
   const age = G.clock - t.born, bs = age < .5 ? ease(age / .5) : 1, idle = Math.sin(time / 500 + t.pad);
   ctx.save(); ctx.translate(p[0], p[1]);
   ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(0, 12, w*.42*bs, 8, 0, 0, 7); ctx.fill();
-  const lean = (t.has ? Math.max(-1, Math.min(1, dy)) * .1 * (flip ? -1 : 1) : Math.sin(time / 900 + t.pad) * .02) + (t.kind === 'flak' && t.has ? dx * .12 : 0);
-  ctx.translate(-dx * 4.5 * r * (t.kind === 'cryo' || t.kind === 'tesla' ? 0 : 1), -h*.32 + idle * .8 - (1 - bs) * 26 * (age < .5 ? 1 : 0));
+  const lean = t.kind === 'pulse' ? Math.sin(time / 700 + t.pad) * .01 : (t.has ? Math.max(-1, Math.min(1, dy)) * .1 * (flip ? -1 : 1) : Math.sin(time / 900 + t.pad) * .02) + (t.kind === 'flak' && t.has ? dx * .12 : 0);
+  ctx.translate(-dx * 4.5 * r * (t.kind === 'cryo' || t.kind === 'tesla' || t.kind === 'pulse' ? 0 : 1), -h*.32 + idle * .8 - (1 - bs) * 26 * (age < .5 ? 1 : 0));
   ctx.rotate(lean); if (flip) ctx.scale(-1, 1); const sq = 1 + .05 * r; ctx.scale(bs * sq, bs / sq);
   ctx.shadowColor = k === 4 ? '#ffd24a' : c; ctx.shadowBlur = (k === 4 ? 16 : 6) + 4 * Math.sin(time / 180 + t.pad) + 10 * r;
   ctx.drawImage(sp, -w/2, -h/2, w, h); ctx.shadowBlur = 0;
@@ -363,7 +405,7 @@ function drawTower(t, time) {
   const m = muzzle(t);
   if (r > .35) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 10 + 12 * r, c, Math.min(1, r * 1.1)); ctx.globalCompositeOperation = 'source-over'; }
   else if (t.kind === 'rail' && t.has) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 6 + 6 * (1 - Math.max(0, t.cd) / tStats(t).rate), '#9fd0ff', .5); ctx.globalCompositeOperation = 'source-over'; }
-  else if (t.kind === 'tesla' || t.kind === 'cryo') { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 3 * Math.sin(time / 150 + t.pad), c, .35); ctx.globalCompositeOperation = 'source-over'; }
+  else if (t.kind === 'tesla' || t.kind === 'cryo' || t.kind === 'pulse') { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 3 * Math.sin(time / 150 + t.pad), c, .35); ctx.globalCompositeOperation = 'source-over'; }
   for (let i = 0; i < Math.min(k, 3); i++) { ctx.beginPath(); ctx.arc(p[0] - (Math.min(k,3)-1)*4 + i*8, p[1] + 21, 2.4, 0, 7); ctx.fillStyle = k === 4 ? '#ffd24a' : '#fff'; ctx.fill(); }
   if (k === 4) { ctx.font = 'bold 9px system-ui'; ctx.fillStyle = '#ffd24a'; ctx.textAlign = 'center'; ctx.fillText('PRIME', p[0], p[1] + 31); }
 }
@@ -385,12 +427,25 @@ function draw(time) {
     const selB = G.build === i, pulse = .5 + .5 * Math.sin(time/500 + i), ps = spr('p_pad');
     if (ps) { const pw = 44, ph = ps.naturalHeight / ps.naturalWidth * pw; ctx.globalAlpha = selB ? 1 : .75 + .25 * pulse * (G.wave === 0 && tips ? 1 : .3); ctx.drawImage(ps, p[0]-pw/2, p[1]-ph/2, pw, ph); ctx.globalAlpha = 1; if (selB) { ctx.beginPath(); ctx.arc(p[0], p[1], 22, 0, 7); ctx.strokeStyle = '#7defff'; ctx.lineWidth = 2; ctx.stroke(); } }
   });
+  if (G.sel && G.sel.lvl < 3) { const sn = tStats({ kind: G.sel.kind, lvl: G.sel.lvl + 1 }), pn = PADS()[G.sel.pad]; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(pn[0], pn[1], sn.range, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
   if (G.sel) { const s = tStats(G.sel), p = PADS()[G.sel.pad]; ctx.beginPath(); ctx.arc(p[0], p[1], s.range, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.09)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); }
   // draw order: ground things by y, towers, then flyers on top
   const sorted = G.enemies.slice().sort((a, b) => ePos(a)[1] - ePos(b)[1]);
   sorted.filter(e => !ENEMY[e.type].air).forEach(e => drawEnemy(e, time));
   G.towers.slice().sort((a, b) => PADS()[a.pad][1] - PADS()[b.pad][1]).forEach(t => drawTower(t, time));
   sorted.filter(e => ENEMY[e.type].air).forEach(e => drawEnemy(e, time));
+  // pulse shockwaves
+  for (const w of G.waves) {
+    const k = Math.min(1, w.r / w.max), a = Math.max(0, 1 - k * k);
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(w.x, w.y, Math.max(0, w.r * .6), w.x, w.y, Math.max(1, w.r));
+    g.addColorStop(0, 'rgba(111,227,255,0)'); g.addColorStop(1, 'rgba(111,227,255,' + (a * .35) + ')');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(w.x, w.y, Math.max(1, w.r), 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(190,245,255,' + a + ')'; ctx.lineWidth = 3.5 * (1 - k) + 1; ctx.shadowColor = '#6fe3ff'; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(w.x, w.y, Math.max(1, w.r), 0, 7); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(111,227,255,' + (a * .6) + ')'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(w.x, w.y, Math.max(1, w.r * .72), 0, 7); ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+  }
   // projectiles
   for (const s of G.shots) {
     const c = TOWERS[s.kind].col;
@@ -466,11 +521,11 @@ function renderSheet() {
     const t = G.sel, b = TOWERS[t.kind], s = tStats(t), p = PADS()[t.pad]; sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
     const uc = upCost(t), partners = mergePartners(t);
     let btns = '';
-    if (t.lvl < 3) btns += '<button class="act up' + (G.gold < uc ? ' no' : '') + '" id="bUp">Upgrade ⚡ ' + uc + '</button>';
+    if (t.lvl < 3) btns += '<button class="act up' + (G.gold < uc ? ' no' : '') + '" id="bUp">Upgrade ⚡ ' + uc + '<br><small>range ' + Math.round(s.range) + ' → ' + tStats({ kind: t.kind, lvl: t.lvl + 1 }).range + '</small></button>';
     else if (t.lvl === 3) btns += '<button class="act mer' + (partners.length ? '' : ' no') + '" id="bMerge">' + (partners.length ? 'Merge → Prime' : 'Merge needs a 2nd max ' + b.name) + '</button>';
     else btns += '<button class="act up no">Prime tower</button>';
     btns += '<button class="act sell" id="bSell">Sell ⚡ ' + sellVal(t) + '</button>';
-    sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + ' · <span class="tg">' + TAG(t.kind) + '</span></h4><div class="info">' + b.desc + ' Range ' + Math.round(s.range) + (b.dmg ? ' · Damage ' + Math.round(s.dmg) : '') + (s.slow ? ' · Slows ' + Math.round(s.slow*100) + '%' : '') + (s.chain ? ' · Jumps ' + s.chain : '') + '<br><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '</div><div class="row">' + btns + '</div>';
+    sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + ' · <span class="tg">' + TAG(t.kind) + '</span></h4><div class="info">' + b.desc + ' Range ' + Math.round(s.range) + (b.dmg ? ' · Damage ' + Math.round(s.dmg) + (b.aoe ? ' to all' : '') : '') + (s.slow ? ' · Slows ' + Math.round(s.slow*100) + '%' : '') + (s.chain ? ' · Jumps ' + s.chain : '') + '<br><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '</div><div class="row">' + btns + '</div>';
     if ($('bUp')) $('bUp').onclick = () => upgradeTower(t);
     if ($('bMerge')) $('bMerge').onclick = () => {
       if (!partners.length) return;
@@ -490,7 +545,7 @@ function showLevels() {
   let nextDone = false;
   WORLDS.forEach((w, i) => {
     const locked = i > 0 && prog.stars[i-1] < 1, st = prog.stars[i], isNext = !locked && st < 1 && !nextDone; if (isNext) nextDone = true;
-    html += '<button class="pl' + (locked ? ' lock' : '') + (isNext ? ' next' : '') + '" data-w="' + i + '" style="left:' + w.pos[0] + '%;top:' + w.pos[1] + '%"><img src="art/' + w.planet + '.webp"><b>' + (locked ? '🔒 ' : '') + w.name + '</b><small>' + w.tag + '</small><span class="s">' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span></button>';
+    html += '<button class="pl' + (locked ? ' lock' : '') + (isNext ? ' next' : '') + '" data-w="' + i + '" style="left:' + w.pos[0] + '%;top:' + w.pos[1] + '%"><img src="art/' + w.planet + '.webp?v=' + ART_V + '"><b>' + (locked ? '🔒 ' : '') + w.name + '</b><small>' + w.tag + '</small><span class="s">' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span></button>';
   });
   html += '<button class="pl lock" data-soon="1" style="left:70%;top:14%"><img src="art/u_planet_gate.webp" style="width:60px;height:60px"><b>Tessara</b><small>Coming soon</small></button>';
   $('mapBody').innerHTML = html;
@@ -503,7 +558,7 @@ let stLines = [], stI = 0, stDone = null;
 function showStory(lines, done) { stLines = lines; stI = 0; stDone = done; renderStory(); hideAll(); show('ovStory'); }
 function renderStory() {
   const l = stLines[stI], sp = SPEAK[l[0]];
-  $('stImg').src = 'art/' + sp.img + '.webp'; $('stName').textContent = sp.name; $('stText').textContent = l[1].replace('{c}', prog.call || 'Cadet');
+  $('stImg').src = 'art/' + sp.img + '.webp?v=' + ART_V; $('stName').textContent = sp.name; $('stText').textContent = l[1].replace('{c}', prog.call || 'Cadet');
   $('stNext').textContent = stI >= stLines.length - 1 ? 'Start ▸' : 'Next ▸';
 }
 $('stNext').onclick = () => { if (stI < stLines.length - 1) { stI++; renderStory(); } else { hide('ovStory'); if (stDone) stDone(); } };
