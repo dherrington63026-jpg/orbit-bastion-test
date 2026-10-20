@@ -566,7 +566,7 @@ $('sCopy').onclick = async () => { try { await navigator.clipboard.writeText(sta
 let last = 0;
 function loop(ts) {
   const dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
-  const paused = document.querySelector('.ov[style*="flex"]');
+  const paused = [...document.querySelectorAll('.ov')].some(o => o.style.display === 'flex');
   if (!paused && !G.over) { for (let i = 0; i < G.speed; i++) step(dt); stats.secs += dt; if (Math.random() < .01) save(); abilityUI(); }
   else if (G.over) { G.clock += dt; for (let i = G.parts.length - 1; i >= 0; i--) { const q = G.parts[i]; q.life -= dt; if (q.life <= 0) G.parts.splice(i, 1); else { q.x += q.vx * dt; q.y += q.vy * dt; } } for (const f of G.fx) f.t += dt; }
   requestAnimationFrame(loop);
