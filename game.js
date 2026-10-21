@@ -74,7 +74,7 @@ const QUIPS = { nine: ['Clean work. Do not look so surprised.', 'Efficient. I am
 
 /* ---------- levels: 10 per world, generated; 3 difficulty tiers ---------- */
 const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(location.search);
-const TIERS = [{ n: 'Normal', hp: 1, gold: 1, budget: 1, sp: 1 }, { n: 'Hard', hp: 1.45, gold: .92, budget: 1.12, sp: 1.05 }, { n: 'Nightmare', hp: 2, gold: .85, budget: 1.25, sp: 1.12 }];
+const TIERS = [{ n: 'Normal', hp: 1, gold: 1, budget: 1, sp: 1 }, { n: 'Hard', hp: 1.7, gold: .92, budget: 1.22, sp: 1.06 }, { n: 'Nightmare', hp: 3.1, gold: .85, budget: 1.6, sp: 1.18 }];
 function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rr = (rng, a, b) => a + (b - a) * rng();
 function serp(n, rng, wide) {
@@ -389,7 +389,7 @@ function step(dt) {
   }
   for (const t of G.towers) if (t.kind === 'gravity') {
     const s = tStats(t), p = PADS()[t.pad]; let any = false;
-    for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0] - p[0], q[1] - p[1]) <= s.range) { e.d = Math.max(0, e.d - s.pull * (e.type === 'boss' ? .3 : 1) * dt); e.slow = Math.max(e.slow, .18); any = true; } }
+    for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0] - p[0], q[1] - p[1]) <= s.range) { const rs = Math.max(.12, 1 - (e.pulled || 0) / 7); e.pulled = (e.pulled || 0) + dt; e.d = Math.max(0, e.d - s.pull * rs * (e.type === 'boss' ? .3 : 1) * dt); e.slow = Math.max(e.slow, .18); any = true; } }
     t.ring -= dt; if (any && t.ring <= 0) { t.ring = 1.0; G.fx.push({ k: 'vortex', p, r: s.range, t: 0 }); SFX.play('gravity'); }
     t.acc -= dt; if (t.acc <= 0) { t.acc = any ? .05 : .2; const a = Math.random() * 6.283, rr = s.range * (.7 + Math.random() * .3); part(p[0] + Math.cos(a) * rr, p[1] + Math.sin(a) * rr, -Math.cos(a) * rr * 1.1 - Math.sin(a) * 18, -Math.sin(a) * rr * 1.1 + Math.cos(a) * 18, .8, 1.6, '#9aa8ff', true); }
   }
@@ -518,7 +518,7 @@ function endGame(win) {
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792562676';
+const ART_V = '1792565051';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -678,6 +678,7 @@ function draw(time) {
     const selB = G.build === i, pulse = .5 + .5 * Math.sin(time/500 + i), ps = spr('p_pad');
     if (ps) { const pw = 44, ph = ps.naturalHeight / ps.naturalWidth * pw; ctx.globalAlpha = selB ? 1 : .75 + .25 * pulse * (G.wave === 0 && tips ? 1 : .3); ctx.drawImage(ps, p[0]-pw/2, p[1]-ph/2, pw, ph); ctx.globalAlpha = 1; if (selB) { ctx.beginPath(); ctx.arc(p[0], p[1], 22, 0, 7); ctx.strokeStyle = '#7defff'; ctx.lineWidth = 2; ctx.stroke(); } }
   });
+  if (G.build != null && G.pick) { const sr = tStats({ kind: G.pick, lvl: 1 }).range, pb = PADS()[G.build]; ctx.beginPath(); ctx.arc(pb[0], pb[1], sr, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.08)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); }
   if (G.sel && G.sel.lvl < 3) { const sn = tStats({ kind: G.sel.kind, lvl: G.sel.lvl + 1 }), pn = PADS()[G.sel.pad]; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(pn[0], pn[1], sn.range, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
   if (G.sel) { const s = tStats(G.sel), p = PADS()[G.sel.pad]; ctx.beginPath(); ctx.arc(p[0], p[1], s.range, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.09)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); }
   // draw order: ground things by y, towers, then flyers on top
@@ -815,27 +816,59 @@ function coach() {
   c.textContent = t; c.style.display = t ? 'block' : 'none';
 }
 function closeSheet() { G.sel = null; G.build = null; $('sheet').style.display = 'none'; }
+/* tower stats shown while building and when a tower is selected: includes tier, research, mastery and rank perks */
+function statRows(kind, lvl) {
+  const b = TOWERS[kind], s = tStats({ kind, lvl }), f1 = x => (Math.round(x * 10) / 10), R = [];
+  const shooter = b.dmg > 0 && !b.beam, dps = shooter ? s.dmg / s.rate : 0;
+  R.push(['Targets', TAG(kind), 0]);
+  if (kind === 'beam') R.push(['Damage', Math.round(s.dmg) + '/s → ' + Math.round(s.dmg * 2) + '/s', s.dmg]);
+  else if (kind === 'pulse') R.push(['Damage', Math.round(s.dmg) + ' to all', s.dmg]);
+  else if (b.dmg > 0) R.push(['Damage', Math.round(s.dmg) + ' / shot', s.dmg]);
+  else R.push(['Damage', 'none', 0]);
+  R.push(['Range', String(s.range), s.range]);
+  if (kind === 'beam') R.push(['Fire rate', 'continuous', 0]);
+  else if (b.dmg > 0) R.push(['Fire rate', f1(1 / s.rate) + ' / s', 1 / s.rate]);
+  if (shooter) R.push(['DPS (one target)', String(Math.round(dps)), dps]);
+  if (s.splash) R.push(['Blast radius', String(s.splash), s.splash]);
+  if (s.chain) R.push(['Chain jumps', String(s.chain), s.chain]);
+  if (s.slow) R.push(['Slows by', Math.round(s.slow * 100) + '%', s.slow]);
+  if (s.pull) R.push(['Pull', f1(s.pull) + ' / s', s.pull]);
+  if (b.ap) R.push(['Armor pierce', String(b.ap), b.ap]);
+  R.push(['Damage type', b.type === 'gravity' || b.type === 'cold' ? b.type : b.type, 0]);
+  return R;
+}
+function bonusLine(kind) {
+  const d = Math.round((.06 * rk(kind + '.dmg') + masteryOf(kind).bonus + perkDmg()) * 100), r = rk(kind + '.rng') * 4, f = rk(kind + '.rate') * 5, p = [];
+  if (d) p.push('+' + d + '% damage'); if (r) p.push('+' + r + '% range'); if (f) p.push('+' + f + '% fire rate'); if (rk(kind + '.sp')) p.push(SP_TXT[kind][0]);
+  return p.length ? '<div class="info"><b>Your upgrades:</b> ' + p.join(' · ') + ' (research, mastery, rank)</div>' : '';
+}
+function statGrid(kind, lvl, nextLvl) {
+  const cur = statRows(kind, lvl), nxt = nextLvl ? statRows(kind, nextLvl) : null;
+  return '<div class="stg">' + cur.map((r, i) => { const n = nxt && nxt[i] && nxt[i][1] !== r[1] && r[2] !== 0 ? nxt[i][1] : ''; return '<div><span>' + r[0] + '</span><b>' + r[1] + '</b>' + (n ? '<i>→ ' + n + '</i>' : '') + '</div>'; }).join('') + '</div>';
+}
 function renderSheet() {
   const sh = $('sheet');
   if (G.build != null) {
-    const p = PADS()[G.build]; sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
-    sh.innerHTML = '<h4>Build a tower</h4><div class="row" style="flex-wrap:wrap">' + avail().map(k => { const b = TOWERS[k]; return '<button class="tb' + (G.gold < b.cost ? ' no' : '') + '" style="flex:1 1 ' + (avail().length > 6 ? '22%' : '14%') + '" data-b="' + k + '"><b>' + b.icon + '</b>' + b.name + '<br>⚡ ' + b.cost + '<i class="tag ' + (b.hits.length === 2 ? 'both' : b.hits[0]) + '">' + (b.hits.length === 2 ? 'G+A' : b.hits[0] === 'air' ? 'AIR' : 'GND') + '</i></button>'; }).join('') + '</div><div class="info" id="binfo">Pick a tower. GND = ground only · AIR = air only · G+A = both.</div>';
-    sh.querySelectorAll('[data-b]').forEach(el => {
-      el.onclick = () => {
-        const k = el.dataset.b; if (G.gold < TOWERS[k].cost) { $('binfo').textContent = 'Not enough ⚡ yet.'; return; }
-        const pd = G.build; if (buildTower(pd, k)) { closeSheet(); G.sel = G.towers.find(t => t.pad === pd); renderSheet(); coach(); }
-      };
-      el.onpointerenter = () => { const b = TOWERS[el.dataset.b]; $('binfo').innerHTML = b.desc + '<br><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak; };
-    });
+    const p = PADS()[G.build], list = avail(); sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
+    if (!G.pick || !list.includes(G.pick)) G.pick = (prog.lastBuild && list.includes(prog.lastBuild)) ? prog.lastBuild : list[0];
+    const k = G.pick, b = TOWERS[k], cost = b.cost, can = G.gold >= cost;
+    sh.innerHTML = '<h4>Build a tower · tap a tower to see its stats</h4><div class="row" style="flex-wrap:wrap">' + list.map(q => { const bb = TOWERS[q]; return '<button class="tb' + (G.gold < bb.cost ? ' no' : '') + (q === k ? ' sel' : '') + '" style="flex:1 1 ' + (list.length > 6 ? '22%' : '14%') + '" data-b="' + q + '"><b>' + bb.icon + '</b>' + bb.name + '<br>⚡ ' + bb.cost + '<i class="tag ' + (bb.hits.length === 2 ? 'both' : bb.hits[0]) + '">' + (bb.hits.length === 2 ? 'G+A' : bb.hits[0] === 'air' ? 'AIR' : 'GND') + '</i></button>'; }).join('') + '</div>'
+      + '<div class="info"><b>' + b.icon + ' ' + b.name + '</b> · ' + b.desc + '</div>' + statGrid(k, 1, 2) + bonusLine(k)
+      + '<div class="info"><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '</div><div class="row"><button class="act up' + (can ? '' : ' no') + '" id="bBuild">Build ' + b.name + ' ⚡ ' + cost + '</button></div>';
+    const doBuild = () => { if (G.gold < cost) { flash('Not enough ⚡ yet'); return; } const pd = G.build; if (buildTower(pd, k)) { prog.lastBuild = k; save(); closeSheet(); G.sel = G.towers.find(t => t.pad === pd); renderSheet(); coach(); } };
+    sh.querySelectorAll('[data-b]').forEach(el => { el.onclick = () => { if (G.pick === el.dataset.b) { doBuild(); return; } G.pick = el.dataset.b; SFX.play('click'); renderSheet(); }; });
+    $('bBuild').onclick = doBuild;
   } else if (G.sel) {
-    const t = G.sel, b = TOWERS[t.kind], s = tStats(t), p = PADS()[t.pad]; sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
+    const t = G.sel, b = TOWERS[t.kind], p = PADS()[t.pad]; sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
     const uc = upCost(t), partners = mergePartners(t);
     let btns = '';
-    if (t.lvl < 3) btns += '<button class="act up' + (G.gold < uc ? ' no' : '') + '" id="bUp">Upgrade ⚡ ' + uc + '<br><small>range ' + Math.round(s.range) + ' → ' + tStats({ kind: t.kind, lvl: t.lvl + 1 }).range + '</small></button>';
+    if (t.lvl < 3) btns += '<button class="act up' + (G.gold < uc ? ' no' : '') + '" id="bUp">Upgrade ⚡ ' + uc + '</button>';
     else if (t.lvl === 3) btns += '<button class="act mer' + (partners.length ? '' : ' no') + '" id="bMerge">' + (partners.length ? 'Merge → Prime' : 'Merge needs a 2nd max ' + b.name) + '</button>';
     else btns += '<button class="act up no">Prime tower</button>';
     btns += '<button class="act sell" id="bSell">Sell ⚡ ' + sellVal(t) + '</button>';
-    sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + ' · <span class="tg">' + TAG(t.kind) + '</span></h4><div class="info">' + b.desc + ' Range ' + Math.round(s.range) + (b.dmg ? ' · Damage ' + Math.round(s.dmg) + (b.aoe ? ' to all' : '') : '') + (s.slow ? ' · Slows ' + Math.round(s.slow*100) + '%' : '') + (s.chain ? ' · Jumps ' + s.chain : '') + '<br><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '<br><b>Mastery:</b> ' + masteryOf(t.kind).name + (masteryOf(t.kind).bonus ? ' (+' + Math.round(masteryOf(t.kind).bonus * 100) + '%)' : '') + ' · ' + masteryOf(t.kind).kills + ' kills</div><div class="row">' + btns + '</div>';
+    const nextLvl = t.lvl < 3 ? t.lvl + 1 : t.lvl === 3 ? 4 : 0, mm = masteryOf(t.kind);
+    sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + (t.lvl < 4 ? '  (green = after upgrade)' : '') + '</h4>' + statGrid(t.kind, t.lvl, t.lvl < 3 ? nextLvl : 0) + (t.lvl === 3 ? '<div class="info">Merge with a second max-tier ' + b.name + ' to make a Prime: about 5x damage.</div>' : '')
+      + bonusLine(t.kind) + '<div class="info"><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '<br><b>Mastery:</b> ' + mm.name + (mm.bonus ? ' (+' + Math.round(mm.bonus * 100) + '%)' : '') + ' · ' + mm.kills + ' kills' + (mm.next ? ' (next at ' + mm.next + ')' : '') + '</div><div class="row">' + btns + '</div>';
     if ($('bUp')) $('bUp').onclick = () => upgradeTower(t);
     if ($('bMerge')) $('bMerge').onclick = () => {
       if (!partners.length) return;
