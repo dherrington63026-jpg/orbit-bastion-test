@@ -499,7 +499,7 @@ function step(dt) {
     G.running = false; stats.wavesCleared++; save();
     if (G.wave >= maxWave()) { endGame(true); return; }
     SFX.play('clear'); G.autoT = 4; const bonus = 25 + G.wave * 7; G.gold += bonus; flash('Wave clear +' + bonus + '⚡'); hud(); coach();
-    if (!G.funAsked && G.wave === 3) { G.funAsked = true; setTimeout(() => { if (!G.over) show('ovFun'); }, 900); }
+    
   }
 }
 function fire(t, p, best, s) {
@@ -536,6 +536,7 @@ function hitShot(s, tg, q) {
     else { burst(q[0], q[1], 16, '#ff9a4a', 90, .5, 2.2, true); burst(q[0], q[1], 8, '#3a3a40', 40, .9, 3.2, false); G.shake = Math.max(G.shake, .12); }
   } else if (tg) { dealDamage(tg, s.dmg, s.type, s.ap, s.kind); burst(q[0], q[1], 4, tcol(s.kind), 45, .25, 1.6, true); }
 }
+function funDue() { const n = (stats.funYes || 0) + (stats.funNo || 0); if (n >= 8) return false; if (!prog.funLast) return stats.wins >= 2; return Date.now() - prog.funLast > 2 * 86400000; }
 function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wave + ' lives ' + G.lives);
   G.over = true; G.running = false; SFX.play(win ? 'win' : 'lose'); if (win) stats.wins++; else stats.losses++; if (G.regret && !win) stats.regretLosses = (stats.regretLosses || 0) + 1;
   const lost = G.maxLives - G.lives, stars = win ? (lost <= 2 ? 3 : lost <= 8 ? 2 : 1) : 0;
@@ -555,11 +556,12 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
   if (win && fin && wd.reward && !prog.ab[wd.reward]) { prog.ab[wd.reward] = true; extra = '<br><b>New ability:</b> ' + REWARDS[wd.reward]; save(); }
   if (win && fin && wd.tower && !prog.tw[wd.tower]) { prog.tw[wd.tower] = true; extra += '<br><b>New tower:</b> ' + TWTXT[wd.tower]; save(); }
   $('eQuote').innerHTML = '<b>' + spk.name + ':</b> ' + q[1].replace('{c}', (prog.call || 'Cadet').replace(/</g, '&lt;')) + extra + (win ? '<br><b>Rank:</b> ' + rankOf() : '');
+  const fd = win && funDue(); $('eFun').style.display = fd ? 'block' : 'none'; document.querySelectorAll('#eFun button').forEach(x => x.style.opacity = 1);
   setTimeout(() => show('ovEnd'), 700);
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792568088';
+const ART_V = '1792568785';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1163,7 +1165,7 @@ $('eAgain').onclick = () => startLevel(LV, IDX, TIER, false, CUR.daily ? { tw: T
 $('eNext').onclick = () => startLevel(LV, IDX + 1, TIER);
 $('eWorld').onclick = () => showWorld(LV);
 document.querySelectorAll('[data-fun]').forEach(b => b.onclick = () => {
-  if (b.dataset.fun === '1') stats.funYes++; else stats.funNo++; save();
+  if (b.dataset.fun === '1') stats.funYes++; else stats.funNo++; prog.funLast = Date.now(); save();
   b.parentElement.querySelectorAll('button').forEach(x => x.style.opacity = x === b ? 1 : .35);
   if (b.closest('#ovFun')) setTimeout(() => hide('ovFun'), 350);
 });
