@@ -358,7 +358,7 @@ function endGame(win) {
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792558818';
+const ART_V = '1792559561';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -384,6 +384,30 @@ const trace = pts => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0
 function glow(x, y, r, col, a) { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = a; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
 const ease = x => { x = Math.min(1, Math.max(0, x)); const c = 1.7; return Math.max(.001, 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2)); };
 
+/* Puppet animation: the picture is split into parts so legs step, arms swing and wings flap (the AI cannot redraw clean walking poses). */
+const FLY = { scout: 1 };
+function puppet(sp, w, h, type, ph, time, e) {
+  const sw = sp.naturalWidth, sh = sp.naturalHeight;
+  if (FLY[type]) {
+    const fl = Math.sin(time / 38 + e.ph * 3), lift = Math.sin(time / 38 + e.ph * 3 + 1.2) * 1.2;
+    ctx.drawImage(sp, 0, sh * .5, sw, sh * .5, -w/2, 0, w, h * .5);
+    ctx.save(); ctx.translate(0, lift); ctx.scale(1, 1 + .16 * fl); ctx.drawImage(sp, 0, 0, sw, sh * .5, -w/2, -h/2, w, h * .5); ctx.restore();
+    return;
+  }
+  if (type === 'bomber' || type === 'boss') { ctx.drawImage(sp, -w/2, -h/2, w, h); return; }
+  const seam = .6, ov = .05, lift = h * .075, sg = w * .028;
+  const sL = Math.sin(ph), sR = Math.sin(ph + Math.PI), lL = Math.max(0, sL) * lift, lR = Math.max(0, sR) * lift;
+  const ly = sh * (seam - ov), lh = sh * (1 - seam + ov), dy = -h / 2 + h * (seam - ov), dh = h * (1 - seam + ov), mw = .04;
+  ctx.drawImage(sp, 0, ly, sw * (.5 + mw), lh, -w/2 + sL * sg, dy - lL, w * (.5 + mw), dh);
+  ctx.drawImage(sp, sw * (.5 - mw), ly, sw * (.5 + mw), lh, -w * mw + sR * sg, dy - lR, w * (.5 + mw), dh);
+  const arm = (type === 'brute' || type === 'shield') ? Math.sin(ph) * .07 : 0, uh = sh * (seam + ov), dh2 = h * (seam + ov);
+  if (arm) {
+    const e1 = .34, e2 = .66, ov2 = .03;
+    ctx.save(); ctx.translate(-w * (.5 - e1 / 2), -h / 2 + h * .18); ctx.rotate(arm); ctx.drawImage(sp, 0, 0, sw * (e1 + ov2), uh, -w * e1 / 2, -h * .18, w * (e1 + ov2), dh2); ctx.restore();
+    ctx.save(); ctx.translate(w * (.5 - (1 - e2) / 2), -h / 2 + h * .18); ctx.rotate(-arm); ctx.drawImage(sp, sw * (e2 - ov2), 0, sw * (1 - e2 + ov2), uh, -w * (1 - e2) / 2 - w * ov2, -h * .18, w * (1 - e2 + ov2), dh2); ctx.restore();
+    ctx.drawImage(sp, sw * (e1 - ov2), 0, sw * (e2 - e1 + 2 * ov2), uh, -w / 2 + w * (e1 - ov2), -h / 2, w * (e2 - e1 + 2 * ov2), dh2);
+  } else ctx.drawImage(sp, 0, 0, sw, uh, -w/2, -h/2, w, dh2);
+}
 function drawEnemy(e, time) {
   const q = ePos(e), def = ENEMY[e.type], r = EH[e.type] / 2, air = def.air, col = def.col;
   const nxt = posAt(e.pi, e.d + 3), ang = Math.atan2(nxt[1] - q[1], nxt[0] - q[0]), flip = nxt[0] < q[0];
@@ -404,10 +428,10 @@ function drawEnemy(e, time) {
   if (air) { // engine glow trailing behind
     glow(-w * .35, h * .05, h * (e.type === 'boss' ? .5 : .35), col, .45 + .2 * Math.sin(time / 90 + e.ph));
   }
-  ctx.shadowColor = col; ctx.shadowBlur = e.type === 'boss' ? 22 : 8; ctx.drawImage(sp, -w/2, -h/2, w, h); ctx.shadowBlur = 0;
+  ctx.shadowColor = col; ctx.shadowBlur = e.type === 'boss' ? 22 : 8; puppet(sp, w, h, e.type, cyc, time, e); ctx.shadowBlur = 0;
   if (e.type === 'shield') { ctx.globalAlpha = .25 + .15 * Math.sin(time / 200); ctx.strokeStyle = '#8fd0ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, h * .62, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
-  if (e.slow > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .28; ctx.shadowColor = '#7fd8ff'; ctx.shadowBlur = 14; ctx.drawImage(sp, -w/2, -h/2, w, h); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
-  if (e.flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .65; ctx.drawImage(sp, -w/2, -h/2, w, h); }
+  if (e.slow > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .28; ctx.shadowColor = '#7fd8ff'; ctx.shadowBlur = 14; puppet(sp, w, h, e.type, cyc, time, e); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
+  if (e.flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .65; puppet(sp, w, h, e.type, cyc, time, e); }
   ctx.restore();
   const by = q[1] + hop - h/2 - 8;
   if (e.hp < e.max) { const bw = Math.max(18, w*.8); ctx.fillStyle = '#000b'; ctx.fillRect(q[0]-bw/2, by, bw, 3.5); ctx.fillStyle = e.hp/e.max > .5 ? '#5be07a' : e.hp/e.max > .25 ? '#ffd24a' : '#ff5470'; ctx.fillRect(q[0]-bw/2, by, bw*Math.max(0, e.hp/e.max), 3.5); }
