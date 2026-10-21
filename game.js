@@ -15,6 +15,8 @@ const LEVELS = [
 ];
 
 /* hits: which layers a tower can shoot. type: damage type. ap: armor piercing. */
+LEVELS.push({ name: 'Glacier Mir', sub: 'Frozen platforms, frost storms', waves: 8, hp: 1, gold: 300, hue: 195, paths: null, pads: null, bossM: .85, g0: 12, hazard: 'frost', bossSkin: 'icebreaker', bossElem: 'ice',
+  pool: ['frostdrone', 'rimewing', 'swarm', 'stalker', 'shield', 'bomber', 'glacier'], poolIntro: { frostdrone: [0, 1], rimewing: [0, 2], swarm: [1, 1], stalker: [2, 1], shield: [4, 1], bomber: [6, 1], glacier: [7, 1] } });
 const TOWERS = {
   pulse:   { name:'Pulse',   icon:'🔵', cost:55,  range:64,  dmg:6,  rate:1.0,  col:'#6fe3ff', hits:['ground','air'], type:'energy',    ap:0, aoe:1, desc:'Sends out a shockwave that hits EVERY enemy in range, ground and air.', strong:'crowds, swarms, scouts', weak:'armor, shields' },
   rail:    { name:'Rail',    icon:'➖', cost:110, range:130, dmg:48, rate:1.5, col:'#ffffff', hits:['ground'],       type:'kinetic',   ap:6, desc:'Ground only. Long range, pierces armor.', strong:'brutes, stalkers', weak:'swarms, air (cannot hit)' },
@@ -27,7 +29,7 @@ const TOWERS = {
 };
 /* elements: each element beats its opposite. Elemental enemies take +50% from the opposite element, -50% from their own. */
 const ELEMS = { fire: { n: 'Fire', ic: '🔥', opp: 'ice' }, ice: { n: 'Ice', ic: '❄', opp: 'fire' }, storm: { n: 'Storm', ic: '⚡', opp: 'wind' }, wind: { n: 'Wind', ic: '🌪', opp: 'storm' }, light: { n: 'Light', ic: '☀', opp: 'void' }, void: { n: 'Void', ic: '🌀', opp: 'light' } };
-TOWERS.cryo.elem = 'ice'; TOWERS.tesla.elem = 'storm'; TOWERS.beam.elem = 'light'; TOWERS.gravity.elem = 'void';
+TOWERS.missile.elem = 'fire'; TOWERS.flak.elem = 'wind'; TOWERS.cryo.elem = 'ice'; TOWERS.tesla.elem = 'storm'; TOWERS.beam.elem = 'light'; TOWERS.gravity.elem = 'void';
 TOWERS.tesla.locked = 1;
 const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla', 'beam', 'gravity'];
 const LOADOUT_N = 6;
@@ -50,31 +52,38 @@ const ENEMY = {
   brute:  { name:'Brute',     hp:300,  sp:22, gold:22,  leak:3,  col:'#ff8a3a', cost:22,  air:false, armor:5, mods:{ explosive:.7, kinetic:1.4 },       intro:[10,3], note:'Heavy armor shrugs off weak hits. Use Rail.' },
   boss:   { name:'Dreadnought',hp:2300,sp:18, gold:170, leak:10, col:'#ff3b6b', cost:140, air:true,  armor:4, mods:{ electric:.8, explosive:1.2 },      intro:[999,1], note:'BOSS. Flying! Bring Flak.' }
 };
-const EH = { drone: 30, scout: 30, swarm: 22, stalker: 34, shield: 42, bomber: 60, brute: 54, boss: 96 };
+ENEMY.frostdrone = { name: 'Frost Drone', hp: 34, sp: 40, gold: 5, leak: 1, col: '#9fe0ff', cost: 5, air: false, armor: 0, mods: {}, intro: [999, 1], elem: 'ice', note: 'A drone armored in ice. Fire (Missile) melts it; ice barely scratches it.' };
+ENEMY.rimewing = { name: 'Rime Wing', hp: 18, sp: 78, gold: 4, leak: 1, col: '#cfeeff', cost: 4, air: true, armor: 0, mods: {}, intro: [999, 1], elem: 'ice', note: 'FLYING and fast, made of ice. Flak and Pulse can hit it.' };
+ENEMY.glacier = { name: 'Glacier Brute', hp: 320, sp: 22, gold: 24, leak: 3, col: '#8fd0ff', cost: 24, air: false, armor: 4, mods: { explosive: .9, kinetic: 1.3 }, intro: [999, 1], elem: 'ice', note: 'Heavy ice armor. Rail pierces it; Fire (Missile) does extra damage.' };
+const EH = { frostdrone: 30, rimewing: 30, glacier: 54, drone: 30, scout: 30, swarm: 22, stalker: 34, shield: 42, bomber: 60, brute: 54, boss: 96 };
 const MUZ = { beam: [.42, 0], gravity: [0, -.4], pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
 
 
 /* ---------- story ---------- */
-const SPEAK = { nine: { name: 'Nine', img: 'u_nine' }, quill: { name: 'Quill', img: 'u_quill' }, oru: { name: 'Warden Oru', img: 'u_oru' } };
+const SPEAK = { mira: { name: 'Mira', img: 'u_mira' }, nine: { name: 'Nine', img: 'u_nine' }, quill: { name: 'Quill', img: 'u_quill' }, oru: { name: 'Warden Oru', img: 'u_oru' } };
 const WORLDS = [
   { lv: 0, name: 'Bastion Academy', tag: 'The Exam', planet: 'u_planet_academy', pos: [30, 78],
     intro: [['nine', 'Welcome to the Bastion Academy, Cadet {c}. I am Nine. I have trained every defender you have ever heard of, and a few you have not.'], ['nine', 'Today is your exam. Build towers on the glowing hexes, send the waves, and do not let anything touch the core.'], ['nine', 'Ground enemies walk. Air enemies fly. Not every tower can hit both, so read the little tags.']],
-    win: ['nine', 'Passed. Do not let it go to your head. It will anyway. Orders just arrived: the Halcyon Ring is under attack. Pack a bag. Take a Cryo emitter from the vault. It is cold, and I am told so is my sense of humour.'], tower: 'cryo',
+    win: ['nine', 'Passed. Do not let it go to your head. It will anyway. Orders just arrived: the Halcyon Ring is under attack. Pack a bag. '],
     lose: ['nine', 'Failed? Nobody fails the exam, they just take it twice. Again.'], reward: null },
   { lv: 1, name: 'Halcyon Ring', tag: 'Orbital habitat', planet: 'u_planet_halcyon', pos: [70, 56],
     intro: [['quill', 'Quill here, Halcyon Ring maintenance. The bombers showed up an hour ago and my coffee is still warm. Please hurry.'], ['nine', 'Bombers fly and wear armor, Cadet {c}. Flak is your friend. So is Arc against shields.']],
-    win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you two: the Repair Pulse for emergencies, and a prototype Beam Prism tower. I also found an Arc coil in the storage bay. Do not ask where I got the crystal.'], tower: ['beam', 'tesla'],
+    win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you two: the Repair Pulse for emergencies, and a prototype Beam Prism tower. Do not ask where I got the crystal.'], tower: 'beam',
     lose: ['quill', 'Hang on, I will patch the hull. Want to try again?'], reward: 'repair' },
   { lv: 2, name: 'Gatefall', tag: 'Twin gates', planet: 'u_planet_gate', pos: [30, 34],
     intro: [['oru', 'Two gates, one core, and nowhere to sit down. Welcome to Gatefall.'], ['nine', 'They arrive from both sides and meet at the core. Cover both lanes, Cadet {c}.']],
     win: ['oru', 'Both gates held. Take the Overcharge: every tower fires faster for a short while. And take this Gravity Well. It does not hurt anything. It simply makes them late.'], tower: 'gravity',
     lose: ['oru', 'The gates are patient. So are we. Again.'], reward: 'over' }
 ];
+WORLDS.push({ lv: 3, name: 'Glacier Mir', tag: 'Expansion · Ice', planet: 'u_planet_glacier', pos: [74, 26], paid: true, price: 2.99, freeLv: 3, elem: 'ice', tower: 'cryo',
+  intro: [['mira', 'Mira, station chief. Welcome to Glacier Mir, where the thermostat is a rumour. When a frost storm rolls through, it freezes a turret solid mid-shot, and I get to stand there and watch.'], ['nine', 'Ice enemies shrug off ice and fear fire, Cadet {c}. Missile is a fire tower: it burns them, and the storms cannot freeze it. If a tower does freeze, tap it and pay for a thaw. Pride is not worth a wave.']],
+  win: ['mira', 'Listen to that. Nothing. No storms, no scrabbling, just the pipes ticking as they warm up. I had forgotten how good that sounds. Take the Cryo tower. It is the cold, but on our side this time. Try not to cuddle it.'],
+  lose: ['mira', 'The cold won that round. It always does the first time. Pour something hot and go again.'], reward: null });
 const TWTXT = { cryo: 'Cryo tower (slows and shoots ice shards; three hits freeze an enemy and the next hit shatters it).', tesla: 'Arc tower (lightning that jumps between enemies).', beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
 const REWARDS = { repair: 'Repair Pulse (wrench button): restores 5 lives, once per level.', over: 'Overcharge (bolt button): towers fire 50% faster for 8 seconds.' };
 const RANKS = [[0, 'Cadet'], [1, 'Defender'], [8, 'Guardian'], [16, 'Warden'], [26, 'Commander']];
 const rankOf = () => { const pts = totalCleared(); let r = RANKS[0][1]; RANKS.forEach(x => { if (pts >= x[0]) r = x[1]; }); return r; };
-const QUIPS = { nine: ['Clean work. Do not look so surprised.', 'Efficient. I am almost impressed.', 'Another one down. The core remains unbothered.', 'You are getting good at this, which is inconvenient for me.'], quill: ['Hull is holding! That was lovely.', 'You are a lifesaver. Literally. Station-wise.', 'I will put a sticker on your file.', 'No leaks. I checked twice.'], oru: ['The gates are quiet again.', 'Patience and good aim. Both useful.', 'Well held.', 'The road thanks you, in its way.'] };
+const QUIPS = { mira: ['The pipes are ticking again. That is the sound of winning.', 'Frost: nothing. Mira: one. Do not tell the frost.', 'Station is warm, tea is hot. You are officially a hero.', 'Another platform saved. I am putting it on the fridge.'], nine: ['Clean work. Do not look so surprised.', 'Efficient. I am almost impressed.', 'Another one down. The core remains unbothered.', 'You are getting good at this, which is inconvenient for me.'], quill: ['Hull is holding! That was lovely.', 'You are a lifesaver. Literally. Station-wise.', 'I will put a sticker on your file.', 'No leaks. I checked twice.'], oru: ['The gates are quiet again.', 'Patience and good aim. Both useful.', 'Well held.', 'The road thanks you, in its way.'] };
 
 /* ---------- levels: 10 per world, generated; 3 difficulty tiers ---------- */
 const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(location.search);
@@ -104,6 +113,7 @@ function ladder(rng) {
 }
 function genPaths(w, i, rng) {
   switch (i) {
+    case 0: return serp(3, rng, false);
     case 1: return serp(4, rng, false);
     case 2: return serp(5, rng, false);
     case 3: return spiral(rng, w % 2 === 1);
@@ -136,22 +146,25 @@ function autoPads(paths, count, rng) {
   return out;
 }
 function buildLevel(w, i, t) {
-  const g = w * LPW + i, T = TIERS[t], base = LEVELS[w], rng = mulberry(w * 1000 + i * 17 + 5);
+  const base = LEVELS[w], g = (base.g0 !== undefined ? base.g0 : w * LPW) + i, T = TIERS[t], rng = mulberry(w * 1000 + i * 17 + 5);
   let paths, pads;
-  if (i === 0) { paths = base.paths; pads = base.pads; } else { paths = genPaths(w, i, rng); pads = autoPads(paths, 15 + Math.min(4, i >> 1) + w, rng); }
-  const finale = i === LPW - 1, mini = i === 4, bm = [.4, .75, 1.1][w] * (finale ? 1 : mini ? .45 : 0);
+  if (i === 0 && base.paths) { paths = base.paths; pads = base.pads; } else { paths = genPaths(w, i, rng); pads = autoPads(paths, 15 + Math.min(4, i >> 1) + w, rng); }
+  const finale = i === LPW - 1, mini = i === 4, bm = (base.bossM || [.4, .75, 1.1][w]) * (finale ? 1 : mini ? .45 : 0);
   return { world: w, idx: i, tier: t, g, name: i === 0 ? base.name : base.name + ' ' + (i + 1), paths, pads,
-    waves: 8 + Math.floor(i * .6) + w, hp: (.72 + .03 * g) * T.hp, gold: Math.round((300 + 8 * g) * T.gold), budget: (1 + .02 * g) * T.budget, spMult: T.sp,
-    boss: finale || mini, bossMult: bm, hue: base.hue, bgv: i % 4 };
+    waves: 8 + Math.floor(i * .6) + Math.min(w, 2), hp: (.72 + .03 * g) * T.hp, gold: Math.round((300 + 8 * g) * T.gold), budget: (1 + .02 * g) * T.budget, spMult: T.sp,
+    boss: finale || mini, bossMult: bm, hue: base.hue, bgv: i % 4, hazard: base.hazard, pool: base.pool, poolIntro: base.poolIntro, bossSkin: base.bossSkin, bossElem: base.bossElem };
 }
 
 /* ---------- waves from a recipe (new enemy types are released slowly) ---------- */
-function eligible(g, w) { return Object.keys(ENEMY).filter(t => t !== 'boss' && (g > ENEMY[t].intro[0] || (g === ENEMY[t].intro[0] && w >= ENEMY[t].intro[1]))); }
+function eligible(lv, w) {
+  if (lv.pool) return lv.pool.filter(t => { const r = lv.poolIntro[t] || [0, 1]; return lv.idx > r[0] || (lv.idx === r[0] && w >= r[1]); });
+  const g = lv.g; return Object.keys(ENEMY).filter(t => t !== 'boss' && ENEMY[t].intro[0] < 900 && (g > ENEMY[t].intro[0] || (g === ENEMY[t].intro[0] && w >= ENEMY[t].intro[1])));
+}
 function makeWaves(lv) {
   const out = [], g = lv.g;
   for (let w = 1; w <= lv.waves; w++) {
     const budget = 38 * (1 + .42 * (w - 1)) * lv.budget * (w === lv.waves ? .7 : 1) * (g === 0 ? .8 : 1);
-    const el = eligible(g, w).filter(t => !lv.airOnly || ENEMY[t].air), fresh = el.filter(t => ENEMY[t].intro[0] === g && ENEMY[t].intro[1] === w);
+    const el = eligible(lv, w).filter(t => !lv.airOnly || ENEMY[t].air), fresh = el.filter(t => { const r = lv.pool ? (lv.poolIntro[t] || [0, 1]) : ENEMY[t].intro; return lv.pool ? (lv.idx === r[0] && w === r[1]) : (r[0] === g && r[1] === w); });
     const picks = fresh.slice();
     for (let i = 0; picks.length < Math.min(3, el.length) && i < 12; i++) { const t = el[(w * 2 + i * 3 + g) % el.length]; if (!picks.includes(t)) picks.push(t); }
     if (w >= 2 && !picks.some(t => ENEMY[t].air) && w % 2 === 0) { const a = el.filter(t => ENEMY[t].air); if (a.length) picks[picks.length - 1] = a[w % a.length]; }
@@ -173,6 +186,7 @@ const SKEY = 'orbitbastion_stats_v1', PKEY = 'orbitbastion_progress_v1';
 function loadJSON(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ? Object.assign(d, v) : d; } catch (e) { return d; } }
 let stats = loadJSON(SKEY, { first: Date.now(), days: {}, runs: 0, wins: 0, losses: 0, wavesCleared: 0, bestWave: 0, funYes: 0, funNo: 0, unlockTaps: 0, speedTaps: 0, builds: {}, upgrades: 0, merges: 0, abilities: 0, secs: 0, kills: 0, air: 0, bossKills: 0, mk: {}, dmgBy: {}, byType: {}, cosTry: 0 });
 let prog = loadJSON(PKEY, { stars: [0, 0, 0], seen: [], call: '', ab: { repair: false, over: false }, sawIntro: [], tw: { beam: false, gravity: false, cryo: false, tesla: false }, tier: 0 });
+if (!prog.owned) prog.owned = {};
 if (!prog.tw) prog.tw = { beam: false, gravity: false, cryo: false, tesla: false };
 if (!prog.ab) prog.ab = { repair: false, over: false }; if (!prog.sawIntro) prog.sawIntro = [];
 const scKey = (w, i, t) => w + '-' + i + '-' + t;
@@ -182,7 +196,9 @@ const cleared = (w, i, t) => starsOf(w, i, t) > 0;
 const worldCleared = w => { let n = 0; for (let i = 0; i < LPW; i++) if (cleared(w, i, 0)) n++; return n; };
 const totalCleared = () => WORLDS.reduce((n, _, w) => n + worldCleared(w), 0);
 const totalStars = () => Object.values(prog.sc).reduce((a, b) => a + b, 0);
-const worldOpen = w => OPEN_ALL || w === 0 || cleared(w - 1, LPW - 1, 0);
+const owned = w => !WORLDS[w].paid || OPEN_ALL || !!(prog.owned && prog.owned[w]);
+const levelPaid = (w, i) => !!WORLDS[w].paid && !owned(w) && i >= (WORLDS[w].freeLv || 3);
+const worldOpen = w => OPEN_ALL || w === 0 || (WORLDS[w].paid ? cleared(0, LPW - 1, 0) : cleared(w - 1, LPW - 1, 0));
 const levelOpen = (w, i) => OPEN_ALL || (i === 0 ? worldOpen(w) : cleared(w, i - 1, 0));
 const tierOpen = (w, i, t) => OPEN_ALL || t === 0 || cleared(w, i, t - 1);
 function save() { try { localStorage.setItem(SKEY, JSON.stringify(stats)); localStorage.setItem(PKEY, JSON.stringify(prog)); } catch (e) {} }
@@ -297,7 +313,7 @@ function posAt(pi, d) {
 const ePos = e => posAt(e.pi, e.d);
 function startLevel(L, idx, tier, quiet, dly) { crumb('start ' + L + '-' + (idx || 0) + '-' + (tier || 0) + (dly ? ' daily' : ''));
   LV = L; IDX = idx || 0; TIER = tier || 0; CUR = buildLevel(LV, IDX, TIER); if (dly) applyTwist(CUR, dly.tw, dly.sd); SFX.theme(L); PL = pathData(CUR); WAVES = makeWaves(CUR);
-  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
+  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, repairUsed: false, overT: 0, overCd: 0 };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return CUR.waves; }
@@ -324,7 +340,7 @@ function sendWave() { crumb('wave ' + (G.wave + 1));
 }
 function spawn(type) {
   const hp = enemyHp(type, G.wave), pi = G.nextPath++ % PL.length;
-  G.enemies.push({ type, hp, max: hp, d: 0, pi, slow: 0, bob: Math.random() * 6, flash: 0, ph: Math.random() * 6, age: 0, trail: 0 });
+  G.enemies.push({ type, elem: ENEMY[type].elem || (type === 'boss' ? CUR.bossElem : undefined), hp, max: hp, d: 0, pi, slow: 0, bob: Math.random() * 6, flash: 0, ph: Math.random() * 6, age: 0, trail: 0 });
   SFX.play('spawn'); intro(type);
   if (type === 'boss') { G.warn = 2.8; G.slowmo = 1.6; G.bossAt = ePos(G.enemies[G.enemies.length - 1]); G.shake = Math.max(G.shake, .7); SFX.play('warn'); SFX.play('roar'); }
 }
@@ -387,7 +403,7 @@ function addFrost(e) {
 }
 function elemMult(d, kind) { const te = kind && TOWERS[kind] && TOWERS[kind].elem; if (!d.elem || !te) return 1; return te === d.elem ? .5 : (ELEMS[d.elem].opp === te ? 1.5 : 1); }
 function dealDamage(e, base, type, ap, kind) {
-  const d = ENEMY[e.type], m = (d.mods && d.mods[type]) || 1, raw = base * m * elemMult(d, kind) * (e.shat ? 1.5 : 1) * (e.slow > 0 && rk('cryo.sp') ? 1.1 : 1), arm = Math.max(0, (d.armor || 0) - (ap || 0));
+  const d = ENEMY[e.type], m = (d.mods && d.mods[type]) || 1, raw = base * m * elemMult(e.elem ? { elem: e.elem } : d, kind) * (e.shat ? 1.5 : 1) * (e.slow > 0 && rk('cryo.sp') ? 1.1 : 1), arm = Math.max(0, (d.armor || 0) - (ap || 0));
   const dmg = Math.max(raw * .2, raw - arm); e.hp -= dmg; e.flash = .1; if (e.shat) { e.shat = false; const q = ePos(e); burst(q[0], q[1], 10, '#dff6ff', 80, .4, 2, true); } if (kind) { e.lk = kind; stats.dmgBy[kind] = (stats.dmgBy[kind] || 0) + dmg; } numPop(e, dmg, type); SFX.play('hit'); if (base >= 30 && e.type !== 'boss') e.d = Math.max(0, e.d - 2.5); return dmg;
 }
 function muzzle(t) {
@@ -408,7 +424,7 @@ function useStrike(x, y) { crumb('strike');
   G.fx.push({ k: 'strike', p: [x, y], t: 0 }); G.fx.push({ k: 'skybeam', p: [x, y], t: 0 }); burst(x, y, 40, '#ffd24a', 140, .9, 3, true);
 }
 function useRepair() { crumb('repair'); if (!prog.ab.repair || G.repairUsed || G.over || G.lives >= G.maxLives) return; G.abUsed++; SFX.play('repair'); G.repairUsed = true; G.lives = Math.min(G.maxLives, G.lives + 5); G.fx.push({ k: 'heal', t: 0 }); flash('Repaired +5 lives'); hud(); }
-function useOver() { crumb('overcharge'); if (!prog.ab.over || G.overCd > 0 || G.over || !G.running) return; SFX.play('boost'); G.overT = 8; G.overCd = 50 * cdMult(); stats.abilities++; G.abUsed = (G.abUsed || 0) + 1; save(); flash('Overcharge!'); for (const t of G.towers) { const p0 = PADS()[t.pad]; G.fx.push({ k: 'merge', p: p0, t: 0, col: '#ffd24a' }); burst(p0[0], p0[1], 10, '#ffd24a', 70, .6, 2, true); } }
+function useOver() { crumb('overcharge'); if (!prog.ab.over || G.overCd > 0 || G.over || !G.running) return; SFX.play('boost'); for (const t of G.towers) { t.frz = 0; t.warn = 0; } G.overT = 8; G.overCd = 50 * cdMult(); stats.abilities++; G.abUsed = (G.abUsed || 0) + 1; save(); flash('Overcharge!'); for (const t of G.towers) { const p0 = PADS()[t.pad]; G.fx.push({ k: 'merge', p: p0, t: 0, col: '#ffd24a' }); burst(p0[0], p0[1], 10, '#ffd24a', 70, .6, 2, true); } }
 function useFreeze() { crumb('freeze'); if (G.freeze > 0 || !G.running) return; SFX.play('freeze'); G.freeze = 40 * cdMult(); G.freezeT = 4; stats.abilities++; G.abUsed = (G.abUsed || 0) + 1; save(); G.fx.push({ k: 'freeze', t: 0 }); for (const e of G.enemies) { const q = ePos(e); G.fx.push({ k: 'ice', p: [q[0], q[1] - (ENEMY[e.type].air ? 14 : 0)], t: 0 }); } }
 
 function killEnemy(e, i) {
@@ -425,20 +441,35 @@ function killEnemy(e, i) {
   if (big >= 2) { G.fx.push({ k: 'puff', p: q, t: 0, col: def.col }); G.shake = Math.max(G.shake, e.type === 'boss' ? 1 : .25); }
 }
 
+const hazardInterval = () => Math.max(5, (16 - CUR.idx * .9) * [1, .75, .55][TIER]) * (.8 + Math.random() * .4);
+const HZ_DUR = () => [4, 5, 6][TIER];
+function hazardStep(dt) {
+  G.hzT -= dt;
+  for (const t of G.towers) {
+    if (t.warn > 0) { t.warn -= dt; if (t.warn <= 0) { t.frz = HZ_DUR(); t.hzMax = t.frz; const p = PADS()[t.pad]; G.fx.push({ k: 'ice', p: [p[0], p[1] - 14], t: 0 }); burst(p[0], p[1], 14, '#cfeeff', 70, .6, 2, true); SFX.play('freeze'); crumb('frozen ' + t.kind); } }
+    if (t.frz > 0) { t.frz -= dt; if (t.frz <= 0) t.frz = 0; }
+  }
+  if (G.hzT <= 0) {
+    const cand = G.towers.filter(t => !(t.frz > 0) && !(t.warn > 0) && TOWERS[t.kind].elem !== 'fire');
+    if (cand.length) { cand[Math.floor(Math.random() * cand.length)].warn = 2; if (!G.hzSeen) { G.hzSeen = true; flash('❄ Frost storm!'); } }
+    G.hzT = hazardInterval();
+  }
+}
 function step(dt) {
   if (G.over) return;
+  if (CUR.hazard === 'frost' && G.running) hazardStep(dt);
   G.overT = Math.max(0, G.overT - dt); G.overCd = Math.max(0, G.overCd - dt);
   G.t += dt; G.clock += dt; G.strike = Math.max(0, G.strike - dt); G.freeze = Math.max(0, G.freeze - dt); G.freezeT = Math.max(0, G.freezeT - dt); G.shake = Math.max(0, G.shake - dt * 2);
   while (G.spawnQ.length && G.spawnQ[0].at <= G.t) spawn(G.spawnQ.shift().type);
   if (autoWave && !G.running && G.wave > 0 && G.wave < maxWave() && G.autoT > 0) { G.autoT -= dt; if (G.autoT <= 0) sendWave(); hud(); }
   for (const e of G.enemies) { e.slow = G.freezeT > 0 ? .6 : 0; if (e.hs > 0) { e.hs -= dt; e.slow = Math.max(e.slow, .2); } }
-  for (const t of G.towers) if (t.kind === 'cryo') {
+  for (const t of G.towers) if (t.kind === 'cryo' && !(t.frz > 0)) {
     const s = tStats(t), p = PADS()[t.pad]; let any = false;
     for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range) { e.slow = Math.max(e.slow, s.slow); any = true; } }
     t.ring -= dt; if (any && t.ring <= 0) { t.ring = 1.3; G.fx.push({ k: 'ring', p, r: s.range, t: 0 }); SFX.play('cryo'); }
     t.acc -= dt; if (t.acc <= 0) { t.acc = any ? .07 : .22; const a = Math.random() * 6.283; part(p[0] + Math.cos(a) * 8, p[1] - 22, Math.cos(a) * 8, -14 - Math.random() * 10, .9, 1.6, '#cfeeff', true); }
   }
-  for (const t of G.towers) if (t.kind === 'gravity') {
+  for (const t of G.towers) if (t.kind === 'gravity' && !(t.frz > 0)) {
     const s = tStats(t), p = PADS()[t.pad]; let any = false;
     for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0] - p[0], q[1] - p[1]) <= s.range) { const rs = Math.max(.12, 1 - (e.pulled || 0) / 7); e.pulled = (e.pulled || 0) + dt; e.d = Math.max(0, e.d - s.pull * rs * (e.type === 'boss' ? .3 : 1) * dt); e.slow = Math.max(e.slow, .18); any = true; } }
     t.ring -= dt; if (any && t.ring <= 0) { t.ring = 1.0; G.fx.push({ k: 'vortex', p, r: s.range, t: 0 }); SFX.play('gravity'); }
@@ -460,6 +491,7 @@ function step(dt) {
   for (const t of G.towers) {
     t.rec = Math.max(0, t.rec - dt * 5);
     const s = tStats(t), p = PADS()[t.pad];
+    if (t.frz > 0) { t.beamOn = null; t.has = false; continue; }
     if (t.kind === 'gravity') continue;
     let best = null, bd = -1;
     for (const e of G.enemies) { if (!canHit(t.kind, e)) continue; const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range && e.d > bd) { best = e; bd = e.d; } }
@@ -574,9 +606,9 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792572236';
+const ART_V = '1792573242';
 const IM = {};
-['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
+['bg_1','bg_2','bg_3','bg_4','lane_1','lane_2','lane_3','lane_4','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
 const ROT = { rail: 1, missile: 1, flak: 1, beam: 1 }, TURN = { rail: 5, missile: 5.5, flak: 8, beam: 6 }, HL = [0, 44, 48, 53, 58];
 let HM = {}; fetch('art/heads.json?v=' + ART_V).then(r => r.json()).then(j => { HM = j; }).catch(() => {});
@@ -601,7 +633,7 @@ function glow(x, y, r, col, a) { const g = ctx.createRadialGradient(x, y, 0, x, 
 const ease = x => { x = Math.min(1, Math.max(0, x)); const c = 1.7; return Math.max(.001, 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2)); };
 
 /* Puppet animation: the picture is split into parts so legs step, arms swing and wings flap (the AI cannot redraw clean walking poses). */
-const FLY = { scout: 1 };
+const FLY = { scout: 1, rimewing: 1 };
 function puppet(sp, w, h, type, ph, time, e) {
   const sw = sp.naturalWidth, sh = sp.naturalHeight;
   if (FLY[type]) {
@@ -616,7 +648,7 @@ function puppet(sp, w, h, type, ph, time, e) {
   const ly = sh * (seam - ov), lh = sh * (1 - seam + ov), dy = -h / 2 + h * (seam - ov), dh = h * (1 - seam + ov), mw = .04;
   ctx.drawImage(sp, 0, ly, sw * (.5 + mw), lh, -w/2 + sL * sg, dy - lL, w * (.5 + mw), dh);
   ctx.drawImage(sp, sw * (.5 - mw), ly, sw * (.5 + mw), lh, -w * mw + sR * sg, dy - lR, w * (.5 + mw), dh);
-  const arm = (type === 'brute' || type === 'shield') ? Math.sin(ph) * .07 : 0, uh = sh * (seam + ov), dh2 = h * (seam + ov);
+  const arm = (type === 'brute' || type === 'shield' || type === 'glacier') ? Math.sin(ph) * .07 : 0, uh = sh * (seam + ov), dh2 = h * (seam + ov);
   if (arm) {
     const e1 = .34, e2 = .66, ov2 = .03;
     ctx.save(); ctx.translate(-w * (.5 - e1 / 2), -h / 2 + h * .18); ctx.rotate(arm); ctx.drawImage(sp, 0, 0, sw * (e1 + ov2), uh, -w * e1 / 2, -h * .18, w * (e1 + ov2), dh2); ctx.restore();
@@ -627,7 +659,7 @@ function puppet(sp, w, h, type, ph, time, e) {
 function drawEnemy(e, time) {
   const q = ePos(e), def = ENEMY[e.type], r = EH[e.type] / 2, air = def.air, col = def.col;
   const nxt = posAt(e.pi, e.d + 3), ang = Math.atan2(nxt[1] - q[1], nxt[0] - q[0]), flip = nxt[0] < q[0];
-  const sp = spr('e_' + e.type);
+  const sp = spr('e_' + (e.type === 'boss' && CUR.bossSkin ? CUR.bossSkin : e.type));
   const spd = def.sp * (1 - e.slow), cyc = time / (1000 / (1 + spd / 14)) * 6.283 + e.ph;
   if (!sp) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(q[0], q[1], r * .6, 0, 7); ctx.fill(); return; }
   const h = EH[e.type], w = sp.naturalWidth / sp.naturalHeight * h;
@@ -653,8 +685,9 @@ function drawEnemy(e, time) {
   const by = q[1] + hop - h/2 - 8;
   if (e.hp < e.max) { const bw = Math.max(18, w*.8); ctx.fillStyle = '#000b'; ctx.fillRect(q[0]-bw/2, by, bw, 3.5); ctx.fillStyle = e.hp/e.max > .5 ? '#5be07a' : e.hp/e.max > .25 ? '#ffd24a' : '#ff5470'; ctx.fillRect(q[0]-bw/2, by, bw*Math.max(0, e.hp/e.max), 3.5); }
   if (air) { ctx.fillStyle = '#cfe6ff'; ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.fillText('✈', q[0], by - 2); }
-  if (def.elem) { const wk = ELEMS[ELEMS[def.elem].opp]; ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(wk.ic, q[0] + (air ? 12 : 0), by - 4); }
+  const eel = e.elem || def.elem; if (eel) { const wk = ELEMS[ELEMS[eel].opp]; ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(wk.ic, q[0] + (air ? 12 : 0), by - 4); }
 }
+const drawFrostLater = [];
 function drawVortex(t, time) {
   const p = PADS()[t.pad], s = tStats(t); ctx.save(); ctx.translate(p[0], p[1]); ctx.globalCompositeOperation = 'lighter';
   glow(0, 0, s.range, '#4a5bd8', .22);
@@ -662,9 +695,25 @@ function drawVortex(t, time) {
   ctx.rotate(time / 600); for (let i = 0; i < 4; i++) { ctx.rotate(1.571); ctx.beginPath(); ctx.arc(0, 0, s.range * .6, 0, .9); ctx.strokeStyle = 'rgba(180,190,255,.35)'; ctx.lineWidth = 2; ctx.stroke(); }
   ctx.restore();
 }
+function drawFrost(t, time) {
+  const p = PADS()[t.pad];
+  if (t.warn > 0) { const a = .5 + .5 * Math.sin(time / 90); ctx.beginPath(); ctx.arc(p[0], p[1], 27, 0, 7); ctx.strokeStyle = 'rgba(160,225,255,' + a + ')'; ctx.lineWidth = 3; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]); ctx.font = '16px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('❄', p[0], p[1] - 34); }
+  if (t.frz > 0) {
+    ctx.save(); ctx.translate(p[0], p[1] - 6);
+    const gr = ctx.createLinearGradient(-22, -28, 22, 16); gr.addColorStop(0, 'rgba(235,250,255,.78)'); gr.addColorStop(.5, 'rgba(150,215,250,.55)'); gr.addColorStop(1, 'rgba(90,170,230,.62)');
+    ctx.shadowColor = '#9fe0ff'; ctx.shadowBlur = 14; ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.moveTo(-21, 15); ctx.lineTo(-17, -6); ctx.lineTo(-9, -20); ctx.lineTo(-1, -29); ctx.lineTo(9, -22); ctx.lineTo(19, -9); ctx.lineTo(23, 15); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(240,252,255,.95)'; ctx.lineWidth = 1.8; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-9, -20); ctx.lineTo(-4, 15); ctx.moveTo(-1, -29); ctx.lineTo(3, 15); ctx.moveTo(9, -22); ctx.lineTo(10, 15); ctx.moveTo(-17, -6); ctx.lineTo(9, -22); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,' + (.5 + .5 * Math.sin(time / 140 + t.pad)) + ')'; ctx.fillRect(-8, -14, 2, 2); ctx.fillRect(7, -4, 2.5, 2.5); ctx.fillRect(-14, 4, 2, 2);
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(p[0], p[1], 28, -1.57, -1.57 + 6.283 * (t.frz / (t.hzMax || 4)), false); ctx.strokeStyle = 'rgba(190,235,255,.95)'; ctx.lineWidth = 3; ctx.stroke();
+  }
+}
 function drawTower(t, time) {
   if (t.kind === 'gravity') drawVortex(t, time);
   if (G.overT > 0) { const p0 = PADS()[t.pad]; ctx.globalCompositeOperation = 'lighter'; glow(p0[0], p0[1], 30, '#ffd24a', .35 + .2 * Math.sin(time / 90)); ctx.globalCompositeOperation = 'source-over'; }
+  drawFrostLater.push(t);
   const p = PADS()[t.pad], b = TOWERS[t.kind], k = t.lvl, c = tcol(t.kind), sp = spr('t_' + t.kind + '_' + k), hi = headInfo(t);
   if (hi) {
     const age = G.clock - t.born, bs = age < .5 ? ease(age / .5) : 1, r = t.rec, ps = spr('p_pad'), ca = Math.cos(t.aim), sa = Math.sin(t.aim);
@@ -759,6 +808,7 @@ function draw(time) {
   sorted.filter(e => !ENEMY[e.type].air).forEach(e => drawEnemy(e, time));
   G.towers.slice().sort((a, b) => PADS()[a.pad][1] - PADS()[b.pad][1]).forEach(t => drawTower(t, time));
   sorted.filter(e => ENEMY[e.type].air).forEach(e => drawEnemy(e, time));
+  while (drawFrostLater.length) drawFrost(drawFrostLater.pop(), time);
   // continuous beams
   for (const t of G.towers) if (t.kind === 'beam' && t.beamOn && G.enemies.includes(t.beamOn)) {
     const m = muzzle(t), q = ePos(t.beamOn), qy = q[1] - (ENEMY[t.beamOn.type].air ? 14 : 0), rp = (t.ramp || 1) - 1, fl = .8 + .2 * Math.sin(time / 30), w0 = 2 + 4 * rp;
@@ -870,7 +920,7 @@ function updatePreview() {
   if (G.over) { bar.style.display = 'none'; prevKey = ''; return; }
   const nxt = WAVES[G.wave], n = G.wave + 1;
   if (!nxt) { const k = 'done' + G.running; if (k !== prevKey) { prevKey = k; bar.style.display = 'flex'; bar.innerHTML = '<span class="wl">' + (G.running ? 'FINAL WAVE IN PROGRESS' : 'ALL WAVES SENT') + '</span>'; } return; }
-  const hint = waveHint(nxt), key = [LV, IDX, TIER, G.wave, G.running, hint].join('|');
+  const hint = waveHint(nxt) || (CUR.hazard === 'frost' ? '❄ Frost storms freeze random towers (Missile is immune). Tap a frozen tower to thaw it for ⚡20.' : ''), key = [LV, IDX, TIER, G.wave, G.running, hint].join('|');
   if (key === prevKey) return; prevKey = key; bar.style.display = 'flex';
   const counts = {}; nxt.forEach(g => { counts[g[0]] = (counts[g[0]] || 0) + g[1]; });
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -979,6 +1029,7 @@ function renderSheet() {
     else btns += '<button class="act up no">Prime tower</button>';
     const mfee = moveFee(t), canMove = !G.running && G.gold >= mfee;
     btns += '<button class="act mv' + (canMove ? '' : ' no') + '" id="bMove">' + (G.running ? 'Move<br><small>between waves</small>' : 'Move ⚡ ' + mfee) + '</button>';
+    if (t.frz > 0) btns = '<button class="act up' + (G.gold < 20 ? ' no' : '') + '" id="bThaw" style="background:#2b8fd0">Thaw ⚡ 20</button>' + btns;
     btns += '<button class="act sell" id="bSell">Sell ⚡ ' + sellVal(t) + '</button>';
     const nextLvl = t.lvl < 3 ? t.lvl + 1 : t.lvl === 3 ? 4 : 0, mm = masteryOf(t.kind);
     sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + (t.lvl < 4 ? '  (green = after upgrade)' : '') + '</h4>' + statGrid(t.kind, t.lvl, t.lvl < 3 ? nextLvl : 0) + (t.lvl === 3 ? '<div class="info">Merge with a second max-tier ' + b.name + ' to make a Prime: about 5x damage.</div>' : '')
@@ -990,6 +1041,7 @@ function renderSheet() {
       mergeTowers(t, partners[0]); G.sel = t; renderSheet();
     };
     $('bMove').onclick = () => { if (tooSoon()) return; if (G.running) { flash('Move towers between waves'); return; } if (G.gold < mfee) { flash('Not enough ⚡ to move'); return; } G.moving = t; closeSheet(); coach(); };
+    if ($('bThaw')) $('bThaw').onclick = () => { if (tooSoon() || G.gold < 20) return; G.gold -= 20; t.frz = 0; SFX.play('build'); hud(); renderSheet(); };
     $('bSell').onclick = () => { if (tooSoon()) return; sellTower(t); closeSheet(); coach(); };
   } else sh.style.display = 'none';
 }
@@ -998,15 +1050,15 @@ function hideAll() { document.querySelectorAll('.ov').forEach(o => o.style.displ
 
 function showLevels() {
   $('mapRank').textContent = rankOf() + (prog.call ? ' ' + prog.call : ''); $('mapSub').textContent = totalCleared() + ' / ' + WORLDS.length * LPW + ' levels · ★ ' + totalStars() + ' · ' + prog.rp + ' RP';
-  let html = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><polyline points="' + WORLDS.map(w => w.pos.join(',')).join(' ') + ' 70,14" fill="none" stroke="rgba(125,239,255,.35)" stroke-width=".5" stroke-dasharray="1.5 1.5"/></svg>';
+  let html = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><polyline points="' + WORLDS.filter(w => !w.paid).map(w => w.pos.join(',')).join(' ') + '" fill="none" stroke="rgba(125,239,255,.35)" stroke-width=".5" stroke-dasharray="1.5 1.5"/></svg>';
   let nextDone = false;
   WORLDS.forEach((w, i) => {
     const locked = !worldOpen(i), n = worldCleared(i), isNext = !locked && n < LPW && !nextDone; if (isNext) nextDone = true;
-    html += '<button class="pl' + (locked ? ' lock' : '') + (isNext ? ' next' : '') + '" data-w="' + i + '" style="left:' + w.pos[0] + '%;top:' + w.pos[1] + '%"><img src="art/' + w.planet + '.webp?v=' + ART_V + '"><b>' + (locked ? '🔒 ' : '') + w.name + '</b><small>' + w.tag + '</small><span class="s">' + n + ' / ' + LPW + '</span></button>';
+    html += '<button class="pl' + (locked ? ' lock' : '') + (isNext ? ' next' : '') + '" data-w="' + i + '" style="left:' + w.pos[0] + '%;top:' + w.pos[1] + '%"><img src="art/' + w.planet + '.webp?v=' + ART_V + '"><b>' + (locked ? '🔒 ' : '') + w.name + '</b><small>' + w.tag + '</small><span class="s">' + n + ' / ' + LPW + '</span>' + (w.paid ? '<em class="price">' + (owned(i) ? 'OWNED' : '$' + w.price.toFixed(2)) + '</em>' : '') + '</button>';
   });
-  html += '<button class="pl lock" data-soon="1" style="left:70%;top:14%"><img src="art/u_planet_gate.webp" style="width:60px;height:60px"><b>Tessara</b><small>Coming soon</small></button>';
+  html += '<button class="pl lock" data-soon="1" style="left:26%;top:12%"><img src="art/u_planet_cinder.webp?v=' + ART_V + '" style="width:70px;height:70px"><b>Cinder Moon</b><small>Expansion · coming soon</small></button>';
   $('mapBody').innerHTML = html;
-  $('mapBody').querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const i = +b.dataset.w; if (b.classList.contains('lock')) { $('mapFoot').textContent = 'Clear the final level of the world before it first.'; return; } playWorld(i); });
+  $('mapBody').querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const i = +b.dataset.w; if (b.classList.contains('lock')) { $('mapFoot').textContent = WORLDS[i].paid ? 'Finish the Bastion Academy exam first to unlock expansions.' : 'Clear the final level of the world before it first.'; return; } playWorld(i); });
   $('mapBody').querySelectorAll('[data-soon]').forEach(b => b.onclick = () => { stats.soonTaps = (stats.soonTaps || 0) + 1; save(); $('mapFoot').textContent = 'More worlds are on the way. Your tap was counted so we know if you want them.'; });
   $('mapFoot').textContent = (totalCleared() >= 3 && !prog.lastBackup) ? 'Tip: make a backup of your progress (Stats, then Backup & restore).' : 'Tap a world to begin.';
   hideAll(); show('ovLevels');
@@ -1019,15 +1071,25 @@ function showWorld(w) {
   $('wlTiers').querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const t = +b.dataset.t; if (!tierUnlocked(t)) { $('wlFoot').textContent = 'Clear a level on ' + TIERS[t - 1].n + ' to unlock ' + TIERS[t].n + '.'; return; } prog.tier = t; save(); showWorld(w); });
   const t = prog.tier || 0; let html = '';
   for (let i = 0; i < LPW; i++) {
-    const open = levelOpen(w, i) && tierOpen(w, i, t), st = starsOf(w, i, t), boss = i === 4 || i === LPW - 1;
-    html += '<button class="lvb' + (open ? '' : ' lock') + (st ? ' done' : '') + (boss ? ' boss' : '') + '" data-i="' + i + '"><b>' + (open ? (i + 1) : '🔒') + '</b>' + (boss ? '<em>' + (i === LPW - 1 ? 'FINAL' : 'BOSS') + '</em>' : '') + '<span>' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span></button>';
+    const pay = levelPaid(w, i), open = !pay && levelOpen(w, i) && tierOpen(w, i, t), st = starsOf(w, i, t), boss = i === 4 || i === LPW - 1;
+    html += '<button class="lvb' + (open ? '' : ' lock') + (pay ? ' pay' : '') + (st ? ' done' : '') + (boss ? ' boss' : '') + '" data-i="' + i + '"><b>' + (open ? (i + 1) : pay ? '$' : '🔒') + '</b>' + (boss ? '<em>' + (i === LPW - 1 ? 'FINAL' : 'BOSS') + '</em>' : '') + '<span>' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span></button>';
   }
   $('wlGrid').innerHTML = html;
-  $('wlGrid').querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (b.classList.contains('lock')) { $('wlFoot').textContent = tierOpen(w, i, t) ? 'Clear the level before it first.' : 'Clear this level on ' + TIERS[t - 1].n + ' first.'; return; } startLevel(w, i, t); });
-  $('wlFoot').textContent = 'Stars: 3 = lose 2 lives or fewer. Hard and Nightmare give tougher waves.';
+  $('wlGrid').querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (b.classList.contains('pay')) { showBuy(w); return; } if (b.classList.contains('lock')) { $('wlFoot').textContent = tierOpen(w, i, t) ? 'Clear the level before it first.' : 'Clear this level on ' + TIERS[t - 1].n + ' first.'; return; } startLevel(w, i, t); });
+  $('wlFoot').textContent = WORLDS[w].paid && !owned(w) ? 'The first ' + (WORLDS[w].freeLv || 3) + ' levels are free to try. Unlock the rest for $' + WORLDS[w].price.toFixed(2) + '.' : 'Stars: 3 = lose 2 lives or fewer. Hard and Nightmare give tougher waves.';
+  $('wlBuy').style.display = WORLDS[w].paid && !owned(w) ? 'block' : 'none'; $('wlBuy').textContent = 'Unlock ' + WORLDS[w].name + ' · $' + WORLDS[w].price.toFixed(2);
   hideAll(); show('ovWorld');
 }
 $('wlBack').onclick = showLevels;
+let buyWorld = 0;
+function showBuy(w) {
+  buyWorld = w; const wd = WORLDS[w], tw = [].concat(wd.tower || []).map(k => TOWERS[k].icon + ' ' + TOWERS[k].name).join(', ');
+  $('buyTitle').textContent = wd.name; $('buyList').innerHTML = '<li>10 new levels on 3 difficulty tiers</li><li>New tower: <b>' + tw + '</b> (stays yours, usable everywhere)</li><li>A new hazard and new elemental enemies</li><li>Its own story and a new station ally</li><li>The main story never needs it: this is an optional expansion</li>';
+  $('buyOk').textContent = 'Unlock for $' + wd.price.toFixed(2) + ' (free to try in this test)'; $('buyMsg').textContent = 'In this test build nothing is charged. Your tap is counted so we know if people would buy it.';
+  hideAll(); show('ovBuy');
+}
+$('buyOk').onclick = () => { prog.owned[buyWorld] = true; stats.buyTaps = (stats.buyTaps || 0) + 1; save(); crumb('unlock ' + WORLDS[buyWorld].name); SFX.play('upgrade'); showWorld(buyWorld); };
+$('buyNo').onclick = () => showWorld(buyWorld);
 let stLines = [], stI = 0, stDone = null;
 function showStory(lines, done) { stLines = lines; stI = 0; stDone = done; renderStory(); hideAll(); show('ovStory'); }
 function renderStory() {
@@ -1231,7 +1293,7 @@ document.querySelectorAll('[data-fun]').forEach(b => b.onclick = () => {
 });
 function statsText() {
   const days = Object.keys(stats.days).length;
-  return ['Orbit Bastion test stats', 'Days played: ' + days, 'Runs started: ' + stats.runs, 'Wins: ' + stats.wins + '  Losses: ' + stats.losses, 'Waves cleared: ' + stats.wavesCleared, 'Best wave: ' + stats.bestWave, 'Minutes played: ' + Math.round(stats.secs / 60), 'Fun yes/no: ' + stats.funYes + '/' + stats.funNo, 'Unlock taps: ' + stats.unlockTaps, 'Upgrades: ' + stats.upgrades + '  Merges: ' + stats.merges + '  Abilities: ' + stats.abilities, 'Speed taps: ' + stats.speedTaps, 'Auto wave on: ' + autoWave, 'Effects: ' + (LOWFX ? 'low' : 'high') + '  Problems logged: ' + LOG.errs.length + '  FPS: ' + fpsText(), 'Towers moved: ' + (stats.moves || 0) + '  Move fees paid: ' + (stats.moveFees || 0) + '  Restarts from pause menu: ' + (stats.restarts || 0) + '  (within first minute: ' + (stats.earlyRestarts || 0) + ')', 'Towers sold: ' + (stats.sells || 0) + '  Sold within 30 s of building: ' + (stats.regretSells || 0) + '  Lost a level after such a sell: ' + (stats.regretLosses || 0), 'More-worlds taps: ' + (stats.soonTaps || 0), 'Callsign set: ' + !!prog.call, 'Stars per sector: ' + prog.stars.join('/'), 'Towers built: ' + JSON.stringify(stats.builds)].join('\n');
+  return ['Orbit Bastion test stats', 'Days played: ' + days, 'Runs started: ' + stats.runs, 'Wins: ' + stats.wins + '  Losses: ' + stats.losses, 'Waves cleared: ' + stats.wavesCleared, 'Best wave: ' + stats.bestWave, 'Minutes played: ' + Math.round(stats.secs / 60), 'Fun yes/no: ' + stats.funYes + '/' + stats.funNo, 'Unlock taps: ' + stats.unlockTaps, 'Upgrades: ' + stats.upgrades + '  Merges: ' + stats.merges + '  Abilities: ' + stats.abilities, 'Speed taps: ' + stats.speedTaps, 'Auto wave on: ' + autoWave, 'Expansion unlock taps: ' + (stats.buyTaps || 0) + '  Owned: ' + Object.keys(prog.owned || {}).join(','), 'Effects: ' + (LOWFX ? 'low' : 'high') + '  Problems logged: ' + LOG.errs.length + '  FPS: ' + fpsText(), 'Towers moved: ' + (stats.moves || 0) + '  Move fees paid: ' + (stats.moveFees || 0) + '  Restarts from pause menu: ' + (stats.restarts || 0) + '  (within first minute: ' + (stats.earlyRestarts || 0) + ')', 'Towers sold: ' + (stats.sells || 0) + '  Sold within 30 s of building: ' + (stats.regretSells || 0) + '  Lost a level after such a sell: ' + (stats.regretLosses || 0), 'More-worlds taps: ' + (stats.soonTaps || 0), 'Callsign set: ' + !!prog.call, 'Stars per sector: ' + prog.stars.join('/'), 'Towers built: ' + JSON.stringify(stats.builds)].join('\n');
 }
 function showStats() {
   $('dbgLine').textContent = LOG.errs.length ? LOG.errs.length + ' problem' + (LOG.errs.length === 1 ? '' : 's') + ' recorded. Tap Copy debug report and send it to me.' : 'No problems recorded.'; $('sDebug').textContent = 'Copy debug report';
