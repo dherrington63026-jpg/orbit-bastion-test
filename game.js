@@ -561,7 +561,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792569787';
+const ART_V = '1792571121';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -727,9 +727,18 @@ function draw(time) {
     PADS().forEach((p, i) => { if (G.towers.some(t => t.pad === i)) return; ctx.beginPath(); ctx.arc(p[0], p[1], 24 + 2 * Math.sin(time / 150), 0, 7); ctx.strokeStyle = 'rgba(90,255,150,.95)'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.fillStyle = 'rgba(90,255,150,.12)'; ctx.fill(); });
     const mp = PADS()[G.moving.pad]; ctx.beginPath(); ctx.arc(mp[0], mp[1], 26, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.95)'; ctx.lineWidth = 3; ctx.stroke();
   }
-  if (G.build != null && G.pick) { const sr = tStats({ kind: G.pick, lvl: 1 }).range, pb = PADS()[G.build]; ctx.beginPath(); ctx.arc(pb[0], pb[1], sr, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.08)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+  if (G.build != null && G.pick) {
+    const sr = tStats({ kind: G.pick, lvl: 1 }).range, pb = PADS()[G.build], rc = tcol(G.pick), pu = .5 + .5 * Math.sin(time / 300);
+    ctx.beginPath(); ctx.arc(pb[0], pb[1], sr, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.14)'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = rc; ctx.globalAlpha = .8 + .2 * pu; ctx.shadowColor = rc; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    ctx.font = 'bold 12px Rajdhani, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)';
+    const ly = pb[1] + (pb[1] > 300 ? -34 : 34); ctx.strokeText('RANGE ' + sr, pb[0], ly); ctx.fillStyle = '#fff'; ctx.fillText('RANGE ' + sr, pb[0], ly);
+  }
   if (G.sel && G.sel.lvl < 3) { const sn = tStats({ kind: G.sel.kind, lvl: G.sel.lvl + 1 }), pn = PADS()[G.sel.pad]; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(pn[0], pn[1], sn.range, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
-  if (G.sel) { const s = tStats(G.sel), p = PADS()[G.sel.pad]; ctx.beginPath(); ctx.arc(p[0], p[1], s.range, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.09)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+  if (G.sel) {
+    const s = tStats(G.sel), p = PADS()[G.sel.pad]; ctx.beginPath(); ctx.arc(p[0], p[1], s.range, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.12)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.85)'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.font = 'bold 12px Rajdhani, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)'; const ly2 = p[1] + (p[1] > 300 ? -36 : 36); ctx.strokeText('RANGE ' + s.range, p[0], ly2); ctx.fillStyle = '#fff'; ctx.fillText('RANGE ' + s.range, p[0], ly2);
+  }
   // draw order: ground things by y, towers, then flyers on top
   const sorted = G.enemies.slice().sort((a, b) => ePos(a)[1] - ePos(b)[1]);
   sorted.filter(e => !ENEMY[e.type].air).forEach(e => drawEnemy(e, time));
@@ -924,6 +933,11 @@ function statGrid(kind, lvl, nextLvl) {
   return '<div class="stg">' + cur.map((r, i) => { const n = nxt && nxt[i] && nxt[i][1] !== r[1] && r[2] !== 0 ? nxt[i][1] : ''; return '<div><span>' + r[0] + '</span><b>' + r[1] + '</b>' + (n ? '<i>→ ' + n + '</i>' : '') + '</div>'; }).join('') + '</div>';
 }
 const tooSoon = () => performance.now() - (G.shAt || 0) < 350;
+function briefStats(kind) {
+  const rows = statRows(kind, 1), get = l => { const r = rows.find(x => x[0] === l); return r ? r[1] : null; };
+  const items = [['Range', get('Range')], ['Damage', get('Damage')], ['DPS', get('DPS (one target)')], ['Fire rate', get('Fire rate')]].filter(x => x[1]);
+  return '<div class="brief">' + items.map(x => '<span><i>' + x[0] + '</i><b>' + x[1] + '</b></span>').join('') + '</div><div class="info" style="margin-top:2px">The ring on the map shows this tower\'s range. Tap another tower to compare.</div>';
+}
 function renderSheet() {
   const sh = $('sheet');
   const shKey = G.build != null ? 'b' + G.build : G.sel ? 's' + G.sel.pad : ''; if (shKey !== G.shKey) { G.shKey = shKey; G.shAt = performance.now(); }
@@ -932,11 +946,13 @@ function renderSheet() {
     if (!G.pick || !list.includes(G.pick)) G.pick = (prog.lastBuild && list.includes(prog.lastBuild)) ? prog.lastBuild : list[0];
     const k = G.pick, b = TOWERS[k], cost = b.cost, can = G.gold >= cost;
     sh.innerHTML = '<h4>Build a tower · tap a tower to see its stats, then press Build</h4><div class="row" style="flex-wrap:wrap">' + list.map(q => { const bb = TOWERS[q]; return '<button class="tb' + (G.gold < bb.cost ? ' no' : '') + (q === k ? ' sel' : '') + '" style="flex:1 1 ' + (list.length > 6 ? '22%' : '14%') + '" data-b="' + q + '"><b>' + bb.icon + '</b>' + bb.name + '<br>⚡ ' + bb.cost + '<i class="tag ' + (bb.hits.length === 2 ? 'both' : bb.hits[0]) + '">' + (bb.hits.length === 2 ? 'G+A' : bb.hits[0] === 'air' ? 'AIR' : 'GND') + '</i></button>'; }).join('') + '</div>'
-      + '<div class="info"><b>' + b.icon + ' ' + b.name + '</b> · ' + b.desc + '</div>' + statGrid(k, 1, 2) + bonusLine(k)
-      + '<div class="info"><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '</div><div class="row"><button class="act up' + (can ? '' : ' no') + '" id="bBuild">Build ' + b.name + ' ⚡ ' + cost + '</button></div>';
+      + '<div class="info"><b>' + b.icon + ' ' + b.name + '</b> · ' + b.desc + '</div>'
+      + (G.pickMore ? statGrid(k, 1, 2) + bonusLine(k) + '<div class="info"><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '</div>' : briefStats(k))
+      + '<div class="row"><button class="act up' + (can ? '' : ' no') + '" id="bBuild">Build ' + b.name + ' ⚡ ' + cost + '</button><button class="act mv" id="bMore" style="flex:0 0 92px">' + (G.pickMore ? 'Less' : 'Full stats') + '</button></div>';
     const doBuild = () => { if (G.gold < cost) { flash('Not enough ⚡ yet'); return; } const pd = G.build; if (buildTower(pd, k)) { prog.lastBuild = k; save(); closeSheet(); G.sel = G.towers.find(t => t.pad === pd); renderSheet(); coach(); } };
     sh.querySelectorAll('[data-b]').forEach(el => { el.onclick = () => { if (tooSoon()) return; if (G.pick !== el.dataset.b) { G.pick = el.dataset.b; SFX.play('click'); renderSheet(); } }; });
     $('bBuild').onclick = () => { if (tooSoon()) return; doBuild(); };
+    $('bMore').onclick = () => { if (tooSoon()) return; G.pickMore = !G.pickMore; renderSheet(); };
   } else if (G.sel) {
     const t = G.sel, b = TOWERS[t.kind], p = PADS()[t.pad]; sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
     const uc = upCost(t), partners = mergePartners(t);
