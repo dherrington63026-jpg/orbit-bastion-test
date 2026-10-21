@@ -52,6 +52,8 @@ const SFX = (() => {
     lose: () => { [392, 330, 262, 196].forEach((f, i) => tone('sawtooth', f, f * .98, .5, .16, i * .2)); },
     strike: () => { tone('sawtooth', 2000, 60, .8, .3); noise(.9, .5, 'lowpass', 2500, 80, .35); tone('sine', 80, 30, .8, .8, .35); },
     crash: () => { noise(.5, .4, 'lowpass', 1800, 300); tone('sine', 160, 50, .35, .3); noise(.25, .25, 'highpass', 3000, 8000); },
+    gust: () => { noise(.7, .22, 'bandpass', 500, 2600, 0, .9); tone('sine', 220, 120, .5, .06); },
+    gatling: () => { noise(.04, .1, 'highpass', 2500, 7000); tone('square', 520, 380, .05, .035); },
     emp: () => { tone('sawtooth', 900, 120, .4, .16); noise(.3, .2, 'bandpass', 2500, 400); },
     thunder: () => { noise(1.1, .6, 'lowpass', 1600, 60); tone('sine', 60, 30, 1, .6); noise(.12, .5, 'highpass', 3000, 9000); },
     shatter: () => { noise(.35, .3, 'highpass', 3500, 9000); tone('triangle', 2400, 900, .25, .12); tone('sine', 3200, 1500, .3, .08); },
@@ -67,7 +69,7 @@ const SFX = (() => {
     portal: () => { tone('sawtooth', 70, 140, .9, .13); noise(.9, .08, 'bandpass', 300, 1200); }
   };
   // minimum gap between the same sound (several towers firing at once should not turn into noise)
-  const GAP = { fire: .1, pulse: .09, rail: .08, missile: .1, boom: .07, flak: .06, flakburst: .06, arc: .08, cryo: .5, hit: .05, die: .05, bigdie: .2, spawn: .12 };
+  const GAP = { gatling: .06, gust: .2, fire: .1, pulse: .09, rail: .08, missile: .1, boom: .07, flak: .06, flakburst: .06, arc: .08, cryo: .5, hit: .05, die: .05, bigdie: .2, spawn: .12 };
   function play(name) {
     if (!ac || !on) return;
     const now = ac.currentTime, g = GAP[name] || 0;
