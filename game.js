@@ -527,7 +527,7 @@ function endGame(win) {
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792566315';
+const ART_V = '1792567061';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -860,18 +860,20 @@ function statGrid(kind, lvl, nextLvl) {
   const cur = statRows(kind, lvl), nxt = nextLvl ? statRows(kind, nextLvl) : null;
   return '<div class="stg">' + cur.map((r, i) => { const n = nxt && nxt[i] && nxt[i][1] !== r[1] && r[2] !== 0 ? nxt[i][1] : ''; return '<div><span>' + r[0] + '</span><b>' + r[1] + '</b>' + (n ? '<i>→ ' + n + '</i>' : '') + '</div>'; }).join('') + '</div>';
 }
+const tooSoon = () => performance.now() - (G.shAt || 0) < 350;
 function renderSheet() {
   const sh = $('sheet');
+  const shKey = G.build != null ? 'b' + G.build : G.sel ? 's' + G.sel.pad : ''; if (shKey !== G.shKey) { G.shKey = shKey; G.shAt = performance.now(); }
   if (G.build != null) {
     const p = PADS()[G.build], list = avail(); sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
     if (!G.pick || !list.includes(G.pick)) G.pick = (prog.lastBuild && list.includes(prog.lastBuild)) ? prog.lastBuild : list[0];
     const k = G.pick, b = TOWERS[k], cost = b.cost, can = G.gold >= cost;
-    sh.innerHTML = '<h4>Build a tower · tap a tower to see its stats</h4><div class="row" style="flex-wrap:wrap">' + list.map(q => { const bb = TOWERS[q]; return '<button class="tb' + (G.gold < bb.cost ? ' no' : '') + (q === k ? ' sel' : '') + '" style="flex:1 1 ' + (list.length > 6 ? '22%' : '14%') + '" data-b="' + q + '"><b>' + bb.icon + '</b>' + bb.name + '<br>⚡ ' + bb.cost + '<i class="tag ' + (bb.hits.length === 2 ? 'both' : bb.hits[0]) + '">' + (bb.hits.length === 2 ? 'G+A' : bb.hits[0] === 'air' ? 'AIR' : 'GND') + '</i></button>'; }).join('') + '</div>'
+    sh.innerHTML = '<h4>Build a tower · tap a tower to see its stats, then press Build</h4><div class="row" style="flex-wrap:wrap">' + list.map(q => { const bb = TOWERS[q]; return '<button class="tb' + (G.gold < bb.cost ? ' no' : '') + (q === k ? ' sel' : '') + '" style="flex:1 1 ' + (list.length > 6 ? '22%' : '14%') + '" data-b="' + q + '"><b>' + bb.icon + '</b>' + bb.name + '<br>⚡ ' + bb.cost + '<i class="tag ' + (bb.hits.length === 2 ? 'both' : bb.hits[0]) + '">' + (bb.hits.length === 2 ? 'G+A' : bb.hits[0] === 'air' ? 'AIR' : 'GND') + '</i></button>'; }).join('') + '</div>'
       + '<div class="info"><b>' + b.icon + ' ' + b.name + '</b> · ' + b.desc + '</div>' + statGrid(k, 1, 2) + bonusLine(k)
       + '<div class="info"><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '</div><div class="row"><button class="act up' + (can ? '' : ' no') + '" id="bBuild">Build ' + b.name + ' ⚡ ' + cost + '</button></div>';
     const doBuild = () => { if (G.gold < cost) { flash('Not enough ⚡ yet'); return; } const pd = G.build; if (buildTower(pd, k)) { prog.lastBuild = k; save(); closeSheet(); G.sel = G.towers.find(t => t.pad === pd); renderSheet(); coach(); } };
-    sh.querySelectorAll('[data-b]').forEach(el => { el.onclick = () => { if (G.pick === el.dataset.b) { doBuild(); return; } G.pick = el.dataset.b; SFX.play('click'); renderSheet(); }; });
-    $('bBuild').onclick = doBuild;
+    sh.querySelectorAll('[data-b]').forEach(el => { el.onclick = () => { if (tooSoon()) return; if (G.pick !== el.dataset.b) { G.pick = el.dataset.b; SFX.play('click'); renderSheet(); } }; });
+    $('bBuild').onclick = () => { if (tooSoon()) return; doBuild(); };
   } else if (G.sel) {
     const t = G.sel, b = TOWERS[t.kind], p = PADS()[t.pad]; sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
     const uc = upCost(t), partners = mergePartners(t);
@@ -885,14 +887,14 @@ function renderSheet() {
     const nextLvl = t.lvl < 3 ? t.lvl + 1 : t.lvl === 3 ? 4 : 0, mm = masteryOf(t.kind);
     sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + (t.lvl < 4 ? '  (green = after upgrade)' : '') + '</h4>' + statGrid(t.kind, t.lvl, t.lvl < 3 ? nextLvl : 0) + (t.lvl === 3 ? '<div class="info">Merge with a second max-tier ' + b.name + ' to make a Prime: about 5x damage.</div>' : '')
       + bonusLine(t.kind) + '<div class="info"><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '<br><b>Mastery:</b> ' + mm.name + (mm.bonus ? ' (+' + Math.round(mm.bonus * 100) + '%)' : '') + ' · ' + mm.kills + ' kills' + (mm.next ? ' (next at ' + mm.next + ')' : '') + '</div><div class="row">' + btns + '</div>';
-    if ($('bUp')) $('bUp').onclick = () => upgradeTower(t);
+    if ($('bUp')) $('bUp').onclick = () => { if (tooSoon()) return; upgradeTower(t); };
     if ($('bMerge')) $('bMerge').onclick = () => {
-      if (!partners.length) return;
+      if (tooSoon() || !partners.length) return;
       const p0 = PADS()[t.pad]; partners.sort((x, y) => Math.hypot(PADS()[x.pad][0]-p0[0], PADS()[x.pad][1]-p0[1]) - Math.hypot(PADS()[y.pad][0]-p0[0], PADS()[y.pad][1]-p0[1]));
       mergeTowers(t, partners[0]); G.sel = t; renderSheet();
     };
-    $('bMove').onclick = () => { if (G.running) { flash('Move towers between waves'); return; } if (G.gold < mfee) { flash('Not enough ⚡ to move'); return; } G.moving = t; closeSheet(); coach(); };
-    $('bSell').onclick = () => { sellTower(t); closeSheet(); coach(); };
+    $('bMove').onclick = () => { if (tooSoon()) return; if (G.running) { flash('Move towers between waves'); return; } if (G.gold < mfee) { flash('Not enough ⚡ to move'); return; } G.moving = t; closeSheet(); coach(); };
+    $('bSell').onclick = () => { if (tooSoon()) return; sellTower(t); closeSheet(); coach(); };
   } else sh.style.display = 'none';
 }
 const show = id => $(id).style.display = 'flex', hide = id => $(id).style.display = 'none';
