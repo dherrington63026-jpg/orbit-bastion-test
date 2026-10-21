@@ -354,7 +354,7 @@ function posAt(pi, d) {
 const ePos = e => posAt(e.pi, e.d);
 function startLevel(L, idx, tier, quiet, dly) { crumb('start ' + L + '-' + (idx || 0) + '-' + (tier || 0) + (dly ? ' daily' : ''));
   LV = L; IDX = idx || 0; TIER = tier || 0; CUR = buildLevel(LV, IDX, TIER); if (dly) applyTwist(CUR, dly.tw, dly.sd); SFX.theme(L); PL = pathData(CUR); WAVES = makeWaves(CUR);
-  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, vs: (CUR.vents || []).map((pi, k) => ({ pad: pi, t: 7 + k * 4 + Math.random() * 3 })), repairUsed: false, overT: 0, overCd: 0, shards: [], shT: 3, shardHit: 0 };
+  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, vs: (CUR.vents || []).map((pi, k) => ({ pad: pi, t: 7 + k * 4 + Math.random() * 3 })), repairUsed: false, overT: 0, overCd: 0, shards: [], shT: 3, shardHit: 0, ores: [] };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return CUR.waves; }
@@ -497,6 +497,7 @@ function killEnemy(e, i) {
 
 const VENT_R = 78, HEAT_DUR = () => [3.5, 4.5, 5.5][TIER];
 function heatStep(dt) {
+  for (let i = G.ores.length - 1; i >= 0; i--) if (G.clock - G.ores[i].born > G.ores[i].life) G.ores.splice(i, 1);
   for (const t of G.towers) { if (t.warnH > 0) t.warnH -= dt; if (t.frz > 0 && t.fzKind === 'heat' && Math.random() < dt * 9) { const p = PADS()[t.pad]; part(p[0] + (Math.random() - .5) * 14, p[1] - 12, (Math.random() - .5) * 8, -16, .8, 3, 'rgba(120,110,110,.6)', false); } }
   for (const v of G.vs) {
     v.t -= dt; const p = PADS()[v.pad];
@@ -504,6 +505,7 @@ function heatStep(dt) {
     if (v.t <= 0) {
       v.warn = false; v.t = Math.max(6, (14 - CUR.idx * .7) * [1, .8, .6][TIER]) * (.85 + Math.random() * .3);
       G.fx.push({ k: 'erupt', p: [p[0], p[1]], t: 0 }); G.shake = Math.max(G.shake, .35); SFX.play('erupt'); burst(p[0], p[1], 22, '#ff8a3a', 110, .8, 2.6, true);
+      if (G.ores.length < 3) { let ox = p[0], oy = p[1] + 30, bestd = -1; for (let tr = 0; tr < 14; tr++) { const a = Math.random() * 6.283, r = 34 + Math.random() * 14, cx = Math.max(16, Math.min(344, p[0] + Math.cos(a) * r)), cy = Math.max(30, Math.min(570, p[1] + Math.sin(a) * r)); let dl = 1e9; for (const P of CUR.paths) for (let i = 1; i < P.length; i++) { const A = P[i - 1], B = P[i], dx = B[0] - A[0], dy = B[1] - A[1], u = Math.max(0, Math.min(1, ((cx - A[0]) * dx + (cy - A[1]) * dy) / (dx * dx + dy * dy || 1))); dl = Math.min(dl, Math.hypot(A[0] + dx * u - cx, A[1] + dy * u - cy)); } if (dl > bestd) { bestd = dl; ox = cx; oy = cy; } if (dl >= 26) break; } G.ores.push({ x: ox, y: oy, born: G.clock, life: 10 }); if (!G.oreTip0) { G.oreTip0 = true; flash('Magma crystals pop out of vents: tap them for energy'); } burst(ox, oy, 8, '#ffc060', 60, .5, 2, true); }
       for (const t of G.towers) { const q = PADS()[t.pad]; if (Math.hypot(q[0] - p[0], q[1] - p[1]) <= VENT_R && TOWERS[t.kind].elem !== 'ice') { t.frz = HEAT_DUR(); t.hzMax = t.frz; t.fzKind = 'heat'; t.warnH = 0; crumb('overheat ' + t.kind); } }
     }
   }
@@ -628,26 +630,32 @@ function shardStep(dt) {
     if (G.shards.length < 5) { const p = pickShards(PADS(), CUR.paths, Math.random, 1, G.shards.map(o => [o.x, o.y]))[0]; if (p) G.shards.push({ x: p[0], y: p[1], sz: p[2], sd: p[3], dead: 0, born: 0, delay: 1.5 }); }
   }
 }
+function collectOre(o) {
+  G.ores.splice(G.ores.indexOf(o), 1); burst(o.x, o.y - 6, 18, '#ffd27a', 110, .7, 2.2, true); G.fx.push({ k: 'ring', p: [o.x, o.y], r: 28, t: 0 }); SFX.play('shatter');
+  const g = 8; G.gold += g; G.nums.push({ x: o.x, y: o.y - 12, t: 0, text: '+' + g + '⚡', col: NCOL.gold, big: false }); hud(); stats.ores = (stats.ores || 0) + 1;
+}
+function drawOres(time) {
+  const im = spr('p_ore'); if (!im) return;
+  for (const o of G.ores) {
+    const age = G.clock - o.born, left = o.life - age, pop = Math.min(1, age / .35), e = 1 - Math.pow(1 - pop, 3), bob = Math.sin(time / 260 + o.x) * 1.6, hgt = 42 * e, wid = im.naturalWidth / im.naturalHeight * hgt;
+    if (left < 2.5 && Math.floor(time / 130) % 2) continue;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(o.x, o.y - 8 + bob, 0, o.x, o.y - 8 + bob, 32); gl.addColorStop(0, 'rgba(255,170,60,' + (.45 + .15 * Math.sin(time / 200)) + ')'); gl.addColorStop(1, 'rgba(255,120,20,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(o.x, o.y - 8 + bob, 32, 0, 7); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(o.x, o.y + 4, wid * .4, 3, 0, 0, 7); ctx.fill();
+    ctx.drawImage(im, o.x - wid / 2, o.y + 4 - hgt + bob, wid, hgt); ctx.restore();
+  }
+}
 function drawShards(time) {
   for (const sh of G.shards) {
     if (sh.dead > 0) continue;
     if (sh.delay > 0) { const f = 1 - sh.delay / 1.5, pu = .5 + .5 * Math.sin(time / 70); ctx.save(); ctx.translate(sh.x, sh.y); ctx.beginPath(); ctx.ellipse(0, 3, 10 + 8 * f, 5 + 3 * f, 0, 0, 7); ctx.fillStyle = 'rgba(120,200,255,' + (.12 + .2 * f) + ')'; ctx.fill(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(190,235,255,' + (.5 + .4 * pu) + ')'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
-      const fz = sh.sz * 12, fy = -Math.pow(Math.min(1, sh.delay / .5), 2) * 330; if (sh.delay < .5) { ctx.globalCompositeOperation = 'lighter'; const tr = ctx.createLinearGradient(0, fy - 90, 0, fy); tr.addColorStop(0, 'rgba(160,220,255,0)'); tr.addColorStop(1, 'rgba(200,240,255,.7)'); ctx.fillStyle = tr; ctx.fillRect(-4, fy - 90, 8, 90); ctx.globalCompositeOperation = 'source-over'; const g1 = ctx.createLinearGradient(0, fy - fz * 2, 0, fy + 4); g1.addColorStop(0, '#f4fcff'); g1.addColorStop(1, '#3a88d4'); ctx.fillStyle = g1; ctx.beginPath(); ctx.moveTo(-fz * .6, fy); ctx.lineTo(0, fy - fz * 2.6); ctx.lineTo(fz * .6, fy); ctx.lineTo(0, fy + fz * .5); ctx.closePath(); ctx.fill(); }
+      const fz = sh.sz * 12, fy = -Math.pow(Math.min(1, sh.delay / .5), 2) * 330; if (sh.delay < .5) { ctx.globalCompositeOperation = 'lighter'; const tr = ctx.createLinearGradient(0, fy - 90, 0, fy); tr.addColorStop(0, 'rgba(160,220,255,0)'); tr.addColorStop(1, 'rgba(200,240,255,.7)'); ctx.fillStyle = tr; ctx.fillRect(-4, fy - 110, 8, 100); ctx.globalCompositeOperation = 'source-over'; const im = spr('p_shard'); if (im) { const hh = fz * 3.1, ww = im.naturalWidth / im.naturalHeight * hh; ctx.drawImage(im, -ww / 2, fy + 8 - hh, ww, hh); } }
       ctx.restore(); continue; }
     const grow = Math.min(1, (G.clock - sh.born + .001) / .25), e = 1 - Math.pow(1 - grow, 3), z = sh.sz * e * 12;
     ctx.save(); ctx.translate(sh.x, sh.y);
     if (sh.blk && G.clock - sh.blk < .6) { ctx.beginPath(); ctx.arc(0, -z * .6, SHARD_R + 5 + 3 * Math.sin(time / 90), 0, 7); ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(190,235,255,.9)'; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]); }
     ctx.fillStyle = 'rgba(0,10,30,.45)'; ctx.beginPath(); ctx.ellipse(1, 6, 3 + z * .95, 3.4, 0, 0, 7); ctx.fill();
     ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(0, -z * .5, 0, 0, -z * .5, z * 2.1); gl.addColorStop(0, 'rgba(120,210,255,' + (.34 + .1 * Math.sin(time / 700 + sh.sd)) + ')'); gl.addColorStop(1, 'rgba(120,210,255,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, -z * .5, z * 2.1, 0, 7); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
-    // a cluster of 5 jagged spikes: tall centre, leaning sides; each has a lit and a shaded facet
-    const sp = [[0, 1.55, 0, 3.4], [-1, 1.0, -.38, 3], [1, 1.15, .34, 3.1], [-1.9, .65, -.7, 2.4], [1.8, .6, .66, 2.2]];
-    sp.forEach((q, k) => {
-      const bx = q[0] * z * .34, h = q[1] * z * 1.5, w = q[3] * z * .24, lean = q[2] * z * .9, tx = bx + lean, ty = -h, j = Math.sin(sh.sd * (k + 1)) * z * .08;
-      const g1 = ctx.createLinearGradient(bx, 4, tx, ty); g1.addColorStop(0, '#2a78c8'); g1.addColorStop(.55, '#8fd6ff'); g1.addColorStop(1, '#f4fcff');
-      ctx.fillStyle = g1; ctx.beginPath(); ctx.moveTo(bx - w, 4); ctx.lineTo(bx - w * .35 + j, -h * .45); ctx.lineTo(tx, ty); ctx.lineTo(bx + w * .55, -h * .3); ctx.lineTo(bx + w, 4); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = 'rgba(8,50,120,.5)'; ctx.beginPath(); ctx.moveTo(bx + w * .12, 4); ctx.lineTo(tx, ty); ctx.lineTo(bx + w * .55, -h * .3); ctx.lineTo(bx + w, 4); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = 'rgba(235,250,255,.85)'; ctx.lineWidth = .9; ctx.beginPath(); ctx.moveTo(bx - w, 4); ctx.lineTo(bx - w * .35 + j, -h * .45); ctx.lineTo(tx, ty); ctx.stroke();
-    });
+    const im = spr('p_shard'); if (im) { const hh = z * 3.1, ww = im.naturalWidth / im.naturalHeight * hh; ctx.drawImage(im, -ww / 2, 8 - hh, ww, hh); }
     const gp = (time / 900 + sh.sd) % 3; if (gp < 1) { const a = Math.sin(gp * Math.PI), gx = Math.sin(sh.sd) * z * .3, gy = -z * (1.2 + Math.cos(sh.sd) * .4); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(255,255,255,' + a + ')'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(gx - 5 * a, gy); ctx.lineTo(gx + 5 * a, gy); ctx.moveTo(gx, gy - 5 * a); ctx.lineTo(gx, gy + 5 * a); ctx.stroke(); }
     ctx.restore();
   }
@@ -826,9 +834,9 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792577177';
+const ART_V = '1792577535';
 const IM = {};
-['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
+['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_shard'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
 const ROT = { rail: 1, missile: 1, flak: 1, beam: 1, fire: 1 }, TURN = { rail: 5, missile: 5.5, flak: 8, beam: 6, fire: 7 }, HL = [0, 44, 48, 53, 58];
 let HM = {}; fetch('art/heads.json?v=' + ART_V).then(r => r.json()).then(j => { HM = j; }).catch(() => {});
@@ -1009,6 +1017,7 @@ function draw(time) {
   ctx.globalCompositeOperation = 'source-over';
   drawPortals(hue, time);
   if (G.shards.length) drawShards(time);
+  if (G.ores.length) drawOres(time);
   const d = PL[0].pts[PL[0].pts.length - 1], cs = spr('p_core');
   if (cs) { const ch = 52, cw = cs.naturalWidth / cs.naturalHeight * ch; ctx.shadowColor = '#7defff'; ctx.shadowBlur = 20 + 6 * Math.sin(time / 300); ctx.drawImage(cs, d[0]-cw/2, d[1]+8-ch/2, cw, ch); ctx.shadowBlur = 0; }
   PADS().forEach((p, i) => {
@@ -1482,6 +1491,8 @@ cv.addEventListener('pointerdown', ev => {
     if (ph >= 0 && !G.towers.some(o => o.pad === ph) && !(CUR.vents && CUR.vents.includes(ph))) { if (moveTower(mt, ph)) { G.sel = mt; } } else flash('Move cancelled');
     coach(); renderSheet(); return;
   }
+  const orr = G.ores.find(q => Math.hypot(q.x - x, q.y - 8 - y) < 20);
+  if (orr) { collectOre(orr); if (!G.oreTip) { G.oreTip = true; } return; }
   const shh = PADS().some(p => Math.hypot(p[0] - x, p[1] - y) < 16) ? null : G.shards.find(q => !q.dead && !(q.delay > 0) && Math.abs(q.x - x) < 15 && y > q.y - 32 && y < q.y + 8);
   if (shh) { breakShard(shh); return; }
   let hit = -1, bd = 26;
@@ -1570,6 +1581,7 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
     for (const t of G.towers.slice().sort((a, b) => a.lvl - b.lvl)) if (t.lvl < 3 && upgradeTower(t)) return;
     for (const t of G.towers) if (t.frz > 0 && G.gold >= 20) { G.gold -= 20; t.frz = 0; SFX.play('build'); hud(); return; }
     const sh = G.shards.find(s => !s.dead && s.blk && G.clock - s.blk < 1.2); if (sh) { breakShard(sh); return; }
+    if (G.ores.length) { collectOre(G.ores[0]); return; }
     if (!G.running && G.wave < maxWave()) sendWave();
   } catch (e) {} }, 350);
 } }
