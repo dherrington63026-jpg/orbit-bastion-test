@@ -509,6 +509,43 @@ function heatStep(dt) {
   }
 }
 let LAVA = null;
+// real flowing lava: work out which way each stretch of the painted river runs (from the shape of the glowing channel), then slide the paint along that direction on the GPU, cross-fading two phases so it never snaps
+function buildLavaGL(bc, Hm, mw, mh) {
+  let g, gl; try { g = document.createElement('canvas'); g.width = mw; g.height = mh; gl = g.getContext('webgl', { antialias: false, preserveDrawingBuffer: true }); } catch (e) { return null; }
+  if (!gl) return null;
+  const fw = Math.ceil(mw / 4), fh = Math.ceil(mh / 4), N = fw * fh, hs = new Float32Array(N);
+  for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) hs[Math.min(fh - 1, y >> 2) * fw + Math.min(fw - 1, x >> 2)] += Hm[y * mw + x] / 16;
+  const box = (a, r) => { const t = new Float32Array(N), o = new Float32Array(N); for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) { let sm = 0, c = 0; for (let k = -r; k <= r; k++) { const xx = x + k; if (xx >= 0 && xx < fw) { sm += a[y * fw + xx]; c++; } } t[y * fw + x] = sm / c; } for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) { let sm = 0, c = 0; for (let k = -r; k <= r; k++) { const yy = y + k; if (yy >= 0 && yy < fh) { sm += t[yy * fw + x]; c++; } } o[y * fw + x] = sm / c; } return o; };
+  const hb = box(hs, 1), gxx = new Float32Array(N), gxy = new Float32Array(N), gyy = new Float32Array(N);
+  for (let y = 1; y < fh - 1; y++) for (let x = 1; x < fw - 1; x++) { const gx = hb[y * fw + x + 1] - hb[y * fw + x - 1], gy = hb[(y + 1) * fw + x] - hb[(y - 1) * fw + x]; gxx[y * fw + x] = gx * gx; gxy[y * fw + x] = gx * gy; gyy[y * fw + x] = gy * gy; }
+  let a = box(box(box(gxx, 4), 4), 4), b = box(box(box(gxy, 4), 4), 4), c = box(box(box(gyy, 4), 4), 4);
+  const hh = box(hs, 2), fd = new Uint8Array(N * 4);
+  for (let i = 0; i < N; i++) {
+    const A = a[i] - c[i], B = 2 * b[i], phi = .5 * Math.atan2(B, A), coh = Math.min(1, Math.sqrt(A * A + B * B) / (a[i] + c[i] + 1e-9));
+    let fx = -Math.sin(phi), fy = Math.cos(phi); if (fy < 0) { fx = -fx; fy = -fy; }
+    let dx = (1 - coh) * 0 + coh * fx, dy = (1 - coh) * 1 + coh * fy; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+    fd[i * 4] = (dx * .5 + .5) * 255; fd[i * 4 + 1] = (dy * .5 + .5) * 255; fd[i * 4 + 2] = Math.min(255, hh[i] * 255 * 1.6); fd[i * 4 + 3] = 255;
+  }
+  const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); return o; };
+  const pr = gl.createProgram();
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 uv; void main(){ uv = vec2(p.x * .5 + .5, .5 - p.y * .5); gl_Position = vec4(p, 0., 1.); }'));
+  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, 'precision mediump float; varying vec2 uv; uniform sampler2D uB, uF; uniform float uT;\n' +
+    'void main(){ vec4 fl = texture2D(uF, uv); vec2 d = (fl.rg - .5) * 2.; float heat = fl.b;\n' +
+    ' float sp = .26, t1 = fract(uT * sp), t2 = fract(uT * sp + .5), w = abs(1. - 2. * t1);\n' +
+    ' vec2 wob = vec2(sin(uv.y * 40. + uT * 1.3), cos(uv.x * 34. + uT * 1.1)) * .0025 * heat;\n' +
+    ' vec3 c1 = texture2D(uB, uv - d * .075 * t1 + wob).rgb, c2 = texture2D(uB, uv - d * .075 * t2 + wob).rgb, base = texture2D(uB, uv).rgb;\n' +
+    ' vec3 fc = mix(c1, c2, w); fc *= 1. + .16 * sin(uT * 2.2 + uv.y * 26. + uv.x * 9.) * heat;\n' +
+    ' gl_FragColor = vec4(mix(base, fc, smoothstep(.08, .45, heat)), 1.); }'));
+  gl.linkProgram(pr); if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null; gl.useProgram(pr);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const tex = (unit, fn) => { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); fn(); };
+  tex(0, () => gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bc));
+  tex(1, () => gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, fw, fh, 0, gl.RGBA, gl.UNSIGNED_BYTE, fd));
+  gl.uniform1i(gl.getUniformLocation(pr, 'uB'), 0); gl.uniform1i(gl.getUniformLocation(pr, 'uF'), 1);
+  const uT = gl.getUniformLocation(pr, 'uT'); gl.viewport(0, 0, mw, mh);
+  return { g, draw: t => { gl.uniform1f(uT, t / 1000); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); } };
+}
 // molten rivers wandering down the middle catwalk: soft glow, hot core, slow slugs of brighter lava
 const RIV = [[-.05, .05, .0062, 0, 1], [.045, .046, .0079, 2.3, .8], [.0, .03, .0105, 4.4, 1.15]];
 function lavaRivers(time) {
@@ -536,14 +573,17 @@ function lavaFlow(bgi, time) {
     if (bv === 1 || bv === 3) { x.translate(cv.width, 0); x.scale(-1, 1); } if (bv === 2 || bv === 3) { x.translate(0, cv.height); x.scale(1, -1); }
     const k = Math.max(cv.width / bgi.naturalWidth, cv.height / bgi.naturalHeight) * (1.05 + (bv === 2 ? .25 : 0));
     x.drawImage(bgi, (cv.width - bgi.naturalWidth * k) / 2, (cv.height - bgi.naturalHeight * k) / 2, bgi.naturalWidth * k, bgi.naturalHeight * k);
+    const bc = document.createElement('canvas'); bc.width = mw; bc.height = mh; bc.getContext('2d').drawImage(c, 0, 0); const Hm = new Float32Array(mw * mh);
     let id; try { id = x.getImageData(0, 0, mw, mh); } catch (e) { LAVA = { key, off: 1 }; return; }
     const d = id.data;
-    for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], bl = d[i + 2], q = Math.max(0, Math.min(1, (r - 150) / 90)), org = Math.max(0, Math.min(1, (r * .85 - g) / 40)); d[i + 3] = bl < 140 ? Math.pow(q, 1.6) * org * 135 : 0; d[i + 1] = Math.min(190, g * 1.05); d[i + 2] = Math.min(50, bl); }
+    for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], bl = d[i + 2], q = Math.max(0, Math.min(1, (r - 150) / 90)), org = Math.max(0, Math.min(1, (r * .85 - g) / 40)); Hm[i >> 2] = bl < 140 ? Math.pow(q, 1.6) * org : 0; d[i + 3] = bl < 140 ? Math.pow(q, 1.6) * org * 135 : 0; d[i + 1] = Math.min(190, g * 1.05); d[i + 2] = Math.min(50, bl); }
     x.putImageData(id, 0, 0);
     const t = document.createElement('canvas'); t.width = mw; t.height = mh;
-    LAVA = { key, mask: c, tmp: t, ctx: t.getContext('2d'), mw, mh };
+    let fl = null; try { fl = buildLavaGL(bc, Hm, mw, mh); } catch (e) { logErr('lava gl: ' + e.message, 'gl'); }
+    LAVA = { key, mask: c, tmp: t, ctx: t.getContext('2d'), mw, mh, fl };
   }
   if (LAVA.off) return;
+  if (LAVA.fl) { LAVA.fl.draw(time); const dx = Math.sin(time / 9000) * 7, dy = Math.cos(time / 11000) * 7; ctx.drawImage(LAVA.fl.g, dx - 8, dy - 8, cv.width + 16, cv.height + 16); ctx.fillStyle = 'rgba(4,8,22,.34)'; ctx.fillRect(0, 0, cv.width, cv.height); return; }
   const x = LAVA.ctx, w = LAVA.mw, h = LAVA.mh;
   x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, w, h); x.globalAlpha = .5 + .2 * Math.sin(time / 900); x.drawImage(LAVA.mask, 0, 0); x.globalAlpha = 1;
   x.globalCompositeOperation = 'source-atop';
@@ -786,7 +826,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792576704';
+const ART_V = '1792577006';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
