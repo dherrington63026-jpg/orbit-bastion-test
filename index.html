@@ -102,6 +102,17 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 #msg{font-size:38px;letter-spacing:4px;text-transform:uppercase;text-shadow:0 0 16px #3fd0ff,0 2px 8px #000}
 .pl b{letter-spacing:1px;text-transform:uppercase}
 #warn img{display:block;margin:0 auto 4px;height:96px;filter:drop-shadow(0 0 18px #ff2a4a)}#warn span{display:block}
+
+#wl{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) center/cover;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))}
+#wlHead{display:flex;align-items:center;gap:12px;font-size:13px;color:#a9c4ff}#wlHead b{font-size:22px;color:#ffd24a;letter-spacing:1px;text-transform:uppercase}
+#wlTiers{display:flex;gap:8px;margin:14px 0 10px}
+.chip2{flex:1;height:40px;border:0;color:#e8f1ff;font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;background:linear-gradient(#1d3a86,#0e1d4f);box-shadow:inset 0 0 0 1px #3fd0ff66;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
+.chip2.on{background:linear-gradient(#8ff0ff,#1aa7e0);color:#021a2a}.chip2.lock{opacity:.45}
+#wlGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;flex:1;align-content:start;overflow:auto}
+.lvb{position:relative;aspect-ratio:1;border:0;color:#e8f1ff;background:linear-gradient(#1a2c6a,#0b1538);box-shadow:inset 0 0 0 1px #3fd0ff77,inset 0 0 14px #3fd0ff22;clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lvb b{font-size:24px;line-height:1}.lvb span{font-size:10px;color:#ffd24a;letter-spacing:1px;margin-top:3px}.lvb em{position:absolute;top:2px;left:0;right:0;font-style:normal;font-size:8px;color:#ff7a8e;letter-spacing:1px}
+.lvb.done{box-shadow:inset 0 0 0 1px #ffd24a99,inset 0 0 14px #ffd24a33}.lvb.boss{box-shadow:inset 0 0 0 1px #ff5a7a99,inset 0 0 14px #ff5a7a33}.lvb.lock{opacity:.4}
+#wlFoot{font-size:12px;color:#a9c4ff;text-align:center;padding-top:8px;min-height:28px}
 </style>
 </head>
 <body>
@@ -154,12 +165,18 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn" id="callOk">Begin</button>
 </div></div>
 
+<div class="ov" id="ovWorld" style="padding:0;background:#050816"><div id="wl">
+  <div id="wlHead"><button class="ib" id="wlBack">&lsaquo; Map</button><div><b id="wlTitle"></b><br><span id="wlSub"></span></div></div>
+  <div id="wlTiers"></div><div id="wlGrid"></div><div id="wlFoot"></div>
+</div></div>
+
 <div class="ov" id="ovMenu"><div class="card">
   <h2>Paused</h2>
   <p style="font-size:12px;margin:0 0 4px">Test version. All art was made with AI tools.</p>
   <button class="btn" id="mResume">Keep playing</button>
   <button class="btn alt" id="mRestart">Restart this sector</button>
   <button class="btn alt" id="mLevels">World map</button>
+  <button class="btn alt" id="mWorld">Level select</button>
   <button class="btn alt" id="mUnlock">🔓 Unlock all sectors · $3.99</button>
   <button class="btn alt" id="mStats">My stats</button>
   <button class="btn alt" id="mSound">Sound effects: on</button>
@@ -174,7 +191,8 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <p>Was this fun?</p>
   <div class="fun"><button class="btn alt" data-fun="1">👍</button><button class="btn alt" data-fun="0">👎</button></div>
   <div id="eQuote" class="quote"></div>
-  <button class="btn" id="eNext">Back to map</button>
+  <button class="btn" id="eNext">Next level</button>
+  <button class="btn alt" id="eWorld">Level select</button>
   <button class="btn alt" id="eAgain">Play again</button>
   
 </div></div>
@@ -192,7 +210,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="sClose">Close</button>
 </div></div>
 
-<script src="sfx.js?v=1792560328"></script>
-<script src="game.js?v=1792560328"></script>
+<script src="sfx.js?v=1792560920"></script>
+<script src="game.js?v=1792560920"></script>
 </body>
 </html>

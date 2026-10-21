@@ -33,12 +33,12 @@ const TAG = k => TOWERS[k].hits.length === 2 ? 'Ground+Air' : TOWERS[k].hits[0] 
 const ENEMY = {
   drone:  { name:'Drone',     hp:32,   sp:40, gold:4,   leak:1,  col:'#ff6b8b', cost:4,   air:false, armor:0, mods:{},                                  intro:[0,1], note:'Basic ground robot.' },
   scout:  { name:'Wasp Scout',hp:16,   sp:78, gold:3,   leak:1,  col:'#ffd24a', cost:3,   air:true,  armor:0, mods:{},                                  intro:[0,2], note:'FLYING and fast. Only Pulse, Arc and Flak can hit air.' },
-  swarm:  { name:'Swarm Bug', hp:10,   sp:55, gold:2,   leak:1,  col:'#7dff9a', cost:2,   air:false, armor:0, mods:{ explosive:1.5, electric:1.3 },     intro:[0,4], note:'Many tiny bugs. Weak to Missile and Arc.' },
-  stalker:{ name:'Stalker',   hp:70,   sp:62, gold:6,   leak:1,  col:'#b88bff', cost:6,   air:false, armor:1, mods:{ kinetic:1.3, explosive:.85 },      intro:[0,6], note:'Fast armored ground hunter. Rail hits it hard.' },
-  shield: { name:'Shield Walker',hp:120,sp:30,gold:9,   leak:2,  col:'#6fb7ff', cost:9,   air:false, armor:0, mods:{ energy:.5, electric:1.6 },         intro:[1,1], note:'Energy shield blocks Pulse. Weak to Arc.' },
-  bomber: { name:'Bomber',    hp:170,  sp:26, gold:12,  leak:2,  col:'#ff9a4a', cost:12,  air:true,  armor:3, mods:{ explosive:1.3, energy:.85 },       intro:[1,3], note:'FLYING and armored. Use Flak.' },
-  brute:  { name:'Brute',     hp:300,  sp:22, gold:22,  leak:3,  col:'#ff8a3a', cost:22,  air:false, armor:5, mods:{ explosive:.7, kinetic:1.4 },       intro:[1,5], note:'Heavy armor shrugs off weak hits. Use Rail.' },
-  boss:   { name:'Dreadnought',hp:2300,sp:18, gold:170, leak:10, col:'#ff3b6b', cost:140, air:true,  armor:4, mods:{ electric:.8, explosive:1.2 },      intro:[0,99], note:'BOSS. Flying! Bring Flak.' }
+  swarm:  { name:'Swarm Bug', hp:10,   sp:55, gold:2,   leak:1,  col:'#7dff9a', cost:2,   air:false, armor:0, mods:{ explosive:1.5, electric:1.3 },     intro:[1,2], note:'Many tiny bugs. Weak to Missile and Arc.' },
+  stalker:{ name:'Stalker',   hp:70,   sp:62, gold:6,   leak:1,  col:'#b88bff', cost:6,   air:false, armor:1, mods:{ kinetic:1.3, explosive:.85 },      intro:[3,1], note:'Fast armored ground hunter. Rail hits it hard.' },
+  shield: { name:'Shield Walker',hp:120,sp:30,gold:9,   leak:2,  col:'#6fb7ff', cost:9,   air:false, armor:0, mods:{ energy:.5, electric:1.6 },         intro:[5,1], note:'Energy shield blocks Pulse. Weak to Arc.' },
+  bomber: { name:'Bomber',    hp:170,  sp:26, gold:12,  leak:2,  col:'#ff9a4a', cost:12,  air:true,  armor:3, mods:{ explosive:1.3, energy:.85 },       intro:[7,1], note:'FLYING and armored. Use Flak.' },
+  brute:  { name:'Brute',     hp:300,  sp:22, gold:22,  leak:3,  col:'#ff8a3a', cost:22,  air:false, armor:5, mods:{ explosive:.7, kinetic:1.4 },       intro:[10,3], note:'Heavy armor shrugs off weak hits. Use Rail.' },
+  boss:   { name:'Dreadnought',hp:2300,sp:18, gold:170, leak:10, col:'#ff3b6b', cost:140, air:true,  armor:4, mods:{ electric:.8, explosive:1.2 },      intro:[999,1], note:'BOSS. Flying! Bring Flak.' }
 };
 const EH = { drone: 30, scout: 30, swarm: 22, stalker: 34, shield: 42, bomber: 60, brute: 54, boss: 96 };
 const MUZ = { beam: [.42, 0], gravity: [0, -.4], pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
@@ -62,19 +62,88 @@ const WORLDS = [
 ];
 const TWTXT = { beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
 const REWARDS = { repair: 'Repair Pulse (wrench button): restores 5 lives, once per level.', over: 'Overcharge (bolt button): towers fire 50% faster for 8 seconds.' };
-const RANKS = [[0, 'Cadet'], [1, 'Defender'], [4, 'Guardian'], [7, 'Warden'], [9, 'Commander']];
-const rankOf = () => { const pts = prog.stars.reduce((a, b) => a + b, 0); let r = RANKS[0][1]; RANKS.forEach(x => { if (pts >= x[0]) r = x[1]; }); return r; };
+const RANKS = [[0, 'Cadet'], [1, 'Defender'], [8, 'Guardian'], [16, 'Warden'], [26, 'Commander']];
+const rankOf = () => { const pts = totalCleared(); let r = RANKS[0][1]; RANKS.forEach(x => { if (pts >= x[0]) r = x[1]; }); return r; };
+const QUIPS = { nine: ['Clean work. Do not look so surprised.', 'Efficient. I am almost impressed.', 'Another one down. The core remains unbothered.', 'You are getting good at this, which is inconvenient for me.'], quill: ['Hull is holding! That was lovely.', 'You are a lifesaver. Literally. Station-wise.', 'I will put a sticker on your file.', 'No leaks. I checked twice.'], oru: ['The gates are quiet again.', 'Patience and good aim. Both useful.', 'Well held.', 'The road thanks you, in its way.'] };
+
+/* ---------- levels: 10 per world, generated; 3 difficulty tiers ---------- */
+const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(location.search);
+const TIERS = [{ n: 'Normal', hp: 1, gold: 1, budget: 1, sp: 1 }, { n: 'Hard', hp: 1.45, gold: .92, budget: 1.12, sp: 1.05 }, { n: 'Nightmare', hp: 2, gold: .85, budget: 1.25, sp: 1.12 }];
+function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rr = (rng, a, b) => a + (b - a) * rng();
+function serp(n, rng, wide) {
+  const ys = []; for (let i = 0; i < n; i++) ys.push(Math.round(70 + i * (410 / (n - 1))));
+  const pts = [[-20, ys[0]]]; let right = true;
+  for (let i = 0; i < n; i++) { const x = right ? Math.round(rr(rng, wide ? 250 : 288, 326)) : Math.round(rr(rng, wide ? 30 : 42, wide ? 110 : 72)); pts.push([x, ys[i]]); if (i < n - 1) pts.push([x, ys[i + 1]]); right = !right; }
+  const last = pts[pts.length - 1]; last[0] = Math.max(70, Math.min(290, last[0])); pts.push([last[0], 572]);
+  return [pts];
+}
+function spiral(rng, mirror) {
+  const j = () => Math.round(rr(rng, -6, 6)), x2 = 250 + j(), x3 = 110 + j(), y2 = 140 + j(), y3 = 460 + j(), y4 = 220 + j();
+  let p = [[-20, 60], [320, 60], [320, 540], [40, 540], [40, y2], [x2, y2], [x2, y3], [x3, y3], [x3, y4], [180, y4], [180, y4 + 112]];
+  if (mirror) p = p.map(q => [360 - q[0], q[1]]);
+  return [p];
+}
+function dual(rng) {
+  const y1 = Math.round(rr(rng, 60, 95)), x1 = Math.round(rr(rng, 90, 140)), ym = Math.round(rr(rng, 180, 230)), cx = 180;
+  return [[[-20, y1], [x1, y1], [x1, ym], [cx, ym + 60], [cx, 572]], [[380, y1], [360 - x1, y1], [360 - x1, ym], [cx, ym + 60], [cx, 572]]];
+}
+function ladder(rng) {
+  const ya = Math.round(rr(rng, 70, 100)), yb = Math.round(rr(rng, 340, 380)), xa = Math.round(rr(rng, 280, 320)), xb = Math.round(rr(rng, 40, 80)), yc = yb + 110;
+  return [[[-20, ya], [xa, ya], [xa, 210], [180, 210], [180, 572]], [[380, yb], [xb, yb], [xb, yc], [180, yc], [180, 572]]];
+}
+function genPaths(w, i, rng) {
+  switch (i) {
+    case 1: return serp(4, rng, false);
+    case 2: return serp(5, rng, false);
+    case 3: return spiral(rng, w % 2 === 1);
+    case 4: return dual(rng);
+    case 5: return serp(4, rng, true);
+    case 6: return ladder(rng);
+    case 7: return spiral(rng, w % 2 === 0);
+    case 8: return dual(rng);
+    default: return serp(6, rng, i === 9);
+  }
+}
+function autoPads(paths, count, rng) {
+  const segs = []; paths.forEach(P => { for (let i = 1; i < P.length; i++) segs.push([P[i - 1], P[i]]); });
+  const dseg = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy; let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)); };
+  const dist = p => { let m = 1e9; for (const sg of segs) m = Math.min(m, dseg(p, sg[0], sg[1])); return m; };
+  const S = []; segs.forEach(([a, b]) => { const l = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.floor(l / 6)); for (let k = 0; k <= n; k++) S.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); });
+  const core = paths[0][paths[0].length - 1], cands = [];
+  for (let x = 26; x <= 334; x += 8) for (let y = 26; y <= 574; y += 8) { const d = dist([x, y]); if (d >= 33 && d <= 52 && Math.hypot(x - core[0], y - core[1]) > 40) cands.push([x, y]); }
+  const cov = new Array(S.length).fill(0), out = [];
+  for (let k = 0; k < count; k++) {
+    let best = null, bg = -1;
+    for (const c of cands) {
+      if (out.some(o => Math.hypot(o[0] - c[0], o[1] - c[1]) < 44)) continue;
+      let g = 0, all = 0; for (let i = 0; i < S.length; i++) { if (Math.hypot(S[i][0] - c[0], S[i][1] - c[1]) <= 80) { all++; if (cov[i] < 2) g++; } }
+      const sc = g + .02 * all + rng() * .5; if (sc > bg) { bg = sc; best = c; }
+    }
+    if (!best) break; out.push(best);
+    for (let i = 0; i < S.length; i++) if (Math.hypot(S[i][0] - best[0], S[i][1] - best[1]) <= 80) cov[i]++;
+  }
+  return out;
+}
+function buildLevel(w, i, t) {
+  const g = w * LPW + i, T = TIERS[t], base = LEVELS[w], rng = mulberry(w * 1000 + i * 17 + 5);
+  let paths, pads;
+  if (i === 0) { paths = base.paths; pads = base.pads; } else { paths = genPaths(w, i, rng); pads = autoPads(paths, 15 + Math.min(4, i >> 1) + w, rng); }
+  const finale = i === LPW - 1, mini = i === 4, bm = [.4, .75, 1.1][w] * (finale ? 1 : mini ? .45 : 0);
+  return { world: w, idx: i, tier: t, g, name: i === 0 ? base.name : base.name + ' ' + (i + 1), paths, pads,
+    waves: 8 + Math.floor(i * .6) + w, hp: (.72 + .03 * g) * T.hp, gold: Math.round((300 + 8 * g) * T.gold), budget: (1 + .02 * g) * T.budget, spMult: T.sp,
+    boss: finale || mini, bossMult: bm, hue: base.hue, bgv: i % 4 };
+}
 
 /* ---------- waves from a recipe (new enemy types are released slowly) ---------- */
-function eligible(L, w) { return Object.keys(ENEMY).filter(t => t !== 'boss' && (L > ENEMY[t].intro[0] || (L === ENEMY[t].intro[0] && w >= ENEMY[t].intro[1]))); }
-function makeWaves(L) {
-  const lv = LEVELS[L], out = [];
+function eligible(g, w) { return Object.keys(ENEMY).filter(t => t !== 'boss' && (g > ENEMY[t].intro[0] || (g === ENEMY[t].intro[0] && w >= ENEMY[t].intro[1]))); }
+function makeWaves(lv) {
+  const out = [], g = lv.g;
   for (let w = 1; w <= lv.waves; w++) {
-    const budget = 38 * (1 + .42 * (w - 1)) * (1 + .12 * L) * (w === lv.waves ? .7 : 1) * (L === 0 ? .8 : 1);
-    const el = eligible(L, w), fresh = el.filter(t => ENEMY[t].intro[0] === L && ENEMY[t].intro[1] === w);
+    const budget = 38 * (1 + .42 * (w - 1)) * lv.budget * (w === lv.waves ? .7 : 1) * (g === 0 ? .8 : 1);
+    const el = eligible(g, w), fresh = el.filter(t => ENEMY[t].intro[0] === g && ENEMY[t].intro[1] === w);
     const picks = fresh.slice();
-    for (let i = 0; picks.length < Math.min(3, el.length) && i < 12; i++) { const t = el[(w * 2 + i * 3 + L) % el.length]; if (!picks.includes(t)) picks.push(t); }
-    // make sure air shows up regularly so Flak/Pulse/Arc matter
+    for (let i = 0; picks.length < Math.min(3, el.length) && i < 12; i++) { const t = el[(w * 2 + i * 3 + g) % el.length]; if (!picks.includes(t)) picks.push(t); }
     if (w >= 2 && !picks.some(t => ENEMY[t].air) && w % 2 === 0) { const a = el.filter(t => ENEMY[t].air); if (a.length) picks[picks.length - 1] = a[w % a.length]; }
     const groups = [];
     picks.forEach((t, i) => {
@@ -83,7 +152,7 @@ function makeWaves(L) {
       if (fresh.includes(t)) n = Math.max(n, 3);
       groups.push([t, n, Math.max(.35, 1.3 - w * .07 - ENEMY[t].sp / 200)]);
     });
-    if (w === lv.waves) groups.unshift(['boss', 1 + Math.floor(L / 3), 4]);
+    if (w === lv.waves && lv.boss) groups.unshift(['boss', 1, 4]);
     out.push(groups);
   }
   return out;
@@ -93,9 +162,19 @@ function makeWaves(L) {
 const SKEY = 'orbitbastion_stats_v1', PKEY = 'orbitbastion_progress_v1';
 function loadJSON(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ? Object.assign(d, v) : d; } catch (e) { return d; } }
 let stats = loadJSON(SKEY, { first: Date.now(), days: {}, runs: 0, wins: 0, losses: 0, wavesCleared: 0, bestWave: 0, funYes: 0, funNo: 0, unlockTaps: 0, speedTaps: 0, builds: {}, upgrades: 0, merges: 0, abilities: 0, secs: 0 });
-let prog = loadJSON(PKEY, { stars: [0, 0, 0], seen: [], call: '', ab: { repair: false, over: false }, sawIntro: [], tw: { beam: false, gravity: false } });
+let prog = loadJSON(PKEY, { stars: [0, 0, 0], seen: [], call: '', ab: { repair: false, over: false }, sawIntro: [], tw: { beam: false, gravity: false }, tier: 0 });
 if (!prog.tw) prog.tw = { beam: false, gravity: false };
 if (!prog.ab) prog.ab = { repair: false, over: false }; if (!prog.sawIntro) prog.sawIntro = [];
+const scKey = (w, i, t) => w + '-' + i + '-' + t;
+if (!prog.sc) { prog.sc = {}; (prog.stars || []).forEach((st, w) => { if (st > 0) prog.sc[scKey(w, 0, 0)] = st; }); }
+const starsOf = (w, i, t) => prog.sc[scKey(w, i, t)] || 0;
+const cleared = (w, i, t) => starsOf(w, i, t) > 0;
+const worldCleared = w => { let n = 0; for (let i = 0; i < LPW; i++) if (cleared(w, i, 0)) n++; return n; };
+const totalCleared = () => WORLDS.reduce((n, _, w) => n + worldCleared(w), 0);
+const totalStars = () => Object.values(prog.sc).reduce((a, b) => a + b, 0);
+const worldOpen = w => OPEN_ALL || w === 0 || cleared(w - 1, LPW - 1, 0);
+const levelOpen = (w, i) => OPEN_ALL || (i === 0 ? worldOpen(w) : cleared(w, i - 1, 0));
+const tierOpen = (w, i, t) => OPEN_ALL || t === 0 || cleared(w, i, t - 1);
 function save() { try { localStorage.setItem(SKEY, JSON.stringify(stats)); localStorage.setItem(PKEY, JSON.stringify(prog)); } catch (e) {} }
 const dk = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate(); };
 stats.days[dk()] = (stats.days[dk()] || 0) + 1; save();
@@ -104,9 +183,9 @@ let tips = true; try { tips = localStorage.getItem('orbitbastion_tips') !== '0';
 
 /* ---------- state ---------- */
 const $ = id => document.getElementById(id);
-let G, LV = 0, WAVES, PL;
-function pathData(L) {
-  return LEVELS[L].paths.map(p => { const seg = []; let len = 0; for (let i = 1; i < p.length; i++) { const a = p[i-1], b = p[i], l = Math.hypot(b[0]-a[0], b[1]-a[1]); seg.push({ a, b, l, s: len }); len += l; } return { pts: p, seg, len }; });
+let G, LV = 0, IDX = 0, TIER = 0, CUR, WAVES, PL;
+function pathData(lv) {
+  return lv.paths.map(p => { const seg = []; let len = 0; for (let i = 1; i < p.length; i++) { const a = p[i-1], b = p[i], l = Math.hypot(b[0]-a[0], b[1]-a[1]); seg.push({ a, b, l, s: len }); len += l; } return { pts: p, seg, len }; });
 }
 function posAt(pi, d) {
   const P = PL[pi]; if (d >= P.len) return P.pts[P.pts.length-1];
@@ -114,13 +193,13 @@ function posAt(pi, d) {
   return P.pts[0];
 }
 const ePos = e => posAt(e.pi, e.d);
-function startLevel(L, quiet) {
-  LV = L; SFX.theme(L); PL = pathData(L); WAVES = makeWaves(L);
-  G = { lives: START_LIVES, gold: LEVELS[L].gold, wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
+function startLevel(L, idx, tier, quiet) {
+  LV = L; IDX = idx || 0; TIER = tier || 0; CUR = buildLevel(LV, IDX, TIER); SFX.theme(L); PL = pathData(CUR); WAVES = makeWaves(CUR);
+  G = { lives: START_LIVES, gold: CUR.gold, wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
-function maxWave() { return LEVELS[LV].waves; }
-function enemyHp(type, w) { return ENEMY[type].hp * LEVELS[LV].hp * (1 + (type === 'boss' ? .12 : .32) * (w - 1)) * (type === 'boss' ? [.3, .5, .7][LV] || 1 : 1); }
+function maxWave() { return CUR.waves; }
+function enemyHp(type, w) { return ENEMY[type].hp * CUR.hp * (1 + (type === 'boss' ? .12 : .32) * (w - 1)) * (type === 'boss' ? (CUR.bossMult || .3) : 1); }
 function flash(t) { const m = $('msg'); m.textContent = t; m.style.opacity = 1; clearTimeout(flash.t); flash.t = setTimeout(() => m.style.opacity = 0, 1300); }
 function intro(type) {
   if (prog.seen.includes(type)) return; prog.seen.push(type); save();
@@ -156,7 +235,7 @@ function tStats0(t) {
 const upCost = t => Math.round(TOWERS[t.kind].cost * (t.lvl === 1 ? .75 : 1.1));
 const sellVal = t => Math.round(t.spent * .6);
 const tName = t => (t.lvl === 4 ? 'Prime ' : '') + TOWERS[t.kind].name;
-const PADS = () => LEVELS[LV].pads;
+const PADS = () => CUR.pads;
 const MOTES = Array.from({ length: 46 }, () => [Math.random() * 360, Math.random() * 600, 4 + Math.random() * 10, .6 + Math.random() * 1.4, Math.random() * 6]);
 const NCOL = { energy: '#8ff0ff', kinetic: '#ffffff', explosive: '#ffb060', electric: '#e2c4ff', gold: '#ffd24a', cold: '#bfe6ff' };
 function numPop(e, dmg, type) {
@@ -242,7 +321,7 @@ function step(dt) {
   }
   for (let i = G.enemies.length - 1; i >= 0; i--) {
     const e = G.enemies[i], def = ENEMY[e.type];
-    e.flash = Math.max(0, e.flash - dt); e.d += def.sp * (1 - e.slow) * dt;
+    e.flash = Math.max(0, e.flash - dt); e.d += def.sp * (1 - e.slow) * CUR.spMult * dt;
     if (e.slow > 0 && Math.random() < .15) { const q = ePos(e); part(q[0] + (Math.random()-.5) * 10, q[1] - 6, 0, -10, .5, 1.4, '#bfe6ff', true); }
     if (e.hp <= 0) { killEnemy(e, i); continue; }
     if (e.d >= PL[e.pi].len) {
@@ -344,21 +423,23 @@ function hitShot(s, tg, q) {
 function endGame(win) {
   G.over = true; G.running = false; SFX.play(win ? 'win' : 'lose'); if (win) stats.wins++; else stats.losses++;
   const lost = START_LIVES - G.lives, stars = win ? (lost <= 2 ? 3 : lost <= 8 ? 2 : 1) : 0;
-  if (win) prog.stars[LV] = Math.max(prog.stars[LV], stars);
+  if (win) { const k = scKey(LV, IDX, TIER); prog.sc[k] = Math.max(prog.sc[k] || 0, stars); }
   save();
   $('eTitle').textContent = win ? 'Sector secured!' : 'Station lost';
   $('eStars').textContent = win ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '';
-  $('eText').textContent = win ? 'You held all ' + maxWave() + ' waves with ' + G.lives + ' lives left.' : 'You reached wave ' + G.wave + ' of ' + maxWave() + '. Check each enemy\'s weakness and try a different mix.';
-  const wd = WORLDS[LV], q = win ? wd.win : wd.lose, spk = SPEAK[q[0]];
+  $('eText').textContent = 'Level ' + (IDX + 1) + ' · ' + TIERS[TIER].n + ' — ' + (win ? 'You held all ' + maxWave() + ' waves with ' + G.lives + ' lives left.' : 'You reached wave ' + G.wave + ' of ' + maxWave() + '. Check each enemy\'s weakness and try a different mix.');
+  const wd = WORLDS[LV], fin = IDX === LPW - 1 && TIER === 0, spkId = wd.win[0], q = win ? (fin ? wd.win : [spkId, QUIPS[spkId][(IDX + TIER) % QUIPS[spkId].length]]) : wd.lose, spk = SPEAK[q[0]];
+  const nextOpen = win && IDX < LPW - 1;
+  $('eNext').style.display = nextOpen ? 'block' : 'none';
   let extra = '';
-  if (win && wd.reward && !prog.ab[wd.reward]) { prog.ab[wd.reward] = true; extra = '<br><b>New ability:</b> ' + REWARDS[wd.reward]; save(); }
-  if (win && wd.tower && !prog.tw[wd.tower]) { prog.tw[wd.tower] = true; extra += '<br><b>New tower:</b> ' + TWTXT[wd.tower]; save(); }
+  if (win && fin && wd.reward && !prog.ab[wd.reward]) { prog.ab[wd.reward] = true; extra = '<br><b>New ability:</b> ' + REWARDS[wd.reward]; save(); }
+  if (win && fin && wd.tower && !prog.tw[wd.tower]) { prog.tw[wd.tower] = true; extra += '<br><b>New tower:</b> ' + TWTXT[wd.tower]; save(); }
   $('eQuote').innerHTML = '<b>' + spk.name + ':</b> ' + q[1].replace('{c}', (prog.call || 'Cadet').replace(/</g, '&lt;')) + extra + (win ? '<br><b>Rank:</b> ' + rankOf() : '');
   setTimeout(() => show('ovEnd'), 700);
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792560328';
+const ART_V = '1792560920';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -490,7 +571,7 @@ function drawTower(t, time) {
 function draw(time) {
   ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle = '#050816'; ctx.fillRect(0,0,cv.width,cv.height);
   const lv = LEVELS[LV], hue = lv.hue, bgi = spr('bg_' + (LV + 1));
-  if (bgi) { const k = Math.max(cv.width / bgi.naturalWidth, cv.height / bgi.naturalHeight) * 1.05, dx = Math.sin(time / 9000) * 7, dy = Math.cos(time / 11000) * 7; ctx.drawImage(bgi, (cv.width - bgi.naturalWidth*k)/2 + dx, (cv.height - bgi.naturalHeight*k)/2 + dy, bgi.naturalWidth*k, bgi.naturalHeight*k); ctx.fillStyle = 'rgba(4,8,22,' + (LV === 2 ? .6 : .4) + ')'; ctx.fillRect(0,0,cv.width,cv.height); }
+  if (bgi) { ctx.save(); const bv = CUR.bgv; if (bv === 1 || bv === 3) { ctx.translate(cv.width, 0); ctx.scale(-1, 1); } if (bv === 2 || bv === 3) { ctx.translate(0, cv.height); ctx.scale(1, -1); } const k = Math.max(cv.width / bgi.naturalWidth, cv.height / bgi.naturalHeight) * (1.05 + (bv === 2 ? .25 : 0)), dx = Math.sin(time / 9000) * 7, dy = Math.cos(time / 11000) * 7; ctx.drawImage(bgi, (cv.width - bgi.naturalWidth*k)/2 + dx, (cv.height - bgi.naturalHeight*k)/2 + dy, bgi.naturalWidth*k, bgi.naturalHeight*k); ctx.restore(); ctx.fillStyle = 'rgba(4,8,22,' + (LV === 2 ? .6 : .4) + ')'; ctx.fillRect(0,0,cv.width,cv.height); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'hsla(' + (hue + CUR.idx * 23) + ',70%,35%,.07)'; ctx.fillRect(0,0,cv.width,cv.height); ctx.globalCompositeOperation = 'source-over'; }
   const sx = G.shake > 0 ? (Math.random() - .5) * 6 * G.shake * SC : 0, sy = G.shake > 0 ? (Math.random() - .5) * 6 * G.shake * SC : 0;
   ctx.setTransform(SC,0,0,SC,OX + sx,OY + sy); ctx.save(); ctx.beginPath(); ctx.rect(-40,-40,W+80,H+80); ctx.clip();
   if (G.slowmo > 0) { const zk = Math.min(1, G.slowmo / 1.6), z = 1 + .16 * Math.sin(zk * Math.PI * .5) * zk, bp = (G.enemies.find(e => e.type === 'boss') ? ePos(G.enemies.find(e => e.type === 'boss')) : G.bossAt) || [W / 2, H / 2]; ctx.translate(bp[0], bp[1]); ctx.scale(z, z); ctx.translate(-bp[0], -bp[1]); }
@@ -646,7 +727,7 @@ function abilityUI() {
   $('aOver').querySelector('.cd').style.height = (G.overCd / 50 * 100) + '%'; $('aOver').classList.toggle('armed', G.overT > 0);
 }
 function coach() {
-  const c = $('coach'); if (!tips || LV > 0) { c.style.display = 'none'; return; }
+  const c = $('coach'); if (!tips || LV > 0 || IDX > 0 || TIER > 0) { c.style.display = 'none'; return; }
   let t = '';
   if (!G.towers.length && G.wave === 0) t = '1 · Tap a glowing + hex to build a tower.';
   else if (G.wave === 0) t = '2 · Press “Send wave 1” when ready.';
@@ -689,21 +770,37 @@ const show = id => $(id).style.display = 'flex', hide = id => $(id).style.displa
 function hideAll() { document.querySelectorAll('.ov').forEach(o => o.style.display = 'none'); }
 
 function showLevels() {
-  const pts = prog.stars.reduce((x, y) => x + y, 0);
-  $('mapRank').textContent = rankOf() + (prog.call ? ' ' + prog.call : ''); $('mapSub').textContent = '★ ' + pts + ' / ' + WORLDS.length * 3;
+  $('mapRank').textContent = rankOf() + (prog.call ? ' ' + prog.call : ''); $('mapSub').textContent = totalCleared() + ' / ' + WORLDS.length * LPW + ' levels · ★ ' + totalStars();
   let html = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><polyline points="' + WORLDS.map(w => w.pos.join(',')).join(' ') + ' 70,14" fill="none" stroke="rgba(125,239,255,.35)" stroke-width=".5" stroke-dasharray="1.5 1.5"/></svg>';
   let nextDone = false;
   WORLDS.forEach((w, i) => {
-    const locked = i > 0 && prog.stars[i-1] < 1, st = prog.stars[i], isNext = !locked && st < 1 && !nextDone; if (isNext) nextDone = true;
-    html += '<button class="pl' + (locked ? ' lock' : '') + (isNext ? ' next' : '') + '" data-w="' + i + '" style="left:' + w.pos[0] + '%;top:' + w.pos[1] + '%"><img src="art/' + w.planet + '.webp?v=' + ART_V + '"><b>' + (locked ? '🔒 ' : '') + w.name + '</b><small>' + w.tag + '</small><span class="s">' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span></button>';
+    const locked = !worldOpen(i), n = worldCleared(i), isNext = !locked && n < LPW && !nextDone; if (isNext) nextDone = true;
+    html += '<button class="pl' + (locked ? ' lock' : '') + (isNext ? ' next' : '') + '" data-w="' + i + '" style="left:' + w.pos[0] + '%;top:' + w.pos[1] + '%"><img src="art/' + w.planet + '.webp?v=' + ART_V + '"><b>' + (locked ? '🔒 ' : '') + w.name + '</b><small>' + w.tag + '</small><span class="s">' + n + ' / ' + LPW + '</span></button>';
   });
   html += '<button class="pl lock" data-soon="1" style="left:70%;top:14%"><img src="art/u_planet_gate.webp" style="width:60px;height:60px"><b>Tessara</b><small>Coming soon</small></button>';
   $('mapBody').innerHTML = html;
-  $('mapBody').querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const i = +b.dataset.w; if (b.classList.contains('lock')) { $('mapFoot').textContent = 'Finish the world before it first.'; return; } playWorld(i); });
+  $('mapBody').querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const i = +b.dataset.w; if (b.classList.contains('lock')) { $('mapFoot').textContent = 'Clear the final level of the world before it first.'; return; } playWorld(i); });
   $('mapBody').querySelectorAll('[data-soon]').forEach(b => b.onclick = () => { stats.soonTaps = (stats.soonTaps || 0) + 1; save(); $('mapFoot').textContent = 'More worlds are on the way. Your tap was counted so we know if you want them.'; });
   $('mapFoot').textContent = 'Tap a world to begin.';
   hideAll(); show('ovLevels');
 }
+function showWorld(w) {
+  const wd = WORLDS[w]; $('wlTitle').textContent = wd.name; $('wlSub').textContent = wd.tag + ' · ' + worldCleared(w) + ' / ' + LPW + ' cleared';
+  const tierUnlocked = t => OPEN_ALL || t === 0 || (() => { for (let i = 0; i < LPW; i++) if (cleared(w, i, t - 1)) return true; return false; })();
+  if (!tierUnlocked(prog.tier || 0)) prog.tier = 0;
+  $('wlTiers').innerHTML = TIERS.map((T, t) => '<button class="chip2' + ((prog.tier || 0) === t ? ' on' : '') + (tierUnlocked(t) ? '' : ' lock') + '" data-t="' + t + '">' + (tierUnlocked(t) ? '' : '🔒 ') + T.n + '</button>').join('');
+  $('wlTiers').querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const t = +b.dataset.t; if (!tierUnlocked(t)) { $('wlFoot').textContent = 'Clear a level on ' + TIERS[t - 1].n + ' to unlock ' + TIERS[t].n + '.'; return; } prog.tier = t; save(); showWorld(w); });
+  const t = prog.tier || 0; let html = '';
+  for (let i = 0; i < LPW; i++) {
+    const open = levelOpen(w, i) && tierOpen(w, i, t), st = starsOf(w, i, t), boss = i === 4 || i === LPW - 1;
+    html += '<button class="lvb' + (open ? '' : ' lock') + (st ? ' done' : '') + (boss ? ' boss' : '') + '" data-i="' + i + '"><b>' + (open ? (i + 1) : '🔒') + '</b>' + (boss ? '<em>' + (i === LPW - 1 ? 'FINAL' : 'BOSS') + '</em>' : '') + '<span>' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span></button>';
+  }
+  $('wlGrid').innerHTML = html;
+  $('wlGrid').querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (b.classList.contains('lock')) { $('wlFoot').textContent = tierOpen(w, i, t) ? 'Clear the level before it first.' : 'Clear this level on ' + TIERS[t - 1].n + ' first.'; return; } startLevel(w, i, t); });
+  $('wlFoot').textContent = 'Stars: 3 = lose 2 lives or fewer. Hard and Nightmare give tougher waves.';
+  hideAll(); show('ovWorld');
+}
+$('wlBack').onclick = showLevels;
 let stLines = [], stI = 0, stDone = null;
 function showStory(lines, done) { stLines = lines; stI = 0; stDone = done; renderStory(); hideAll(); show('ovStory'); }
 function renderStory() {
@@ -715,7 +812,7 @@ $('stNext').onclick = () => { if (stI < stLines.length - 1) { stI++; renderStory
 $('stSkip').onclick = () => { hide('ovStory'); if (stDone) stDone(); };
 function playWorld(i) {
   const w = WORLDS[i];
-  if (!prog.sawIntro.includes(i)) { prog.sawIntro.push(i); save(); showStory(w.intro, () => startLevel(w.lv)); } else startLevel(w.lv);
+  if (!prog.sawIntro.includes(i)) { prog.sawIntro.push(i); save(); showStory(w.intro, () => showWorld(i)); } else showWorld(i);
 }
 $('callOk').onclick = () => { prog.call = ($('callIn').value || '').trim().slice(0, 14) || 'Rookie'; save(); hide('ovCall'); showLevels(); };
 
@@ -742,8 +839,9 @@ $('bAuto').onclick = () => { autoWave = !autoWave; try { localStorage.setItem('o
 function autoUI() { $('bAuto').innerHTML = 'Auto<br>' + (autoWave ? 'on' : 'off'); $('bAuto').classList.toggle('on', autoWave); }
 $('bMenu').onclick = () => { $('tipState').textContent = tips ? 'on' : 'off'; show('ovMenu'); };
 $('mResume').onclick = () => hide('ovMenu');
-$('mRestart').onclick = () => startLevel(LV);
+$('mRestart').onclick = () => startLevel(LV, IDX, TIER);
 $('mLevels').onclick = showLevels;
+$('mWorld').onclick = () => showWorld(LV);
 function sndUI() { $('mSound').textContent = 'Sound effects: ' + (SFX.on ? 'on' : 'off'); $('mMusic').textContent = 'Music: ' + (SFX.music ? 'on' : 'off'); }
 $('mSound').onclick = () => { SFX.setOn(!SFX.on); sndUI(); SFX.play('click'); };
 $('mMusic').onclick = () => { SFX.setMusic(!SFX.music); sndUI(); };
@@ -753,8 +851,9 @@ $('mUnlock').onclick = () => { stats.unlockTaps++; save(); alert('Thanks! More s
 $('mStats').onclick = () => { hide('ovMenu'); showStats(); };
 $('lvStats').onclick = () => { showStats(); };
 $('sClose').onclick = () => { hide('ovStats'); };
-$('eAgain').onclick = () => startLevel(LV);
-$('eNext').onclick = showLevels;
+$('eAgain').onclick = () => startLevel(LV, IDX, TIER);
+$('eNext').onclick = () => startLevel(LV, IDX + 1, TIER);
+$('eWorld').onclick = () => showWorld(LV);
 document.querySelectorAll('[data-fun]').forEach(b => b.onclick = () => {
   if (b.dataset.fun === '1') stats.funYes++; else stats.funNo++; save();
   b.parentElement.querySelectorAll('button').forEach(x => x.style.opacity = x === b ? 1 : .35);
@@ -781,5 +880,5 @@ function loop(ts) {
   requestAnimationFrame(loop);
   try { draw(ts); } catch (e) { window.__drawErr = e; try { ctx.restore(); } catch (e2) {} }
 }
-window.__td = { avail, endGame, step, get G() { return G; }, startLevel, sendWave, buildTower, upgradeTower, mergeTowers, mergePartners, useFreeze, useStrike, LEVELS, TOWERS, ENEMY, KINDS, PADS, canHit, get WAVES() { return WAVES; }, prog };
-autoUI(); resize(); startLevel(0, true); if (!prog.call) { hideAll(); show('ovCall'); } else showLevels(); requestAnimationFrame(loop); setTimeout(resize, 200);
+window.__td = { buildLevel, get CUR() { return CUR; }, LPW, TIERS, prog, avail, endGame, step, get G() { return G; }, startLevel, sendWave, buildTower, upgradeTower, mergeTowers, mergePartners, useFreeze, useStrike, LEVELS, TOWERS, ENEMY, KINDS, PADS, canHit, get WAVES() { return WAVES; }, prog };
+autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { hideAll(); show('ovCall'); } else showLevels(); requestAnimationFrame(loop); setTimeout(resize, 200);
