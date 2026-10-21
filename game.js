@@ -561,7 +561,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792568785';
+const ART_V = '1792569787';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -828,6 +828,32 @@ function drawLaneTex(hue, time) {
 }
 
 /* ---------- HUD / sheets ---------- */
+
+/* ---------- next-wave preview bar ---------- */
+let prevKey = '';
+function waveHint(groups) {
+  const types = groups.map(g => g[0]), air = types.some(t => ENEMY[t].air), ground = types.some(t => !ENEMY[t].air);
+  const dmgT = G.towers.filter(t => TOWERS[t.kind].dmg > 0);
+  const canAir = dmgT.some(t => TOWERS[t.kind].hits.includes('air')), canGround = dmgT.some(t => TOWERS[t.kind].hits.includes('ground'));
+  const tips = [];
+  if (air && !canAir) tips.push('No tower can hit flyers yet: build Pulse, Flak, Arc or Beam');
+  if (ground && !canGround) tips.push('No tower can hit ground enemies yet');
+  if (!tips.length) { const arm = types.find(t => ENEMY[t].armor >= 3 && !ENEMY[t].air), sh = types.includes('shield'), sw = types.includes('swarm'); if (arm) tips.push('Armored ' + ENEMY[arm].name + ': Rail pierces armor'); else if (sh) tips.push('Shield Walkers: Arc beats shields'); else if (sw) tips.push('Swarm: Missile and Pulse clear crowds'); }
+  return tips[0] || '';
+}
+function updatePreview() {
+  const bar = $('wprev'); if (!G || !bar) return;
+  if (G.over) { bar.style.display = 'none'; prevKey = ''; return; }
+  const nxt = WAVES[G.wave], n = G.wave + 1;
+  if (!nxt) { const k = 'done' + G.running; if (k !== prevKey) { prevKey = k; bar.style.display = 'flex'; bar.innerHTML = '<span class="wl">' + (G.running ? 'FINAL WAVE IN PROGRESS' : 'ALL WAVES SENT') + '</span>'; } return; }
+  const hint = waveHint(nxt), key = [LV, IDX, TIER, G.wave, G.running, hint].join('|');
+  if (key === prevKey) return; prevKey = key; bar.style.display = 'flex';
+  const counts = {}; nxt.forEach(g => { counts[g[0]] = (counts[g[0]] || 0) + g[1]; });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  bar.innerHTML = '<span class="wl">' + (G.running ? 'NEXT · WAVE ' + n : 'INCOMING · WAVE ' + n) + '<small>' + total + ' enemies</small></span><div class="wchips">' + Object.entries(counts).map(([t, c]) => '<button class="wc' + (t === 'boss' ? ' boss' : '') + '" data-e="' + t + '"><img src="art/e_' + t + '.webp?v=' + ART_V + '" alt=""><b>×' + c + '</b><i>' + (ENEMY[t].air ? '✈' : '⛰') + '</i></button>').join('') + '</div>' + (hint ? '<div class="wh">⚠ ' + hint + '</div>' : '');
+  bar.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { const d = ENEMY[b.dataset.e], el = $('intro'); SFX.play('click'); el.innerHTML = '<img src="art/e_' + b.dataset.e + '.webp?v=' + ART_V + '"><div><b>' + d.name + '</b> · ' + (d.air ? '✈ Air' : '⛰ Ground') + (d.armor ? ' · Armor ' + d.armor : '') + '<br><span>' + d.note + '</span></div>'; el.style.display = 'flex'; clearTimeout(intro.t); intro.t = setTimeout(() => el.style.display = 'none', 5000); });
+}
+
 function hud() {
   $('hLives').textContent = '❤ ' + G.lives; $('hGold').textContent = '⚡ ' + G.gold; $('hWave').textContent = 'Wave ' + G.wave + '/' + maxWave();
   const go = $('go');
@@ -835,6 +861,7 @@ function hud() {
   else if (G.running) { go.textContent = 'Wave ' + G.wave + ' ▸▸'; go.disabled = true; }
   else { go.textContent = G.wave >= maxWave() ? 'Done' : (autoWave && G.autoT > 0 ? 'Next wave ' + Math.ceil(G.autoT) + ' · tap' : 'Send wave ' + (G.wave + 1)); go.disabled = G.wave >= maxWave(); }
   if ($('sheet').style.display === 'block') renderSheet();
+  updatePreview();
 }
 let lastBoss = false;
 function ui2() {

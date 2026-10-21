@@ -138,6 +138,14 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 .act.mv{background:#3a6fd0}.act small{font-size:10px;font-weight:500;opacity:.85}
 #perfBar{position:absolute;left:8px;right:8px;bottom:8px;display:none;align-items:center;gap:8px;flex-wrap:wrap;background:#3a2308f2;border:1px solid #ffb04a;padding:8px 10px;z-index:9;font-size:13px;color:#ffe3b0}#perfBar button{height:32px;padding:0 10px;border:0;font-weight:700;background:#ffb04a;color:#2a1600}
 #bMenu.err{box-shadow:inset 0 0 0 1px #ff5a7a,0 0 8px #ff3b5a}#bMenu.err::after{content:"";position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#ff3b5a}#bMenu{position:relative}
+
+#wprev{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:2px 8px;min-height:38px;background:linear-gradient(#0c1334,#080e26);border-bottom:1px solid #3fd0ff55;flex-wrap:wrap}
+#wprev .wl{font-size:11px;font-weight:700;letter-spacing:1px;color:#7defff;line-height:1.1;white-space:nowrap}#wprev .wl small{display:block;color:#a9c4ff;font-weight:500;letter-spacing:.5px}
+.wchips{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+.wc{position:relative;display:flex;align-items:center;gap:3px;height:32px;padding:0 7px 0 3px;border:0;color:#e8f1ff;background:linear-gradient(#18306e,#0c1a45);box-shadow:inset 0 0 0 1px #3fd0ff66;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.wc img{height:27px;width:27px;object-fit:contain}.wc b{font-size:15px}.wc i{font-style:normal;font-size:11px;color:#a9c4ff}
+.wc.boss{box-shadow:inset 0 0 0 1.5px #ff3b6b}.wc.boss b{color:#ff8aa0}
+.wh{flex:1 1 100%;font-size:11px;color:#ffd28a;padding:0 2px;line-height:1.1;margin-top:-1px}
 </style>
 </head>
 <body>
@@ -150,6 +158,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
     <button class="ib" id="bMenu">☰</button>
   </div>
   <div id="wbar"><i></i></div>
+  <div id="wprev"></div>
   <div id="stage">
     <canvas id="cv"></canvas>
     <div id="coach"></div>
@@ -265,7 +274,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="sClose">Close</button>
 </div></div>
 
-<script src="sfx.js?v=1792568785"></script>
-<script src="game.js?v=1792568785"></script>
+<script src="sfx.js?v=1792569787"></script>
+<script src="game.js?v=1792569787"></script>
 </body>
 </html>
