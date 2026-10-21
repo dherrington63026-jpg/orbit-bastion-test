@@ -26,7 +26,13 @@ const TOWERS = {
   tesla:   { name:'Arc',     icon:'⚡', cost:130, range:64,  dmg:15, rate:1.0, col:'#c28bff', hits:['ground','air'], type:'electric',  ap:0, chain:3, desc:'Lightning jumps between enemies, ground and air.', strong:'shields, swarms', weak:'boss, brutes' }
 };
 const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla', 'beam', 'gravity'];
-const avail = () => KINDS.filter(k => !TOWERS[k].locked || prog.tw[k]);
+const LOADOUT_N = 6;
+const avail = () => {
+  let u = KINDS.filter(k => !TOWERS[k].locked || prog.tw[k]);
+  if (typeof CUR !== 'undefined' && CUR && CUR.only) return u.filter(k => CUR.only.includes(k));
+  if (u.length > LOADOUT_N) { const lo = (prog.loadout || []).filter(k => u.includes(k)); u = lo.length === LOADOUT_N ? lo : u.slice(0, LOADOUT_N); }
+  return u;
+};
 const TAG = k => TOWERS[k].hits.length === 2 ? 'Ground+Air' : TOWERS[k].hits[0] === 'air' ? 'Air only' : 'Ground only';
 
 /* air: flies (only 'air' towers hit it). armor: flat damage cut per hit. mods: damage type multipliers. intro: [sector, wave] it first appears. */
@@ -141,14 +147,14 @@ function makeWaves(lv) {
   const out = [], g = lv.g;
   for (let w = 1; w <= lv.waves; w++) {
     const budget = 38 * (1 + .42 * (w - 1)) * lv.budget * (w === lv.waves ? .7 : 1) * (g === 0 ? .8 : 1);
-    const el = eligible(g, w), fresh = el.filter(t => ENEMY[t].intro[0] === g && ENEMY[t].intro[1] === w);
+    const el = eligible(g, w).filter(t => !lv.airOnly || ENEMY[t].air), fresh = el.filter(t => ENEMY[t].intro[0] === g && ENEMY[t].intro[1] === w);
     const picks = fresh.slice();
     for (let i = 0; picks.length < Math.min(3, el.length) && i < 12; i++) { const t = el[(w * 2 + i * 3 + g) % el.length]; if (!picks.includes(t)) picks.push(t); }
     if (w >= 2 && !picks.some(t => ENEMY[t].air) && w % 2 === 0) { const a = el.filter(t => ENEMY[t].air); if (a.length) picks[picks.length - 1] = a[w % a.length]; }
     const groups = [];
     picks.forEach((t, i) => {
       const share = budget * (i === 0 ? .5 : .5 / Math.max(1, picks.length - 1));
-      let n = Math.max(ENEMY[t].cost >= 12 ? 1 : 2, Math.round(share / ENEMY[t].cost));
+      let n = Math.max(ENEMY[t].cost >= 12 ? 1 : 2, Math.round(share / ENEMY[t].cost)); if (lv.swarm) n *= 2;
       if (fresh.includes(t)) n = Math.max(n, 3);
       groups.push([t, n, Math.max(.35, 1.3 - w * .07 - ENEMY[t].sp / 200)]);
     });
@@ -161,7 +167,7 @@ function makeWaves(lv) {
 /* ---------- storage ---------- */
 const SKEY = 'orbitbastion_stats_v1', PKEY = 'orbitbastion_progress_v1';
 function loadJSON(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ? Object.assign(d, v) : d; } catch (e) { return d; } }
-let stats = loadJSON(SKEY, { first: Date.now(), days: {}, runs: 0, wins: 0, losses: 0, wavesCleared: 0, bestWave: 0, funYes: 0, funNo: 0, unlockTaps: 0, speedTaps: 0, builds: {}, upgrades: 0, merges: 0, abilities: 0, secs: 0 });
+let stats = loadJSON(SKEY, { first: Date.now(), days: {}, runs: 0, wins: 0, losses: 0, wavesCleared: 0, bestWave: 0, funYes: 0, funNo: 0, unlockTaps: 0, speedTaps: 0, builds: {}, upgrades: 0, merges: 0, abilities: 0, secs: 0, kills: 0, air: 0, bossKills: 0, mk: {}, dmgBy: {}, byType: {}, cosTry: 0 });
 let prog = loadJSON(PKEY, { stars: [0, 0, 0], seen: [], call: '', ab: { repair: false, over: false }, sawIntro: [], tw: { beam: false, gravity: false }, tier: 0 });
 if (!prog.tw) prog.tw = { beam: false, gravity: false };
 if (!prog.ab) prog.ab = { repair: false, over: false }; if (!prog.sawIntro) prog.sawIntro = [];
@@ -181,6 +187,65 @@ stats.days[dk()] = (stats.days[dk()] || 0) + 1; save();
 let autoWave = false; try { autoWave = localStorage.getItem('orbitbastion_auto') === '1'; } catch (e) {}
 let tips = true; try { tips = localStorage.getItem('orbitbastion_tips') !== '0'; } catch (e) {}
 
+/* ---------- rewards: research, mastery, rank perks, medals ---------- */
+if (!prog.res) prog.res = {}; if (prog.rp === undefined) prog.rp = 0; if (!prog.medals) prog.medals = {}; if (!prog.flags) prog.flags = {};
+const NODES = [];
+const SP_TXT = { pulse: ['Concussion', 'Hit enemies are slowed 20% for 1 second.'], rail: ['Critical shots', '20% chance for double damage.'], missile: ['Wide blast', '+25% blast radius.'], flak: ['Double burst', '25% chance of a second burst.'], cryo: ['Brittle frost', 'Slowed enemies take +10% damage from everything.'], tesla: ['Overload', '+1 chain jump and +15% damage.'], beam: ['Fast focus', 'Reaches full power in 1.6 s instead of 2.5 s.'], gravity: ['Heavy well', '+30% pull strength.'] };
+KINDS.forEach(k => {
+  NODES.push({ id: k + '.dmg', scope: k, label: 'Damage', desc: '+6% damage per rank', max: 3, costs: [2, 3, 4] });
+  NODES.push({ id: k + '.rng', scope: k, label: 'Range', desc: '+4% range per rank', max: 3, costs: [2, 3, 4] });
+  NODES.push({ id: k + '.rate', scope: k, label: 'Fire rate', desc: '+5% fire rate per rank', max: 3, costs: [2, 3, 4] });
+  NODES.push({ id: k + '.sp', scope: k, label: SP_TXT[k][0], desc: SP_TXT[k][1], max: 1, costs: [8], special: 1 });
+});
+[['energy', 'Starting energy', '+15 energy at the start of every level', [2, 3, 4]], ['lives', 'Core lives', '+1 core life per rank', [4, 6, 8]], ['disc', 'Upgrade discount', '-4% tower upgrade cost per rank', [2, 3, 4]], ['cd', 'Ability recharge', 'Abilities recharge 8% faster per rank', [2, 3, 4]], ['sell', 'Salvage', '+5% sell value per rank', [2, 3, 4]]]
+  .forEach(([id, label, desc, costs]) => NODES.push({ id: 'g.' + id, scope: 'g', label, desc, max: 3, costs }));
+const rk = id => prog.res[id] || 0;
+const resRanks = () => Object.values(prog.res).reduce((a, b) => a + b, 0);
+const nodeById = id => NODES.find(n => n.id === id);
+function buyNode(id) { const n = nodeById(id), r = rk(id); if (!n || r >= n.max || prog.rp < n.costs[r]) return false; prog.rp -= n.costs[r]; prog.res[id] = r + 1; save(); SFX.play('upgrade'); return true; }
+function respec() { let back = 0; for (const id in prog.res) { const n = nodeById(id); if (n) for (let i = 0; i < prog.res[id]; i++) back += n.costs[i]; } prog.res = {}; prog.rp += back; save(); return back; }
+const MASTERY_N = ['—', 'Bronze', 'Silver', 'Gold'];
+function masteryOf(kind) { const k = (stats.mk && stats.mk[kind]) || 0, tier = k >= 2000 ? 3 : k >= 500 ? 2 : k >= 100 ? 1 : 0; return { kills: k, tier, name: MASTERY_N[tier], bonus: [0, .03, .06, .10][tier], next: [100, 500, 2000, 0][tier] }; }
+const rankIdx = () => { const pts = totalCleared(); let r = 0; RANKS.forEach((x, i) => { if (pts >= x[0]) r = i; }); return r; };
+const perkEnergy = () => rankIdx() >= 1 ? 20 : 0, perkLife = () => rankIdx() >= 2 ? 1 : 0, perkDmg = () => rankIdx() >= 3 ? .03 : 0, perkCd = () => rankIdx() >= 4 ? .1 : 0;
+const cdMult = () => Math.max(.4, 1 - .08 * rk('g.cd') - perkCd());
+const maxLives = () => START_LIVES + rk('g.lives') + perkLife();
+const startBonus = () => 15 * rk('g.energy') + perkEnergy();
+const MEDALS = [
+  ['win', 'First Victory', 'Win any level.', () => stats.wins >= 1],
+  ['perfect', 'Perfect Defense', 'Win a level without losing a life.', () => !!prog.flags.perfect],
+  ['air', 'Air Ace', 'Shoot down 100 flyers.', () => (stats.air || 0) >= 100],
+  ['merge', 'Merge Master', 'Merge 10 Prime towers.', () => stats.merges >= 10],
+  ['boss', 'Boss Slayer', 'Defeat 3 bosses.', () => (stats.bossKills || 0) >= 3],
+  ['kills', 'Exterminator', 'Defeat 500 enemies.', () => (stats.kills || 0) >= 500],
+  ['hard', 'Hard Hitter', 'Win a level on Hard.', () => !!prog.flags.hard],
+  ['night', 'Nightmare Survivor', 'Win a level on Nightmare.', () => !!prog.flags.night],
+  ['noab', 'Purist', 'Win level 5 or later without using abilities.', () => !!prog.flags.noab],
+  ['gold', 'Master of Arms', 'Reach Gold mastery with any tower.', () => KINDS.some(k => masteryOf(k).tier >= 3)],
+  ['world', 'World Saver', 'Clear level 10 of any world.', () => WORLDS.some((w, i) => cleared(i, LPW - 1, 0))],
+  ['res', 'Researcher', 'Own 25 research ranks.', () => resRanks() >= 25]
+];
+function checkMedals() {
+  for (const m of MEDALS) if (!prog.medals[m[0]] && m[3]()) { prog.medals[m[0]] = Date.now(); prog.rp += 3; save(); SFX.play('clear'); try { flash('🏅 ' + m[1] + ' +3 RP'); } catch (e) {} }
+}
+
+
+/* ---------- Armory (cosmetics only, never power) ---------- */
+const PALS = {
+  default: { n: 'Standard', price: 0, c: {} },
+  inferno: { n: 'Inferno', price: .99, c: { pulse: '#ff9a4a', rail: '#ffe0b0', missile: '#ff4a2a', flak: '#ffb060', cryo: '#ffd08a', tesla: '#ff7a3a', beam: '#ff5a2a', gravity: '#ff9a5a' } },
+  frost: { n: 'Frost', price: .99, c: { pulse: '#cfeeff', rail: '#ffffff', missile: '#9fd8ff', flak: '#bfe6ff', cryo: '#ffffff', tesla: '#9fb8ff', beam: '#8fe0ff', gravity: '#b0c8ff' } },
+  toxic: { n: 'Toxic', price: .99, c: { pulse: '#9aff6a', rail: '#e0ffc0', missile: '#c8ff3a', flak: '#7dff9a', cryo: '#a0ffd0', tesla: '#6aff9a', beam: '#b8ff3a', gravity: '#8aff9a' } },
+  royal: { n: 'Royal', price: .99, c: { pulse: '#ffd24a', rail: '#fff0b0', missile: '#ffb040', flak: '#ffe070', cryo: '#e0c8ff', tesla: '#c08bff', beam: '#ff9af0', gravity: '#a08bff' } },
+  medalist: { n: 'Medalist (earn 8 medals)', price: 0, need: 8, c: { pulse: '#ffffff', rail: '#ffd24a', missile: '#ffd24a', flak: '#ffffff', cryo: '#ffd24a', tesla: '#ffffff', beam: '#ffd24a', gravity: '#ffffff' } }
+};
+const LANES = { default: { n: 'World default', price: 0, hue: null }, crimson: { n: 'Crimson', price: .99, hue: 350 }, emerald: { n: 'Emerald', price: .99, hue: 140 }, amber: { n: 'Amber', price: .99, hue: 40 }, ultra: { n: 'Ultraviolet', price: .99, hue: 275 } };
+if (!prog.skin) prog.skin = { pal: 'default', lane: 'default' };
+if (!prog.daily) prog.daily = { last: '', streak: 0 };
+{ const m = /[?&]rp=(\d+)/.exec(location.search); if (m) prog.rp = Math.max(prog.rp, +m[1]); }
+const tcol = kind => { const p = PALS[prog.skin.pal]; return (p && p.c[kind]) || TOWERS[kind].col; };
+const laneHue = base => { const l = LANES[prog.skin.lane]; return l && l.hue !== null ? l.hue : base; };
+
 /* ---------- state ---------- */
 const $ = id => document.getElementById(id);
 let G, LV = 0, IDX = 0, TIER = 0, CUR, WAVES, PL;
@@ -193,9 +258,9 @@ function posAt(pi, d) {
   return P.pts[0];
 }
 const ePos = e => posAt(e.pi, e.d);
-function startLevel(L, idx, tier, quiet) {
-  LV = L; IDX = idx || 0; TIER = tier || 0; CUR = buildLevel(LV, IDX, TIER); SFX.theme(L); PL = pathData(CUR); WAVES = makeWaves(CUR);
-  G = { lives: START_LIVES, gold: CUR.gold, wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
+function startLevel(L, idx, tier, quiet, dly) {
+  LV = L; IDX = idx || 0; TIER = tier || 0; CUR = buildLevel(LV, IDX, TIER); if (dly) applyTwist(CUR, dly.tw, dly.sd); SFX.theme(L); PL = pathData(CUR); WAVES = makeWaves(CUR);
+  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return CUR.waves; }
@@ -226,14 +291,21 @@ function spawn(type) {
   SFX.play('spawn'); intro(type);
   if (type === 'boss') { G.warn = 2.8; G.slowmo = 1.6; G.bossAt = ePos(G.enemies[G.enemies.length - 1]); G.shake = Math.max(G.shake, .7); SFX.play('warn'); SFX.play('roar'); }
 }
-function tStats(t) { const r = tStats0(t), b = TOWERS[t.kind]; if (b.pull) r.pull = b.pull * (t.lvl <= 3 ? 1 + .45 * (t.lvl - 1) : 2.4); return r; }
+function tStats(t) {
+  const r = tStats0(t), b = TOWERS[t.kind], k = t.kind; if (b.pull) r.pull = b.pull * (t.lvl <= 3 ? 1 + .45 * (t.lvl - 1) : 2.4);
+  r.dmg *= 1 + .06 * rk(k + '.dmg') + masteryOf(k).bonus + perkDmg(); r.range = Math.round(r.range * (1 + .04 * rk(k + '.rng'))); r.rate *= 1 - .05 * rk(k + '.rate');
+  if (k === 'missile' && rk('missile.sp')) r.splash = Math.round(r.splash * 1.25);
+  if (k === 'tesla' && rk('tesla.sp')) { r.chain += 1; r.dmg *= 1.15; }
+  if (k === 'gravity' && rk('gravity.sp') && r.pull) r.pull *= 1.3;
+  return r;
+}
 function tStats0(t) {
   const b = TOWERS[t.kind], k = t.lvl;
   const dm = k <= 3 ? 1 + .65 * (k - 1) : 5.6, rng = k <= 3 ? (k - 1) * 8 : 24, rt = k <= 3 ? 1 - .1 * (k - 1) : .6;
   return { range: Math.round(b.range * (k <= 3 ? 1 + .15 * (k - 1) : 1.5)), dmg: b.dmg * dm, rate: b.rate * rt, slow: b.slow ? Math.min(.7, b.slow + (k <= 3 ? .09 * (k - 1) : .3)) : 0, splash: b.splash ? b.splash + (k <= 3 ? 6 * (k - 1) : 20) : 0, chain: b.chain ? b.chain + (k <= 3 ? k - 1 : 4) : 0 };
 }
-const upCost = t => Math.round(TOWERS[t.kind].cost * (t.lvl === 1 ? .75 : 1.1));
-const sellVal = t => Math.round(t.spent * .6);
+const upCost = t => Math.round(TOWERS[t.kind].cost * (t.lvl === 1 ? .75 : 1.1) * (1 - .04 * rk('g.disc')));
+const sellVal = t => Math.round(t.spent * (.6 + .05 * rk('g.sell')));
 const tName = t => (t.lvl === 4 ? 'Prime ' : '') + TOWERS[t.kind].name;
 const PADS = () => CUR.pads;
 const MOTES = Array.from({ length: 46 }, () => [Math.random() * 360, Math.random() * 600, 4 + Math.random() * 10, .6 + Math.random() * 1.4, Math.random() * 6]);
@@ -263,9 +335,9 @@ function mergeTowers(a, b) {
 function sellTower(t) { SFX.play('sell'); G.gold += sellVal(t); G.towers.splice(G.towers.indexOf(t), 1); hud(); }
 
 /* damage with armor + weaknesses */
-function dealDamage(e, base, type, ap) {
-  const d = ENEMY[e.type], m = (d.mods && d.mods[type]) || 1, raw = base * m, arm = Math.max(0, (d.armor || 0) - (ap || 0));
-  const dmg = Math.max(raw * .2, raw - arm); e.hp -= dmg; e.flash = .1; numPop(e, dmg, type); SFX.play('hit'); if (base >= 30 && e.type !== 'boss') e.d = Math.max(0, e.d - 2.5); return dmg;
+function dealDamage(e, base, type, ap, kind) {
+  const d = ENEMY[e.type], m = (d.mods && d.mods[type]) || 1, raw = base * m * (e.slow > 0 && rk('cryo.sp') ? 1.1 : 1), arm = Math.max(0, (d.armor || 0) - (ap || 0));
+  const dmg = Math.max(raw * .2, raw - arm); e.hp -= dmg; e.flash = .1; if (kind) { e.lk = kind; stats.dmgBy[kind] = (stats.dmgBy[kind] || 0) + dmg; } numPop(e, dmg, type); SFX.play('hit'); if (base >= 30 && e.type !== 'boss') e.d = Math.max(0, e.d - 2.5); return dmg;
 }
 function muzzle(t) {
   const p = PADS()[t.pad], hi = headInfo(t);
@@ -280,17 +352,19 @@ const flipOf = t => Math.cos(t.ang) < 0 && (t.kind === 'rail' || t.kind === 'mis
 
 function useStrike(x, y) {
   if (G.strike > 0) return;
-  SFX.play('strike'); G.strike = 45; stats.abilities++; save(); G.shake = .8;
+  SFX.play('strike'); G.strike = 45 * cdMult(); stats.abilities++; G.abUsed = (G.abUsed || 0) + 1; save(); G.shake = .8;
   for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0]-x, q[1]-y) <= 55) { dealDamage(e, 160 + G.wave * 14, 'explosive', 99); } }
   G.fx.push({ k: 'strike', p: [x, y], t: 0 }); G.fx.push({ k: 'skybeam', p: [x, y], t: 0 }); burst(x, y, 40, '#ffd24a', 140, .9, 3, true);
 }
-function useRepair() { if (!prog.ab.repair || G.repairUsed || G.over || G.lives >= START_LIVES) return; SFX.play('repair'); G.repairUsed = true; G.lives = Math.min(START_LIVES, G.lives + 5); G.fx.push({ k: 'heal', t: 0 }); flash('Repaired +5 lives'); hud(); }
-function useOver() { if (!prog.ab.over || G.overCd > 0 || G.over || !G.running) return; SFX.play('boost'); G.overT = 8; G.overCd = 50; stats.abilities++; save(); flash('Overcharge!'); for (const t of G.towers) { const p0 = PADS()[t.pad]; G.fx.push({ k: 'merge', p: p0, t: 0, col: '#ffd24a' }); burst(p0[0], p0[1], 10, '#ffd24a', 70, .6, 2, true); } }
-function useFreeze() { if (G.freeze > 0 || !G.running) return; SFX.play('freeze'); G.freeze = 40; G.freezeT = 4; stats.abilities++; save(); G.fx.push({ k: 'freeze', t: 0 }); for (const e of G.enemies) { const q = ePos(e); G.fx.push({ k: 'ice', p: [q[0], q[1] - (ENEMY[e.type].air ? 14 : 0)], t: 0 }); } }
+function useRepair() { if (!prog.ab.repair || G.repairUsed || G.over || G.lives >= G.maxLives) return; G.abUsed++; SFX.play('repair'); G.repairUsed = true; G.lives = Math.min(G.maxLives, G.lives + 5); G.fx.push({ k: 'heal', t: 0 }); flash('Repaired +5 lives'); hud(); }
+function useOver() { if (!prog.ab.over || G.overCd > 0 || G.over || !G.running) return; SFX.play('boost'); G.overT = 8; G.overCd = 50 * cdMult(); stats.abilities++; G.abUsed = (G.abUsed || 0) + 1; save(); flash('Overcharge!'); for (const t of G.towers) { const p0 = PADS()[t.pad]; G.fx.push({ k: 'merge', p: p0, t: 0, col: '#ffd24a' }); burst(p0[0], p0[1], 10, '#ffd24a', 70, .6, 2, true); } }
+function useFreeze() { if (G.freeze > 0 || !G.running) return; SFX.play('freeze'); G.freeze = 40 * cdMult(); G.freezeT = 4; stats.abilities++; G.abUsed = (G.abUsed || 0) + 1; save(); G.fx.push({ k: 'freeze', t: 0 }); for (const e of G.enemies) { const q = ePos(e); G.fx.push({ k: 'ice', p: [q[0], q[1] - (ENEMY[e.type].air ? 14 : 0)], t: 0 }); } }
 
 function killEnemy(e, i) {
   const def = ENEMY[e.type], q = ePos(e), air = def.air;
   G.gold += def.gold; G.enemies.splice(i, 1); hud();
+  stats.kills++; stats.byType[e.type] = (stats.byType[e.type] || 0) + 1; if (def.air) stats.air++; if (e.type === 'boss') stats.bossKills++; if (e.lk) stats.mk[e.lk] = (stats.mk[e.lk] || 0) + 1;
+  if (stats.kills % 25 === 0 || e.type === 'boss') checkMedals();
   const big = e.type === 'boss' ? 4 : e.type === 'brute' || e.type === 'bomber' ? 2 : 1;
   SFX.play(big >= 2 ? 'bigdie' : 'die'); G.decals.push({ x: q[0], y: q[1], r: 8 + big * 6, t: 0 }); G.nums.push({ x: q[0], y: q[1] - (air ? 26 : 16), t: 0, text: '+' + def.gold, col: NCOL.gold, big: false });
   G.fx.push({ k: 'light', p: [q[0], q[1]], col: def.col, r: 40 + big * 22, t: 0 });
@@ -306,7 +380,7 @@ function step(dt) {
   G.t += dt; G.clock += dt; G.strike = Math.max(0, G.strike - dt); G.freeze = Math.max(0, G.freeze - dt); G.freezeT = Math.max(0, G.freezeT - dt); G.shake = Math.max(0, G.shake - dt * 2);
   while (G.spawnQ.length && G.spawnQ[0].at <= G.t) spawn(G.spawnQ.shift().type);
   if (autoWave && !G.running && G.wave > 0 && G.wave < maxWave() && G.autoT > 0) { G.autoT -= dt; if (G.autoT <= 0) sendWave(); hud(); }
-  for (const e of G.enemies) e.slow = G.freezeT > 0 ? .6 : 0;
+  for (const e of G.enemies) { e.slow = G.freezeT > 0 ? .6 : 0; if (e.hs > 0) { e.hs -= dt; e.slow = Math.max(e.slow, .2); } }
   for (const t of G.towers) if (t.kind === 'cryo') {
     const s = tStats(t), p = PADS()[t.pad]; let any = false;
     for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range) { e.slow = Math.max(e.slow, s.slow); any = true; } }
@@ -344,9 +418,9 @@ function step(dt) {
     if (t.kind === 'beam') {
       if (best && ready) {
         if (t.tgt === best) t.chan = (t.chan || 0) + dt; else { t.tgt = best; t.chan = 0; }
-        const ramp = 1 + Math.min(1, t.chan / 2.5); t.ramp = ramp; t.beamOn = best;
+        const ramp = 1 + Math.min(1, t.chan / (rk('beam.sp') ? 1.6 : 2.5)); t.ramp = ramp; t.beamOn = best;
         t.dacc = (t.dacc || 0) + s.dmg * ramp * (G.overT > 0 ? 1.5 : 1) * dt; t.dt2 = (t.dt2 || 0) + dt;
-        if (t.dt2 >= .25) { dealDamage(best, t.dacc, 'energy', 3); t.dacc = 0; t.dt2 = 0; }
+        if (t.dt2 >= .25) { dealDamage(best, t.dacc, 'energy', 3, 'beam'); t.dacc = 0; t.dt2 = 0; }
         t.acc -= dt; if (t.acc <= 0) { t.acc = .35; SFX.play('beam'); }
         t.rec = .5;
       } else { t.beamOn = null; t.chan = 0; t.tgt = null; }
@@ -359,7 +433,7 @@ function step(dt) {
   for (const t of G.towers) if (t.kind === 'tesla' && Math.random() < dt * 5) { const p = PADS()[t.pad]; part(p[0] + (Math.random()-.5) * 14, p[1] - 28 + Math.random() * 8, (Math.random()-.5) * 30, (Math.random()-.5) * 30, .25, 1.3, '#e6c8ff', true); }
   for (let i = G.waves.length - 1; i >= 0; i--) {
     const w = G.waves[i]; w.r += 300 * dt;
-    for (const e of G.enemies) { if (w.hit.includes(e)) continue; const q = ePos(e), qy = q[1] - (ENEMY[e.type].air ? 14 : 0); if (Math.hypot(q[0] - w.x, qy - w.y) <= w.r) { w.hit.push(e); dealDamage(e, w.dmg, 'energy', 0); burst(q[0], qy, 3, '#bff4ff', 40, .25, 1.4, true); } }
+    for (const e of G.enemies) { if (w.hit.includes(e)) continue; const q = ePos(e), qy = q[1] - (ENEMY[e.type].air ? 14 : 0); if (Math.hypot(q[0] - w.x, qy - w.y) <= w.r) { w.hit.push(e); dealDamage(e, w.dmg, 'energy', 0, 'pulse'); if (rk('pulse.sp')) e.hs = 1; burst(q[0], qy, 3, '#bff4ff', 40, .25, 1.4, true); } }
     if (w.r >= w.max) G.waves.splice(i, 1);
   }
   for (let i = G.shots.length - 1; i >= 0; i--) {
@@ -389,12 +463,12 @@ function step(dt) {
 }
 function fire(t, p, best, s) {
   const m = muzzle(t), b = TOWERS[t.kind], q = ePos(best), air = ENEMY[best.type].air, ty = q[1] - (air ? 14 : 0);
-  burst(m[0], m[1], 4, b.col, 55, .25, 1.8, true); SFX.play(t.kind === 'tesla' ? 'arc' : t.kind);
-  G.fx.push({ k: 'light', p: [m[0], m[1]], col: b.col, r: t.kind === 'rail' ? 46 : 30, t: 0 });
+  burst(m[0], m[1], 4, tcol(t.kind), 55, .25, 1.8, true); SFX.play(t.kind === 'tesla' ? 'arc' : t.kind);
+  G.fx.push({ k: 'light', p: [m[0], m[1]], col: tcol(t.kind), r: t.kind === 'rail' ? 46 : 30, t: 0 });
   if (t.kind === 'pulse') { G.waves.push({ x: PADS()[t.pad][0], y: PADS()[t.pad][1] - 4, r: 8, max: s.range, dmg: s.dmg, hit: [] }); burst(m[0], m[1], 6, '#aef2ff', 40, .3, 1.6, true); return; }
   if (t.kind === 'tesla') { chain(t, m, best, s); return; }
   if (t.kind === 'rail') { // instant beam
-    dealDamage(best, s.dmg, b.type, b.ap); G.fx.push({ k: 'beam', a: m, b: [q[0], ty], t: 0 }); burst(q[0], ty, 8, '#cfe6ff', 70, .3, 1.8, true); G.shake = Math.max(G.shake, .08); return;
+    const crit = rk('rail.sp') && Math.random() < .2; dealDamage(best, s.dmg * (crit ? 2 : 1), b.type, b.ap, 'rail'); G.fx.push({ k: 'beam', a: m, b: [q[0], ty], t: 0 }); burst(q[0], ty, 8, '#cfe6ff', 70, .3, 1.8, true); G.shake = Math.max(G.shake, .08); return;
   }
   const sp0 = t.kind === 'missile' ? 90 : t.kind === 'flak' ? 300 : 340, mx = t.kind === 'missile' ? 300 : t.kind === 'flak' ? 380 : 340;
   G.shots.push({ x: m[0], y: m[1], tgt: best, kind: t.kind, dmg: s.dmg, splash: s.splash, type: b.type, ap: b.ap, sp: sp0, max: mx, acc: t.kind === 'missile' ? 380 : 0, trail: [], ang: t.ang });
@@ -407,31 +481,36 @@ function chain(t, m, first, s) {
     for (const e of G.enemies) { if (hitSet.includes(e) || !canHit('tesla', e)) continue; const q = tv(e), d = Math.hypot(q[0]-cur[0], q[1]-cur[1]); if (d < nd) { nd = d; nx = e; } }
     if (!nx) break; hitSet.push(nx); cur = tv(nx); pts.push(cur);
   }
-  hitSet.forEach(e => { dealDamage(e, s.dmg, 'electric', 0); const q = tv(e); burst(q[0], q[1], 4, '#d9b6ff', 50, .25, 1.6, true); });
+  hitSet.forEach(e => { dealDamage(e, s.dmg, 'electric', 0, 'tesla'); const q = tv(e); burst(q[0], q[1], 4, '#d9b6ff', 50, .25, 1.6, true); });
   G.fx.push({ k: 'bolt', pts, t: 0 });
 }
 function hitShot(s, tg, q) {
   if (s.splash) {
     const wantAir = s.kind === 'flak';
-    for (const e of G.enemies) { if (ENEMY[e.type].air !== wantAir) continue; const r = ePos(e), ry = r[1] - (wantAir ? 14 : 0); if (Math.hypot(r[0]-q[0], ry-q[1]) <= s.splash) dealDamage(e, s.dmg, s.type, s.ap); }
+    const passes = (s.kind === 'flak' && rk('flak.sp') && Math.random() < .25) ? 2 : 1;
+    for (let ps = 0; ps < passes; ps++) for (const e of G.enemies) { if (ENEMY[e.type].air !== wantAir) continue; const r = ePos(e), ry = r[1] - (wantAir ? 14 : 0); if (Math.hypot(r[0]-q[0], ry-q[1]) <= s.splash) dealDamage(e, s.dmg, s.type, s.ap, s.kind); }
     G.fx.push({ k: s.kind === 'flak' ? 'flakburst' : 'boom', p: q, t: 0, r: s.splash }); SFX.play(s.kind === 'flak' ? 'flakburst' : 'boom'); G.fx.push({ k: 'light', p: q, col: s.kind === 'flak' ? '#ffe9a0' : '#ff9a4a', r: s.splash * 2.2, t: 0 });
     if (s.kind !== 'flak') G.decals.push({ x: q[0], y: q[1], r: s.splash * .8, t: 0 });
     if (s.kind === 'flak') { burst(q[0], q[1], 10, '#ffcf6b', 70, .4, 1.8, true); burst(q[0], q[1], 5, '#444', 30, .7, 3, false); }
     else { burst(q[0], q[1], 16, '#ff9a4a', 90, .5, 2.2, true); burst(q[0], q[1], 8, '#3a3a40', 40, .9, 3.2, false); G.shake = Math.max(G.shake, .12); }
-  } else if (tg) { dealDamage(tg, s.dmg, s.type, s.ap); burst(q[0], q[1], 4, TOWERS[s.kind].col, 45, .25, 1.6, true); }
+  } else if (tg) { dealDamage(tg, s.dmg, s.type, s.ap, s.kind); burst(q[0], q[1], 4, tcol(s.kind), 45, .25, 1.6, true); }
 }
 function endGame(win) {
   G.over = true; G.running = false; SFX.play(win ? 'win' : 'lose'); if (win) stats.wins++; else stats.losses++;
-  const lost = START_LIVES - G.lives, stars = win ? (lost <= 2 ? 3 : lost <= 8 ? 2 : 1) : 0;
-  if (win) { const k = scKey(LV, IDX, TIER); prog.sc[k] = Math.max(prog.sc[k] || 0, stars); }
+  const lost = G.maxLives - G.lives, stars = win ? (lost <= 2 ? 3 : lost <= 8 ? 2 : 1) : 0;
+  let rpGain = 0;
+  let dailyMsg = '';
+  if (win && CUR.daily) { if (prog.daily.last !== dayStr()) { const y = new Date(); y.setDate(y.getDate() - 1); const ys = String(y.getFullYear() * 10000 + (y.getMonth() + 1) * 100 + y.getDate()); prog.daily.streak = prog.daily.last === ys ? (prog.daily.streak || 0) + 1 : 1; prog.daily.last = dayStr(); const r = 5 + Math.min(5, prog.daily.streak - 1); prog.rp += r; dailyMsg = '<br><b>Daily reward:</b> +' + r + ' RP · streak ' + prog.daily.streak; checkMedals(); } else dailyMsg = '<br>Daily reward already claimed today.'; }
+  if (win && !CUR.daily) { const k = scKey(LV, IDX, TIER), prev = prog.sc[k] || 0; prog.sc[k] = Math.max(prev, stars); rpGain = Math.max(0, stars - prev) * (TIER + 1) + (stars <= prev ? TIER + 1 : 0); prog.rp += rpGain;
+    if (G.lives >= G.maxLives) prog.flags.perfect = 1; if (TIER === 1) prog.flags.hard = 1; if (TIER === 2) prog.flags.night = 1; if (IDX >= 4 && !G.abUsed) prog.flags.noab = 1; checkMedals(); }
   save();
   $('eTitle').textContent = win ? 'Sector secured!' : 'Station lost';
   $('eStars').textContent = win ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '';
   $('eText').textContent = 'Level ' + (IDX + 1) + ' · ' + TIERS[TIER].n + ' — ' + (win ? 'You held all ' + maxWave() + ' waves with ' + G.lives + ' lives left.' : 'You reached wave ' + G.wave + ' of ' + maxWave() + '. Check each enemy\'s weakness and try a different mix.');
-  const wd = WORLDS[LV], fin = IDX === LPW - 1 && TIER === 0, spkId = wd.win[0], q = win ? (fin ? wd.win : [spkId, QUIPS[spkId][(IDX + TIER) % QUIPS[spkId].length]]) : wd.lose, spk = SPEAK[q[0]];
-  const nextOpen = win && IDX < LPW - 1;
+  const wd = WORLDS[LV], fin = IDX === LPW - 1 && TIER === 0 && !CUR.daily, spkId = wd.win[0], q = win ? (fin ? wd.win : [spkId, QUIPS[spkId][(IDX + TIER) % QUIPS[spkId].length]]) : wd.lose, spk = SPEAK[q[0]];
+  const nextOpen = win && IDX < LPW - 1 && !CUR.daily;
   $('eNext').style.display = nextOpen ? 'block' : 'none';
-  let extra = '';
+  let extra = (rpGain ? '<br><b>Research:</b> +' + rpGain + ' RP' : '') + dailyMsg;
   if (win && fin && wd.reward && !prog.ab[wd.reward]) { prog.ab[wd.reward] = true; extra = '<br><b>New ability:</b> ' + REWARDS[wd.reward]; save(); }
   if (win && fin && wd.tower && !prog.tw[wd.tower]) { prog.tw[wd.tower] = true; extra += '<br><b>New tower:</b> ' + TWTXT[wd.tower]; save(); }
   $('eQuote').innerHTML = '<b>' + spk.name + ':</b> ' + q[1].replace('{c}', (prog.call || 'Cadet').replace(/</g, '&lt;')) + extra + (win ? '<br><b>Rank:</b> ' + rankOf() : '');
@@ -439,7 +518,7 @@ function endGame(win) {
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792560920';
+const ART_V = '1792562478';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -528,7 +607,7 @@ function drawVortex(t, time) {
 function drawTower(t, time) {
   if (t.kind === 'gravity') drawVortex(t, time);
   if (G.overT > 0) { const p0 = PADS()[t.pad]; ctx.globalCompositeOperation = 'lighter'; glow(p0[0], p0[1], 30, '#ffd24a', .35 + .2 * Math.sin(time / 90)); ctx.globalCompositeOperation = 'source-over'; }
-  const p = PADS()[t.pad], b = TOWERS[t.kind], k = t.lvl, c = b.col, sp = spr('t_' + t.kind + '_' + k), hi = headInfo(t);
+  const p = PADS()[t.pad], b = TOWERS[t.kind], k = t.lvl, c = tcol(t.kind), sp = spr('t_' + t.kind + '_' + k), hi = headInfo(t);
   if (hi) {
     const age = G.clock - t.born, bs = age < .5 ? ease(age / .5) : 1, r = t.rec, ps = spr('p_pad'), ca = Math.cos(t.aim), sa = Math.sin(t.aim);
     ctx.save();
@@ -570,7 +649,7 @@ function drawTower(t, time) {
 }
 function draw(time) {
   ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle = '#050816'; ctx.fillRect(0,0,cv.width,cv.height);
-  const lv = LEVELS[LV], hue = lv.hue, bgi = spr('bg_' + (LV + 1));
+  const lv = LEVELS[LV], hue = laneHue(lv.hue), bgi = spr('bg_' + (LV + 1));
   if (bgi) { ctx.save(); const bv = CUR.bgv; if (bv === 1 || bv === 3) { ctx.translate(cv.width, 0); ctx.scale(-1, 1); } if (bv === 2 || bv === 3) { ctx.translate(0, cv.height); ctx.scale(1, -1); } const k = Math.max(cv.width / bgi.naturalWidth, cv.height / bgi.naturalHeight) * (1.05 + (bv === 2 ? .25 : 0)), dx = Math.sin(time / 9000) * 7, dy = Math.cos(time / 11000) * 7; ctx.drawImage(bgi, (cv.width - bgi.naturalWidth*k)/2 + dx, (cv.height - bgi.naturalHeight*k)/2 + dy, bgi.naturalWidth*k, bgi.naturalHeight*k); ctx.restore(); ctx.fillStyle = 'rgba(4,8,22,' + (LV === 2 ? .6 : .4) + ')'; ctx.fillRect(0,0,cv.width,cv.height); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'hsla(' + (hue + CUR.idx * 23) + ',70%,35%,.07)'; ctx.fillRect(0,0,cv.width,cv.height); ctx.globalCompositeOperation = 'source-over'; }
   const sx = G.shake > 0 ? (Math.random() - .5) * 6 * G.shake * SC : 0, sy = G.shake > 0 ? (Math.random() - .5) * 6 * G.shake * SC : 0;
   ctx.setTransform(SC,0,0,SC,OX + sx,OY + sy); ctx.save(); ctx.beginPath(); ctx.rect(-40,-40,W+80,H+80); ctx.clip();
@@ -631,7 +710,7 @@ function draw(time) {
   }
   // projectiles
   for (const s of G.shots) {
-    const c = TOWERS[s.kind].col;
+    const c = tcol(s.kind);
     ctx.globalCompositeOperation = 'lighter';
     if (s.kind === 'pulse') { const a = s.ang || 0; ctx.strokeStyle = c; ctx.lineWidth = 2.6; ctx.shadowColor = c; ctx.shadowBlur = 10; ctx.beginPath(); ctx.moveTo(s.x - Math.cos(a) * 12, s.y - Math.sin(a) * 12); ctx.lineTo(s.x, s.y); ctx.stroke(); ctx.shadowBlur = 0; }
     else if (s.kind === 'missile') { const a = s.ang || 0; glow(s.x - Math.cos(a) * 4, s.y - Math.sin(a) * 4, 9, '#ffb060', .8); ctx.globalCompositeOperation = 'source-over'; ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(a); ctx.fillStyle = '#d8dde6'; ctx.fillRect(-5, -1.6, 9, 3.2); ctx.fillStyle = '#ff6a2a'; ctx.beginPath(); ctx.moveTo(4, -1.6); ctx.lineTo(7, 0); ctx.lineTo(4, 1.6); ctx.fill(); ctx.restore(); }
@@ -718,13 +797,13 @@ function ui2() {
   if (!!boss !== lastBoss) { lastBoss = !!boss; SFX.boss(lastBoss); }
 }
 function abilityUI() {
-  for (const [id, key, cdMax] of [['aStrike', 'strike', 45], ['aFreeze', 'freeze', 40]]) {
+  for (const [id, key, cdMax] of [['aStrike', 'strike', 45 * cdMult()], ['aFreeze', 'freeze', 40 * cdMult()]]) {
     const el = $(id), left = G[key]; el.querySelector('.cd').style.height = (left / cdMax * 100) + '%';
     el.classList.toggle('armed', id === 'aStrike' && G.armed);
   }
   $('aRepair').style.display = prog.ab.repair ? 'block' : 'none'; $('aOver').style.display = prog.ab.over ? 'block' : 'none';
-  $('aRepair').querySelector('.cd').style.height = (G.repairUsed || G.lives >= START_LIVES ? 100 : 0) + '%';
-  $('aOver').querySelector('.cd').style.height = (G.overCd / 50 * 100) + '%'; $('aOver').classList.toggle('armed', G.overT > 0);
+  $('aRepair').querySelector('.cd').style.height = (G.repairUsed || G.lives >= G.maxLives ? 100 : 0) + '%';
+  $('aOver').querySelector('.cd').style.height = (G.overCd / (50 * cdMult()) * 100) + '%'; $('aOver').classList.toggle('armed', G.overT > 0);
 }
 function coach() {
   const c = $('coach'); if (!tips || LV > 0 || IDX > 0 || TIER > 0) { c.style.display = 'none'; return; }
@@ -756,7 +835,7 @@ function renderSheet() {
     else if (t.lvl === 3) btns += '<button class="act mer' + (partners.length ? '' : ' no') + '" id="bMerge">' + (partners.length ? 'Merge → Prime' : 'Merge needs a 2nd max ' + b.name) + '</button>';
     else btns += '<button class="act up no">Prime tower</button>';
     btns += '<button class="act sell" id="bSell">Sell ⚡ ' + sellVal(t) + '</button>';
-    sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + ' · <span class="tg">' + TAG(t.kind) + '</span></h4><div class="info">' + b.desc + ' Range ' + Math.round(s.range) + (b.dmg ? ' · Damage ' + Math.round(s.dmg) + (b.aoe ? ' to all' : '') : '') + (s.slow ? ' · Slows ' + Math.round(s.slow*100) + '%' : '') + (s.chain ? ' · Jumps ' + s.chain : '') + '<br><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '</div><div class="row">' + btns + '</div>';
+    sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + ' · <span class="tg">' + TAG(t.kind) + '</span></h4><div class="info">' + b.desc + ' Range ' + Math.round(s.range) + (b.dmg ? ' · Damage ' + Math.round(s.dmg) + (b.aoe ? ' to all' : '') : '') + (s.slow ? ' · Slows ' + Math.round(s.slow*100) + '%' : '') + (s.chain ? ' · Jumps ' + s.chain : '') + '<br><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '<br><b>Mastery:</b> ' + masteryOf(t.kind).name + (masteryOf(t.kind).bonus ? ' (+' + Math.round(masteryOf(t.kind).bonus * 100) + '%)' : '') + ' · ' + masteryOf(t.kind).kills + ' kills</div><div class="row">' + btns + '</div>';
     if ($('bUp')) $('bUp').onclick = () => upgradeTower(t);
     if ($('bMerge')) $('bMerge').onclick = () => {
       if (!partners.length) return;
@@ -770,7 +849,7 @@ const show = id => $(id).style.display = 'flex', hide = id => $(id).style.displa
 function hideAll() { document.querySelectorAll('.ov').forEach(o => o.style.display = 'none'); }
 
 function showLevels() {
-  $('mapRank').textContent = rankOf() + (prog.call ? ' ' + prog.call : ''); $('mapSub').textContent = totalCleared() + ' / ' + WORLDS.length * LPW + ' levels · ★ ' + totalStars();
+  $('mapRank').textContent = rankOf() + (prog.call ? ' ' + prog.call : ''); $('mapSub').textContent = totalCleared() + ' / ' + WORLDS.length * LPW + ' levels · ★ ' + totalStars() + ' · ' + prog.rp + ' RP';
   let html = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><polyline points="' + WORLDS.map(w => w.pos.join(',')).join(' ') + ' 70,14" fill="none" stroke="rgba(125,239,255,.35)" stroke-width=".5" stroke-dasharray="1.5 1.5"/></svg>';
   let nextDone = false;
   WORLDS.forEach((w, i) => {
@@ -816,6 +895,96 @@ function playWorld(i) {
 }
 $('callOk').onclick = () => { prog.call = ($('callIn').value || '').trim().slice(0, 14) || 'Rookie'; save(); hide('ovCall'); showLevels(); };
 
+
+/* ---------- Hangar (research, medals, stats, ...) ---------- */
+let hubTab = 'research', hubScope = 'pulse', hubReturn = 'ovLevels';
+const HUB_TABS = [['research', 'Research'], ['medals', 'Medals'], ['stats', 'Stats']];
+const hubExtra = {};
+function showHub(tab, from) { if (tab) hubTab = tab; if (from) hubReturn = from; renderHub(); hideAll(); show('ovHub'); }
+function renderHub() {
+  $('hubRP').textContent = prog.rp + ' Research Points · ' + resRanks() + ' ranks owned';
+  $('hubTabs').innerHTML = HUB_TABS.map(([id, n]) => '<button class="chip2' + (hubTab === id ? ' on' : '') + '" data-tab="' + id + '">' + n + '</button>').join('');
+  $('hubTabs').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { hubTab = b.dataset.tab; renderHub(); });
+  const body = $('hubBody');
+  if (hubExtra[hubTab]) { hubExtra[hubTab](body); return; }
+  if (hubTab === 'research') {
+    const scopes = KINDS.map(k => [k, TOWERS[k].icon, !TOWERS[k].locked || prog.tw[k]]).concat([['g', '🛠', true]]);
+    let html = '<div class="scopes">' + scopes.map(([k, ic, ok]) => '<button class="sc' + (hubScope === k ? ' on' : '') + (ok ? '' : ' lock') + '" data-sc="' + k + '">' + ic + '</button>').join('') + '</div>';
+    html += '<div class="hubnote">' + (hubScope === 'g' ? '<b>Global upgrades</b>' : '<b>' + TOWERS[hubScope].name + '</b> · ' + TAG(hubScope) + (() => { const m = masteryOf(hubScope); return ' · Mastery: ' + m.name + ' (' + m.kills + ' kills' + (m.next ? ', next at ' + m.next : '') + ')'; })()) + '</div>';
+    NODES.filter(n => n.scope === hubScope).forEach(n => {
+      const r = rk(n.id), full = r >= n.max, cost = full ? 0 : n.costs[r], can = !full && prog.rp >= cost;
+      html += '<div class="node' + (n.special ? ' sp' : '') + '"><div class="nt"><b>' + n.label + '</b><span>' + n.desc + '</span></div><div class="pips">' + '●'.repeat(r) + '○'.repeat(n.max - r) + '</div><button class="buy' + (can ? '' : ' no') + '" data-n="' + n.id + '">' + (full ? 'MAX' : cost + ' RP') + '</button></div>';
+    });
+    html += '<button class="btn alt" id="respec">Respec: refund everything</button>';
+    body.innerHTML = html;
+    body.querySelectorAll('[data-sc]').forEach(b => b.onclick = () => { hubScope = b.dataset.sc; renderHub(); });
+    body.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { if (b.classList.contains('no') || b.textContent === 'MAX') return; if (buyNode(b.dataset.n)) renderHub(); });
+    $('respec').onclick = () => { const n = respec(); renderHub(); $('hubBody').insertAdjacentHTML('afterbegin', '<div class="hubnote">Refunded ' + n + ' RP.</div>'); };
+  } else if (hubTab === 'medals') {
+    body.innerHTML = '<div class="hubnote">Each medal pays 3 Research Points once. ' + Object.keys(prog.medals).length + ' / ' + MEDALS.length + ' earned.</div>' + MEDALS.map(m => '<div class="node' + (prog.medals[m[0]] ? ' got' : '') + '"><div class="nt"><b>' + (prog.medals[m[0]] ? '🏅 ' : '🔒 ') + m[1] + '</b><span>' + m[2] + '</span></div></div>').join('');
+  } else if (hubTab === 'stats') {
+    const t = Math.round(stats.secs / 60), bt = Object.entries(stats.byType || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => (ENEMY[k] ? ENEMY[k].name : k) + ' ' + v).join(' · ') || '—';
+    const tw = KINDS.map(k => { const m = masteryOf(k); return TOWERS[k].icon + ' ' + TOWERS[k].name + ': ' + m.kills + ' kills (' + m.name + '), ' + Math.round((stats.dmgBy && stats.dmgBy[k]) || 0) + ' damage'; });
+    body.innerHTML = '<div class="tiles">' + [['Enemies defeated', stats.kills || 0], ['Flyers shot down', stats.air || 0], ['Bosses defeated', stats.bossKills || 0], ['Levels cleared', totalCleared() + ' / ' + WORLDS.length * LPW], ['Stars', totalStars()], ['Best wave', stats.bestWave], ['Merges', stats.merges], ['Minutes played', t], ['Wins / losses', stats.wins + ' / ' + stats.losses], ['Rank', rankOf()]].map(([a, b]) => '<div class="tile"><b>' + b + '</b><span>' + a + '</span></div>').join('') + '</div><div class="hubnote"><b>Kills by enemy:</b> ' + bt + '</div><div class="hubnote">' + tw.join('<br>') + '</div><div class="hubnote"><b>Rank perks:</b> Defender +20 energy · Guardian +1 core life · Warden +3% damage · Commander abilities recharge 10% faster.</div>';
+  }
+}
+
+HUB_TABS.push(['armory', 'Armory'], ['loadout', 'Loadout']);
+hubExtra.armory = body => {
+  const medals = Object.keys(prog.medals).length, own = (def) => !def.need || medals >= def.need;
+  const sw = (c) => Object.values(c).slice(0, 5).map(x => '<i style="background:' + x + '"></i>').join('');
+  let html = '<div class="hubnote">Cosmetics only. They never change how strong anything is. In this test build you can try everything free; the prices show what they would cost later (all together $4.99). Your taps are counted so we know what people like.</div><div class="hubnote"><b>Tower colours</b></div>';
+  html += Object.entries(PALS).map(([id, p]) => '<div class="node' + (prog.skin.pal === id ? ' got' : '') + '"><div class="nt"><b>' + p.n + '</b><span class="swatch">' + (id === 'default' ? 'Original colours' : sw(p.c)) + '</span><span>' + (p.price ? '$' + p.price.toFixed(2) + ' · free to try in test' : own(p) ? 'Unlocked' : 'Locked: ' + (p.need - medals) + ' more medals') + '</span></div><button class="buy' + (own(p) ? '' : ' no') + '" data-pal="' + id + '">' + (prog.skin.pal === id ? 'ON' : 'Equip') + '</button></div>').join('');
+  html += '<div class="hubnote"><b>Lane themes</b></div>' + Object.entries(LANES).map(([id, l]) => '<div class="node' + (prog.skin.lane === id ? ' got' : '') + '"><div class="nt"><b>' + l.n + '</b><span class="swatch">' + (l.hue === null ? 'Each world uses its own colour' : '<i style="background:hsl(' + l.hue + ',90%,60%)"></i>') + '</span><span>' + (l.price ? '$' + l.price.toFixed(2) + ' · free to try in test' : 'Unlocked') + '</span></div><button class="buy" data-lane="' + id + '">' + (prog.skin.lane === id ? 'ON' : 'Equip') + '</button></div>').join('');
+  body.innerHTML = html;
+  body.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => { if (b.classList.contains('no')) return; prog.skin.pal = b.dataset.pal; if (PALS[b.dataset.pal].price) stats.cosTry++; save(); renderHub(); });
+  body.querySelectorAll('[data-lane]').forEach(b => b.onclick = () => { prog.skin.lane = b.dataset.lane; if (LANES[b.dataset.lane].price) stats.cosTry++; save(); renderHub(); });
+};
+hubExtra.loadout = body => {
+  const u = KINDS.filter(k => !TOWERS[k].locked || prog.tw[k]);
+  if (u.length <= LOADOUT_N) { body.innerHTML = '<div class="hubnote">You own ' + u.length + ' towers, so all of them come into every level. Once you unlock more than ' + LOADOUT_N + ', you will pick which ' + LOADOUT_N + ' to bring here.</div>'; return; }
+  let lo = (prog.loadout || []).filter(k => u.includes(k)); if (lo.length !== LOADOUT_N) lo = u.slice(0, LOADOUT_N); prog.loadout = lo;
+  body.innerHTML = '<div class="hubnote">Pick exactly ' + LOADOUT_N + ' towers to bring into levels (' + lo.length + ' chosen). Tap to swap.</div>' + u.map(k => '<div class="node' + (lo.includes(k) ? ' got' : '') + '"><div class="nt"><b>' + TOWERS[k].icon + ' ' + TOWERS[k].name + '</b><span>' + TAG(k) + ' · ' + TOWERS[k].desc + '</span></div><button class="buy" data-lo="' + k + '">' + (lo.includes(k) ? 'IN' : 'OUT') + '</button></div>').join('');
+  body.querySelectorAll('[data-lo]').forEach(b => b.onclick = () => {
+    const k = b.dataset.lo; let cur = prog.loadout.slice();
+    if (cur.includes(k)) { $('hubBody').insertAdjacentHTML('afterbegin', '<div class="hubnote">Tap a tower that is OUT to swap it in for this one.</div>'); prog.swapOut = k; save(); return; }
+    if (prog.swapOut && cur.includes(prog.swapOut)) { cur[cur.indexOf(prog.swapOut)] = k; prog.swapOut = null; prog.loadout = cur; save(); renderHub(); }
+    else { $('hubBody').insertAdjacentHTML('afterbegin', '<div class="hubnote">First tap the tower you want to remove (IN), then the one to bring.</div>'); }
+  });
+};
+
+$('hubBack').onclick = () => { hide('ovHub'); show(hubReturn); if (hubReturn === 'ovLevels') showLevels(); };
+$('lvHub').onclick = () => showHub('research', 'ovLevels');
+$('mHub').onclick = () => { hide('ovMenu'); showHub('research', 'ovMenu'); };
+
+
+/* ---------- Daily challenge ---------- */
+const TWISTS = [{ id: 'air', n: 'Air Raid', d: 'Only flyers attack. Bring Flak, Pulse and Arc.' }, { id: 'speed', n: 'Speed Run', d: 'Enemies move 30% faster.' }, { id: 'frugal', n: 'Frugal', d: 'You start with 30% less energy.' }, { id: 'swarm', n: 'Swarm', d: 'Double the enemies, half the health.' }, { id: 'tight', n: 'Tight Loadout', d: 'Only 4 random towers allowed.' }];
+const dayNum = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
+const dayStr = () => String(dayNum());
+function dailyInfo() {
+  const sd = dayNum(), w = sd % 3, i = 1 + ((sd >> 2) % 9), tw = TWISTS[(sd >> 4) % TWISTS.length], tier = totalCleared() >= 10 ? 1 : 0;
+  return { sd, w, i, tw, tier };
+}
+function applyTwist(lv, tw, sd) {
+  lv.daily = { tw: tw.id, date: dayStr() };
+  if (tw.id === 'air') lv.airOnly = true;
+  if (tw.id === 'speed') lv.spMult *= 1.3;
+  if (tw.id === 'frugal') lv.gold = Math.round(lv.gold * .7);
+  if (tw.id === 'swarm') { lv.swarm = true; lv.hp *= .5; }
+  if (tw.id === 'tight') { const rng = mulberry(sd), u = KINDS.filter(k => !TOWERS[k].locked || prog.tw[k]).slice(); const pick = []; while (pick.length < 4 && u.length) pick.push(u.splice(Math.floor(rng() * u.length), 1)[0]); lv.only = pick; }
+  lv.name = 'Daily: ' + tw.n;
+}
+function showDaily() {
+  const d = dailyInfo(), done = prog.daily.last === dayStr();
+  $('dlTitle').textContent = 'Daily challenge';
+  $('dlBody').innerHTML = '<p><b>' + d.tw.n + '</b><br>' + d.tw.d + '</p><p>' + WORLDS[d.w].name + ' · level ' + (d.i + 1) + ' · ' + TIERS[d.tier].n + '</p><p>Streak: <b>' + (prog.daily.streak || 0) + '</b> day' + ((prog.daily.streak || 0) === 1 ? '' : 's') + '<br>' + (done ? 'Today\'s reward: claimed. You can still play for fun.' : 'Reward: ' + (5 + Math.min(5, prog.daily.streak || 0)) + ' Research Points') + '</p>';
+  hideAll(); show('ovDaily');
+}
+$('lvDaily').onclick = () => { if (totalCleared() < 1 && !OPEN_ALL) { $('mapFoot').textContent = 'Beat the exam first to unlock the daily challenge.'; return; } showDaily(); };
+$('dlGo').onclick = () => { const d = dailyInfo(); startLevel(d.w, d.i, d.tier, false, d); };
+$('dlBack').onclick = showLevels;
+
 /* ---------- input ---------- */
 cv.addEventListener('pointerdown', ev => {
   if (G.over) return;
@@ -839,7 +1008,7 @@ $('bAuto').onclick = () => { autoWave = !autoWave; try { localStorage.setItem('o
 function autoUI() { $('bAuto').innerHTML = 'Auto<br>' + (autoWave ? 'on' : 'off'); $('bAuto').classList.toggle('on', autoWave); }
 $('bMenu').onclick = () => { $('tipState').textContent = tips ? 'on' : 'off'; show('ovMenu'); };
 $('mResume').onclick = () => hide('ovMenu');
-$('mRestart').onclick = () => startLevel(LV, IDX, TIER);
+$('mRestart').onclick = () => startLevel(LV, IDX, TIER, false, CUR.daily ? { tw: TWISTS.find(x => x.id === CUR.daily.tw), sd: dayNum() } : null);
 $('mLevels').onclick = showLevels;
 $('mWorld').onclick = () => showWorld(LV);
 function sndUI() { $('mSound').textContent = 'Sound effects: ' + (SFX.on ? 'on' : 'off'); $('mMusic').textContent = 'Music: ' + (SFX.music ? 'on' : 'off'); }
@@ -851,7 +1020,7 @@ $('mUnlock').onclick = () => { stats.unlockTaps++; save(); alert('Thanks! More s
 $('mStats').onclick = () => { hide('ovMenu'); showStats(); };
 $('lvStats').onclick = () => { showStats(); };
 $('sClose').onclick = () => { hide('ovStats'); };
-$('eAgain').onclick = () => startLevel(LV, IDX, TIER);
+$('eAgain').onclick = () => startLevel(LV, IDX, TIER, false, CUR.daily ? { tw: TWISTS.find(x => x.id === CUR.daily.tw), sd: dayNum() } : null);
 $('eNext').onclick = () => startLevel(LV, IDX + 1, TIER);
 $('eWorld').onclick = () => showWorld(LV);
 document.querySelectorAll('[data-fun]').forEach(b => b.onclick = () => {

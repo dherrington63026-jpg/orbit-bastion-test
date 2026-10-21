@@ -113,6 +113,22 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 .lvb b{font-size:24px;line-height:1}.lvb span{font-size:10px;color:#ffd24a;letter-spacing:1px;margin-top:3px}.lvb em{position:absolute;top:2px;left:0;right:0;font-style:normal;font-size:8px;color:#ff7a8e;letter-spacing:1px}
 .lvb.done{box-shadow:inset 0 0 0 1px #ffd24a99,inset 0 0 14px #ffd24a33}.lvb.boss{box-shadow:inset 0 0 0 1px #ff5a7a99,inset 0 0 14px #ff5a7a33}.lvb.lock{opacity:.4}
 #wlFoot{font-size:12px;color:#a9c4ff;text-align:center;padding-top:8px;min-height:28px}
+
+#hub{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) center/cover;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))}
+#hubHead{display:flex;align-items:center;gap:12px;font-size:13px;color:#a9c4ff}#hubHead b{font-size:22px;color:#ffd24a;letter-spacing:2px;text-transform:uppercase}
+#hubTabs{display:flex;gap:6px;margin:12px 0 8px}
+#hubBody{flex:1;overflow:auto;padding-bottom:8px}
+.scopes{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.sc{flex:1 1 9%;min-width:34px;height:40px;border:0;font-size:20px;background:linear-gradient(#1d3a86,#0e1d4f);box-shadow:inset 0 0 0 1px #3fd0ff55;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.sc.on{background:linear-gradient(#8ff0ff,#1aa7e0)}.sc.lock{opacity:.35}
+.hubnote{font-size:13px;color:#bfd2ff;margin:6px 2px;line-height:1.4}
+.node{display:flex;align-items:center;gap:8px;background:linear-gradient(#142257cc,#0a1334cc);box-shadow:inset 0 0 0 1px #3fd0ff44;margin:6px 0;padding:8px 10px}
+.node.sp{box-shadow:inset 0 0 0 1px #ffd24a88}.node.got{box-shadow:inset 0 0 0 1px #ffd24acc}
+.nt{flex:1}.nt b{display:block;font-size:16px;color:#e8f1ff}.nt span{font-size:12px;color:#a9c4ff;line-height:1.3}
+.pips{color:#7defff;letter-spacing:2px;font-size:13px}
+.buy{min-width:64px;height:38px;border:0;font-weight:700;font-size:14px;color:#021a2a;background:linear-gradient(#8ff0ff,#1aa7e0);clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)}
+.buy.no{opacity:.4;filter:grayscale(.6)}
+.swatch{display:block}.swatch i{display:inline-block;width:16px;height:16px;border-radius:50%;margin-right:4px;vertical-align:middle;box-shadow:0 0 6px #0008}
 </style>
 </head>
 <body>
@@ -146,7 +162,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 
 <div class="ov" id="ovLevels" style="padding:0;background:#050816">
   <div id="map">
-    <div id="mapHead"><div><b id="mapRank">Cadet</b><br><span id="mapSub"></span></div><button class="ib" id="lvStats">Stats</button></div>
+    <div id="mapHead"><div><b id="mapRank">Cadet</b><br><span id="mapSub"></span></div><div style="display:flex;gap:6px"><button class="ib" id="lvDaily">Daily</button><button class="ib" id="lvHub">Hangar</button><button class="ib" id="lvStats">Stats</button></div></div>
     <div id="mapBody"></div>
     <div id="mapFoot">Tap a world to begin.</div>
   </div>
@@ -170,6 +186,18 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <div id="wlTiers"></div><div id="wlGrid"></div><div id="wlFoot"></div>
 </div></div>
 
+<div class="ov" id="ovHub" style="padding:0;background:#050816"><div id="hub">
+  <div id="hubHead"><button class="ib" id="hubBack">&lsaquo; Back</button><div><b>Hangar</b><br><span id="hubRP"></span></div></div>
+  <div id="hubTabs"></div><div id="hubBody"></div>
+</div></div>
+
+<div class="ov" id="ovDaily"><div class="card">
+  <h2 id="dlTitle">Daily challenge</h2>
+  <div id="dlBody"></div>
+  <button class="btn" id="dlGo">Start</button>
+  <button class="btn alt" id="dlBack">Back</button>
+</div></div>
+
 <div class="ov" id="ovMenu"><div class="card">
   <h2>Paused</h2>
   <p style="font-size:12px;margin:0 0 4px">Test version. All art was made with AI tools.</p>
@@ -177,6 +205,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="mRestart">Restart this sector</button>
   <button class="btn alt" id="mLevels">World map</button>
   <button class="btn alt" id="mWorld">Level select</button>
+  <button class="btn alt" id="mHub">Hangar (research)</button>
   <button class="btn alt" id="mUnlock">🔓 Unlock all sectors · $3.99</button>
   <button class="btn alt" id="mStats">My stats</button>
   <button class="btn alt" id="mSound">Sound effects: on</button>
@@ -210,7 +239,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="sClose">Close</button>
 </div></div>
 
-<script src="sfx.js?v=1792560920"></script>
-<script src="game.js?v=1792560920"></script>
+<script src="sfx.js"></script>
+<script src="game.js"></script>
 </body>
 </html>
