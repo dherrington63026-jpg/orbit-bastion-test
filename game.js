@@ -559,7 +559,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792567835';
+const ART_V = '1792568088';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -946,7 +946,7 @@ function showLevels() {
   $('mapBody').innerHTML = html;
   $('mapBody').querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const i = +b.dataset.w; if (b.classList.contains('lock')) { $('mapFoot').textContent = 'Clear the final level of the world before it first.'; return; } playWorld(i); });
   $('mapBody').querySelectorAll('[data-soon]').forEach(b => b.onclick = () => { stats.soonTaps = (stats.soonTaps || 0) + 1; save(); $('mapFoot').textContent = 'More worlds are on the way. Your tap was counted so we know if you want them.'; });
-  $('mapFoot').textContent = 'Tap a world to begin.';
+  $('mapFoot').textContent = (totalCleared() >= 3 && !prog.lastBackup) ? 'Tip: make a backup of your progress (Stats, then Backup & restore).' : 'Tap a world to begin.';
   hideAll(); show('ovLevels');
 }
 function showWorld(w) {
@@ -1070,6 +1070,45 @@ function showDaily() {
 $('lvDaily').onclick = () => { if (totalCleared() < 1 && !OPEN_ALL) { $('mapFoot').textContent = 'Beat the exam first to unlock the daily challenge.'; return; } showDaily(); };
 $('dlGo').onclick = () => { const d = dailyInfo(); startLevel(d.w, d.i, d.tier, false, d); };
 $('dlBack').onclick = showLevels;
+
+
+/* ---------- backup / restore code (so progress survives a cleared browser or a new phone) ---------- */
+const BK_KEYS = ['orbitbastion_stats_v1', 'orbitbastion_progress_v1', 'orbitbastion_auto', 'orbitbastion_tips', 'orbitbastion_sfx', 'orbitbastion_music'];
+const bkSum = str => { let a = 1, b = 0; for (let i = 0; i < str.length; i++) { a = (a + str.charCodeAt(i)) % 65521; b = (b + a) % 65521; } return ((b << 16) | a) >>> 0; };
+function makeBackup() {
+  save(); const o = { v: 1, t: Date.now(), d: {} };
+  BK_KEYS.forEach(k => { try { const v = localStorage.getItem(k); if (v !== null) o.d[k] = v; } catch (e) {} });
+  const json = JSON.stringify(o), b64 = btoa(unescape(encodeURIComponent(json)));
+  return 'OB1-' + bkSum(json).toString(16) + '-' + b64;
+}
+function readBackup(text) {
+  const t = String(text || '').replace(/\s+/g, ''), m = /^OB1-([0-9a-f]+)-(.+)$/.exec(t);
+  if (!m) throw new Error('That does not look like a backup code.');
+  let json; try { json = decodeURIComponent(escape(atob(m[2]))); } catch (e) { throw new Error('The code is damaged or cut off. Copy the whole code and try again.'); }
+  if (bkSum(json).toString(16) !== m[1]) throw new Error('The code does not match (part of it is missing or changed).');
+  const o = JSON.parse(json); if (!o || o.v !== 1 || !o.d || !o.d.orbitbastion_progress_v1) throw new Error('This backup has no game progress in it.');
+  return o;
+}
+let bkPending = null;
+function showBackup() {
+  $('bkText').value = ''; $('bkMsg').textContent = prog.lastBackup ? 'Last backup made ' + new Date(prog.lastBackup).toLocaleString() + '.' : 'You have not made a backup yet.'; bkPending = null; $('bkRestore').textContent = 'Restore from the code in the box';
+  hideAll(); show('ovBackup');
+}
+$('bkMake').onclick = async () => {
+  const c = makeBackup(); $('bkText').value = c; prog.lastBackup = Date.now(); save(); crumb('backup made');
+  try { await navigator.clipboard.writeText(c); $('bkMsg').textContent = 'Backup code copied. Paste it somewhere safe (Notes, email to yourself).'; } catch (e) { $('bkText').select(); $('bkMsg').textContent = 'Select the code in the box and copy it. Keep it somewhere safe.'; }
+};
+$('bkRestore').onclick = () => {
+  try {
+    const o = readBackup($('bkText').value);
+    if (!bkPending) { const p = JSON.parse(o.d.orbitbastion_progress_v1), n = Object.keys(p.sc || {}).length; bkPending = o; $('bkMsg').textContent = 'Found a backup from ' + new Date(o.t).toLocaleString() + ' with ' + n + ' recorded level results and ' + (p.rp || 0) + ' research points. Press the button again to REPLACE the progress on this phone with it.'; $('bkRestore').textContent = 'Yes, replace my progress'; return; }
+    BK_KEYS.forEach(k => { try { if (bkPending.d[k] !== undefined) localStorage.setItem(k, bkPending.d[k]); else localStorage.removeItem(k); } catch (e) {} });
+    $('bkMsg').textContent = 'Restored. Reloading…'; setTimeout(() => location.reload(), 600);
+  } catch (e) { bkPending = null; $('bkRestore').textContent = 'Restore from the code in the box'; $('bkMsg').textContent = e.message; }
+};
+$('bkClose').onclick = () => { hide('ovBackup'); showLevels(); };
+$('sBackup').onclick = showBackup;
+$('mBackup').onclick = () => { hide('ovMenu'); showBackup(); };
 
 /* ---------- input ---------- */
 cv.addEventListener('pointerdown', ev => {

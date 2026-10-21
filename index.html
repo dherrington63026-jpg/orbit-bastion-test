@@ -208,6 +208,16 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="dlBack">Back</button>
 </div></div>
 
+<div class="ov" id="ovBackup"><div class="card">
+  <h2>Backup &amp; restore</h2>
+  <p>Your progress is stored only on this phone. A backup code lets you restore it after clearing the browser or on a new phone.</p>
+  <textarea id="bkText" rows="5" spellcheck="false" placeholder="Your backup code appears here. To restore, paste a code here." style="width:100%;border:1px solid #4a63c0;background:#0b1334;color:#cfe0ff;font-size:12px;padding:8px;font-family:monospace"></textarea>
+  <div class="hubnote" id="bkMsg"></div>
+  <button class="btn" id="bkMake">Make &amp; copy my backup code</button>
+  <button class="btn alt" id="bkRestore">Restore from the code in the box</button>
+  <button class="btn alt" id="bkClose">Back</button>
+</div></div>
+
 <div class="ov" id="ovMenu"><div class="card">
   <h2>Paused</h2>
   <p style="font-size:12px;margin:0 0 4px">Test version. All art was made with AI tools.</p>
@@ -216,6 +226,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="mLevels">World map</button>
   <button class="btn alt" id="mWorld">Level select</button>
   <button class="btn alt" id="mHub">Hangar (research)</button>
+  <button class="btn alt" id="mBackup">Backup &amp; restore</button>
   <button class="btn alt" id="mUnlock">🔓 Unlock all sectors · $3.99</button>
   <button class="btn alt" id="mStats">My stats</button>
   <button class="btn alt" id="mFx">Effects: High</button>
@@ -248,12 +259,13 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <div class="tiles" id="tiles"></div>
   <div class="hubnote" id="dbgLine"></div>
   <button class="btn" id="sCopy">Copy my stats</button>
+  <button class="btn alt" id="sBackup">Backup &amp; restore progress</button>
   <button class="btn alt" id="sDebug">Copy debug report</button>
   <button class="btn alt" id="sClearLog">Clear problem log</button>
   <button class="btn alt" id="sClose">Close</button>
 </div></div>
 
-<script src="sfx.js?v=1792567835"></script>
-<script src="game.js?v=1792567835"></script>
+<script src="sfx.js?v=1792568088"></script>
+<script src="game.js?v=1792568088"></script>
 </body>
 </html>
