@@ -948,9 +948,9 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792579559';
+const ART_V = '1792580197';
 const IM = {};
-['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
+['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
 const ROT = { rail: 1, missile: 1, flak: 1, beam: 1, fire: 1, gatling: 1 }, TURN = { rail: 5, missile: 5.5, flak: 8, beam: 6, fire: 7, gatling: 9 }, HL = [0, 44, 48, 53, 58];
 let HM = {}; fetch('art/heads.json?v=' + ART_V).then(r => r.json()).then(j => { HM = j; }).catch(() => {});
@@ -1244,9 +1244,13 @@ function draw(time) {
 }
 function drawPortals(hue, time) {
   PL.forEach(P => {
-    const st = P.pts[0], x = Math.min(Math.max(st[0], 14), W - 14), y = st[1];
+    const st = P.pts[0], x = Math.min(Math.max(st[0], 26), W - 26), y = st[1];
     ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'lighter';
     glow(0, 0, 34, 'hsl(' + (hue + 150) + ',100%,55%)', .55 + .15 * Math.sin(time / 250));
+    const pim = spr('p_portal');
+    if (pim) { const sz = 58 + 2 * Math.sin(time / 300); ctx.globalCompositeOperation = 'source-over'; ctx.save(); ctx.rotate(time / 5200); ctx.drawImage(pim, -sz / 2, -sz / 2, sz, sz); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.arc(0, 0, sz * .27, 0, 7); ctx.clip(); ctx.globalCompositeOperation = 'lighter'; ctx.rotate(-time / 650); ctx.globalAlpha = .55 + .2 * Math.sin(time / 190); ctx.drawImage(pim, -sz * .62, -sz * .62, sz * 1.24, sz * 1.24); ctx.restore();
+      ctx.restore(); return; }
     for (let i = 0; i < 3; i++) { ctx.rotate(time / (700 - i * 160) * (i % 2 ? -1 : 1)); ctx.beginPath(); ctx.arc(0, 0, 10 + i * 5, 0, 4.4); ctx.strokeStyle = 'hsla(' + (hue + 150 + i * 20) + ',100%,70%,' + (.9 - i * .2) + ')'; ctx.lineWidth = 2.2; ctx.stroke(); }
     ctx.restore();
   });
