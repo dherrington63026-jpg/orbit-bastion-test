@@ -136,6 +136,8 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 .stg b{font-size:14px;color:#e8f1ff}.stg i{display:block;color:#7dff9a;font-style:normal;font-size:11px}
 .tb.sel{box-shadow:inset 0 0 0 2px #ffd24a;background:#26408a}
 .act.mv{background:#3a6fd0}.act small{font-size:10px;font-weight:500;opacity:.85}
+#perfBar{position:absolute;left:8px;right:8px;bottom:8px;display:none;align-items:center;gap:8px;flex-wrap:wrap;background:#3a2308f2;border:1px solid #ffb04a;padding:8px 10px;z-index:9;font-size:13px;color:#ffe3b0}#perfBar button{height:32px;padding:0 10px;border:0;font-weight:700;background:#ffb04a;color:#2a1600}
+#bMenu.err{box-shadow:inset 0 0 0 1px #ff5a7a,0 0 8px #ff3b5a}#bMenu.err::after{content:"";position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#ff3b5a}#bMenu{position:relative}
 </style>
 </head>
 <body>
@@ -152,6 +154,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
     <canvas id="cv"></canvas>
     <div id="coach"></div>
     <div id="intro"></div>
+    <div id="perfBar">The game looks slow on this phone. <button id="perfOn">Use Low effects</button><button id="perfNo">No</button></div>
     <div id="boss"><span>DREADNOUGHT</span><div><i></i></div></div>
     <div id="warn"><img src="art/e_boss.webp" alt=""><span>WARNING</span><small>Heavy flyer approaching</small></div>
     <div id="msg"></div>
@@ -215,6 +218,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="mHub">Hangar (research)</button>
   <button class="btn alt" id="mUnlock">🔓 Unlock all sectors · $3.99</button>
   <button class="btn alt" id="mStats">My stats</button>
+  <button class="btn alt" id="mFx">Effects: High</button>
   <button class="btn alt" id="mSound">Sound effects: on</button>
   <button class="btn alt" id="mMusic">Music: on</button>
   <button class="btn alt" id="mTips">Show tips: <span id="tipState">on</span></button>
@@ -242,11 +246,14 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 <div class="ov" id="ovStats"><div class="card">
   <h2>My stats</h2>
   <div class="tiles" id="tiles"></div>
+  <div class="hubnote" id="dbgLine"></div>
   <button class="btn" id="sCopy">Copy my stats</button>
+  <button class="btn alt" id="sDebug">Copy debug report</button>
+  <button class="btn alt" id="sClearLog">Clear problem log</button>
   <button class="btn alt" id="sClose">Close</button>
 </div></div>
 
-<script src="sfx.js?v=1792567061"></script>
-<script src="game.js?v=1792567061"></script>
+<script src="sfx.js?v=1792567835"></script>
+<script src="game.js?v=1792567835"></script>
 </body>
 </html>
