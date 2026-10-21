@@ -1041,7 +1041,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792590016';
+const ART_V = '1792590221';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1818,7 +1818,7 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
   } catch (e) {} }, 350);
 } }
 
-// the galaxy behind the map screens swirls: the painted nebula is rotated around its core, faster near the middle, with two cross-faded phases so it turns forever without winding up
+// the galaxy behind the map screens turns slowly: the whole painted nebula is rotated rigidly around its core (no shear, no ghosting), fading into dark space at the picture's edge
 {
   const cvm = document.createElement('canvas'); cvm.id = 'mapfx'; document.body.insertBefore(cvm, document.body.firstChild);
   let gl = null, uT = null, uA = null, ready = false;
@@ -1830,12 +1830,10 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
     const pr = gl.createProgram();
     gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 uv; void main(){ uv = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }'));
     gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, 'precision mediump float; varying vec2 uv; uniform sampler2D uB; uniform float uT, uA;\n' +
-      'vec2 rot(vec2 p, vec2 c, float a){ vec2 d = p - c; d.x *= uA; float s = sin(a), k = cos(a); d = vec2(k * d.x - s * d.y, s * d.x + k * d.y); d.x /= uA; return c + d; }\n' +
-      'void main(){ vec2 c = vec2(.47, .52), q = vec2(uv.x, 1. - uv.y); if (uA > .684) q.y = .5 + (q.y - .5) * (.684 / uA); else q.x = .5 + (q.x - .5) * (uA / .684); float r = length((q - c) * vec2(uA, 1.)), fall = 1. / (.18 + r * 1.6);\n' +
-      ' float t1 = fract(uT * .045), t2 = fract(uT * .045 + .5), w = abs(1. - 2. * t1), sw = .9;\n' +
-      ' vec2 n = vec2(sin(q.y * 9. + uT * .35), cos(q.x * 8. + uT * .3)) * .004;\n' +
-      ' vec3 a = texture2D(uB, rot(q, c, t1 * sw * fall) + n).rgb, b = texture2D(uB, rot(q, c, t2 * sw * fall) + n).rgb;\n' +
-      ' vec3 col = mix(a, b, w); float core = exp(-r * 6.); col += vec3(.5, .4, .8) * core * (.06 + .04 * sin(uT * .8));\n' +
+      'void main(){ vec2 c = vec2(.47, .52), q = vec2(uv.x, 1. - uv.y); if (uA > .684) q.y = .5 + (q.y - .5) * (.684 / uA); else q.x = .5 + (q.x - .5) * (uA / .684);\n' +
+      ' vec2 d = (q - c) * vec2(.684, 1.); float a = uT * .05, s = sin(a), k = cos(a); d = vec2(k * d.x - s * d.y, s * d.x + k * d.y); vec2 p = c + d / vec2(.684, 1.) / 1.66;\n' +
+      ' float e = min(min(p.x, 1. - p.x) * 6., min(p.y, 1. - p.y) * 6.); float m = clamp(e, 0., 1.);\n' +
+      ' vec3 col = mix(vec3(.02, .03, .08), texture2D(uB, clamp(p, .002, .998)).rgb, m); float r = length(d); col += vec3(.5, .4, .8) * exp(-r * 7.) * (.05 + .035 * sin(uT * .8));\n' +
       ' gl_FragColor = vec4(col, 1.); }'));
     gl.linkProgram(pr); gl.useProgram(pr);
     const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
