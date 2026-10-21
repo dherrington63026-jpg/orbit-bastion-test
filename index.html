@@ -57,7 +57,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 
 #abx{position:absolute;right:6px;bottom:8px;display:flex;flex-direction:column;gap:6px;z-index:3}
 #abx .ab{width:48px;height:44px;font-size:20px;background:#13204fd9}
-#map{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) center/cover;display:flex;flex-direction:column}
+#map{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) 50% 50%/125% 125%;animation:bgdrift 70s ease-in-out infinite alternate;display:flex;flex-direction:column}
 #mapHead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 8px;background:linear-gradient(#050816ee,#05081600);font-size:13px;color:#a9c4ff}
 #mapHead b{font-size:20px;color:#ffd24a}
 #mapBody{position:relative;flex:1}
@@ -77,6 +77,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .stb{grid-column:1/3;display:flex;gap:8px}.stb .btn{margin-top:4px;height:44px}
 .quote{background:#0000004d;border-radius:12px;padding:8px 10px;margin:8px 0 0;font-size:14px;color:#cfe0ff;text-align:left}.quote b{color:#ffd24a}
 
+@keyframes pfloat{from{transform:translateY(-3px) rotate(-1.2deg)}to{transform:translateY(4px) rotate(1.2deg)}}
+.pl img{animation:pfloat 7s ease-in-out infinite alternate}.pl:nth-child(2n) img{animation-duration:9s;animation-delay:-3s}.pl:nth-child(3n) img{animation-duration:11s;animation-delay:-6s}
+@keyframes bgdrift{from{background-position:20% 30%}to{background-position:80% 70%}}
 @font-face{font-family:Rajdhani;font-weight:500;src:url(fonts/rajdhani-500.woff2) format("woff2")}
 @font-face{font-family:Rajdhani;font-weight:700;src:url(fonts/rajdhani-700.woff2) format("woff2")}
 html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -103,7 +106,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 .pl b{letter-spacing:1px;text-transform:uppercase}
 #warn img{display:block;margin:0 auto 4px;height:96px;filter:drop-shadow(0 0 18px #ff2a4a)}#warn span{display:block}
 
-#wl{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) center/cover;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))}
+#wl{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) 50% 50%/125% 125%;animation:bgdrift 70s ease-in-out infinite alternate;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))}
 #wlHead{display:flex;align-items:center;gap:12px;font-size:13px;color:#a9c4ff}#wlHead b{font-size:22px;color:#ffd24a;letter-spacing:1px;text-transform:uppercase}
 #wlTiers{display:flex;gap:8px;margin:14px 0 10px}
 .chip2{flex:1;height:40px;border:0;color:#e8f1ff;font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;background:linear-gradient(#1d3a86,#0e1d4f);box-shadow:inset 0 0 0 1px #3fd0ff66;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
@@ -114,7 +117,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 .lvb.done{box-shadow:inset 0 0 0 1px #ffd24a99,inset 0 0 14px #ffd24a33}.lvb.boss{box-shadow:inset 0 0 0 1px #ff5a7a99,inset 0 0 14px #ff5a7a33}.lvb.lock{opacity:.4}
 #wlFoot{font-size:12px;color:#a9c4ff;text-align:center;padding-top:8px;min-height:28px}
 
-#hub{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) center/cover;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))}
+#hub{position:relative;width:100%;max-width:560px;height:100%;background:#050816 url(art/bg_map.webp) 50% 50%/125% 125%;animation:bgdrift 70s ease-in-out infinite alternate;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))}
 #hubHead{display:flex;align-items:center;gap:12px;font-size:13px;color:#a9c4ff}#hubHead b{font-size:22px;color:#ffd24a;letter-spacing:2px;text-transform:uppercase}
 #hubTabs{display:flex;gap:6px;margin:12px 0 8px}
 #hubBody{flex:1;overflow:auto;padding-bottom:8px}
@@ -290,7 +293,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="sClose">Close</button>
 </div></div>
 
-<script src="sfx.js?v=1792577535"></script>
-<script src="game.js?v=1792577535"></script>
+<script src="sfx.js?v=1792578429"></script>
+<script src="game.js?v=1792578429"></script>
 </body>
 </html>
