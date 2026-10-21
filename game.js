@@ -609,8 +609,7 @@ function breakShard(sh) {
   sh.dead = 1; stats.shards = (stats.shards || 0) + 1; G.shardHit++;
   burst(sh.x, sh.y - 6, 26, '#cfefff', 130, .9, 2.2, true); burst(sh.x, sh.y - 4, 10, '#6fc4ff', 70, 1.1, 3.4, true);
   G.fx.push({ k: 'ring', p: [sh.x, sh.y], r: 34, t: 0 }); SFX.play('shatter');
-  const g = 8; G.gold += g; G.nums.push({ x: sh.x, y: sh.y - 10, t: 0, text: '+' + g + '⚡', col: NCOL.gold, big: false }); hud();
-  if (!G.shardTip) { G.shardTip = true; flash('Ice shards fall from above: tap to break them for energy'); }
+  if (!G.shardTip) { G.shardTip = true; flash('Ice shards fall from above and block shots: tap to break them'); }
 }
 function shardStep(dt) {
   if (!G.running) return;
@@ -826,7 +825,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792577006';
+const ART_V = '1792577102';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
