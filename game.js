@@ -23,25 +23,31 @@ LEVELS.push({ name: 'Stormwatch', sub: 'Lightning strikes, knocked-out towers', 
   pool: ['voltdrone', 'stormwing', 'swarm', 'stalker', 'shield', 'bomber', 'thunderbrute'], poolIntro: { voltdrone: [0, 1], stormwing: [0, 2], swarm: [1, 1], stalker: [2, 1], shield: [4, 1], bomber: [6, 1], thunderbrute: [7, 1] } });
 LEVELS.push({ name: 'Gale Reach', sub: 'Twisters, dizzy towers', waves: 8, hp: 1, gold: 300, hue: 165, paths: null, pads: null, bossM: 1.0, g0: 6, hazard: 'gale', bossSkin: 'galebreaker', bossElem: 'wind',
   pool: ['galedrone', 'galewing', 'swarm', 'stalker', 'shield', 'bomber', 'gustbrute'], poolIntro: { galedrone: [0, 1], galewing: [0, 2], swarm: [1, 1], stalker: [2, 1], shield: [4, 1], bomber: [6, 1], gustbrute: [7, 1] } });
+LEVELS.push({ name: 'Solspire', sub: 'Solar flares, blinded towers', waves: 8, hp: 1, gold: 300, hue: 45, paths: null, pads: null, bossM: 1.0, g0: 10, hazard: 'flare', bossSkin: 'dawnbreaker', bossElem: 'light',
+  pool: ['glintdrone', 'sunwing', 'swarm', 'stalker', 'shield', 'bomber', 'radiantbrute'], poolIntro: { glintdrone: [0, 1], sunwing: [0, 2], swarm: [1, 1], stalker: [2, 1], shield: [4, 1], bomber: [6, 1], radiantbrute: [7, 1] } });
+LEVELS.push({ name: 'Umbral Deep', sub: 'Void haze, half-blind towers', waves: 8, hp: 1, gold: 300, hue: 275, paths: null, pads: null, bossM: 1.0, g0: 10, hazard: 'haze', bossSkin: 'abyssbreaker', bossElem: 'void',
+  pool: ['riftdrone', 'voidwing', 'swarm', 'stalker', 'shield', 'bomber', 'umbrabrute'], poolIntro: { riftdrone: [0, 1], voidwing: [0, 2], swarm: [1, 1], stalker: [2, 1], shield: [4, 1], bomber: [6, 1], umbrabrute: [7, 1] } });
 const TOWERS = {
   fire:    { name:'Flame',   icon:'🔥', cost:125, range:54,  dmg:4,  rate:.3,  col:'#ff7a2a', hits:['ground'],       type:'fire',      ap:0, burn:5, locked:1, desc:'Ground only. A flame stream that sets enemies on fire. Burn ignores armor and stacks 3 times.', strong:'armored brutes, groups', weak:'short range, nothing against flyers' },
   pulse:   { name:'Pulse',   icon:'🔵', cost:55,  range:64,  dmg:6,  rate:1.0,  col:'#6fe3ff', hits:['ground','air'], type:'energy',    ap:0, aoe:1, desc:'Sends out a shockwave that hits EVERY enemy in range, ground and air.', strong:'crowds, swarms, scouts', weak:'armor, shields' },
   rail:    { name:'Rail',    icon:'➖', cost:105, range:130, dmg:60, rate:1.5, col:'#ffffff', hits:['ground'],       type:'kinetic',   ap:6, desc:'Ground only. Long range, pierces armor.', strong:'brutes, stalkers', weak:'swarms, air (cannot hit)' },
   missile: { name:'Missile', icon:'🚀', cost:110, range:84,  dmg:27, rate:1.4, col:'#ff9a4a', hits:['ground'],       type:'explosive', ap:0, splash:36, desc:'Ground only. Blast hits groups.', strong:'swarms, groups', weak:'brutes, air (cannot hit)' },
-  flak:    { name:'Flak',    icon:'✈️', cost:100, range:92,  dmg:14, rate:.7,  col:'#ffcf6b', hits:['air'],          type:'explosive', ap:0, splash:30, desc:'Air only. Bursts shred flyers.', strong:'scouts, bombers, boss', weak:'ground (cannot hit)' },
+  flak:    { name:'Flak',    icon:':flak:', cost:100, range:92,  dmg:14, rate:.7,  col:'#ffcf6b', hits:['air'],          type:'explosive', ap:0, splash:30, desc:'Air only. Bursts shred flyers.', strong:'scouts, bombers, boss', weak:'ground (cannot hit)' },
   cryo:    { name:'Cryo',    icon:'❄️', cost:90,  range:66,  dmg:9,  rate:1,   col:'#9fd8ff', hits:['ground','air'], type:'cold',      ap:0, slow:.32, locked:1, desc:'Slows everything near it and shoots ice shards. 3 hits freeze an enemy; the next hit shatters it for +50%.', strong:'setting up big hits, fast enemies', weak:'low damage on its own' },
   beam:    { name:'Beam',    icon:'🔆', cost:150, range:92,  dmg:22, rate:.1,  col:'#ff7ae6', hits:['ground','air'], type:'energy',    ap:3, locked:1, desc:'Locks on with a continuous beam that grows stronger the longer it holds a target.', strong:'bosses, brutes, shields', weak:'swarms (one target)' },
   gravity: { name:'Gravity', icon:'🌀', cost:125, range:72,  dmg:0,  rate:1,   col:'#7b8cff', hits:['ground','air'], type:'gravity',   ap:0, locked:1, pull:16, desc:'Pulls enemies backward and slows them. Bosses resist.', strong:'holding crowds in a kill zone', weak:'does no damage' },
+  siphon:  { name:'Siphon',  icon:':siphon:', cost:130, range:70,  dmg:8,  rate:.9,   col:'#b07aff', hits:['ground','air'], type:'energy',    ap:6, drain:7, locked:1, desc:'Lays a draining void curse on one enemy: damage over time that ignores armor. An enemy that dies cursed bursts and hurts the ones around it.', strong:'armored brutes, bunched enemies', weak:'slow to start, one target at a time' },
+  prism:   { name:'Prism',   icon:':prism:', cost:140, range:78,  dmg:18, rate:1.1,  col:'#ffe9a0', hits:['ground','air'], type:'energy',    ap:2, pierce:1, locked:1, desc:'Fires a dazzling beam that pierces in a line and hits every enemy along it, ground and air.', strong:'columns of enemies, shields', weak:'enemies spread out' },
   wind:    { name:'Cyclone', icon:'🌪', cost:115, range:62,  dmg:3,  rate:3.2,  col:'#8fe8d0', hits:['ground','air'], type:'kinetic',   ap:0, push:16, locked:1, desc:'Blasts a gust that shoves every enemy in range backward and chips them, ground and air. Bosses resist.', strong:'buying time, fast flyers', weak:'low damage on its own' },
   gatling: { name:'Gatling', icon:'🔫', cost:95,  range:70,  dmg:3.6, rate:.12, col:'#ffd27a', hits:['ground','air'], type:'kinetic',   ap:0, locked:1, desc:'A rotary gun that sprays thousands of small shots at ground and air. Armor shrugs it off.', strong:'swarms, scouts, unarmored enemies', weak:'armored brutes, shields' },
   stun:    { name:'EMP',     icon:'📡', cost:120, range:60,  dmg:0,  rate:5.0,  col:'#7fd0ff', hits:['ground','air'], type:'energy',    ap:0, stun:1.3, locked:1, desc:'Sends out an EMP pulse that freezes every enemy in range in place for a moment, ground and air. Bosses resist.', strong:'holding crowds for your other towers', weak:'does no damage by itself' },
-  tesla:   { name:'Arc',     icon:'⚡', cost:150, range:64,  dmg:15, rate:1.0, col:'#c28bff', hits:['ground','air'], type:'electric',  ap:0, chain:3, desc:'Lightning jumps between enemies, ground and air. Each jump hits 20% weaker.', strong:'shields, swarms', weak:'boss, brutes' }
+  tesla:   { name:'Arc',     icon:':arc:', cost:150, range:64,  dmg:15, rate:1.0, col:'#c28bff', hits:['ground','air'], type:'electric',  ap:0, chain:3, desc:'Lightning jumps between enemies, ground and air. Each jump hits 20% weaker.', strong:'shields, swarms', weak:'boss, brutes' }
 };
 /* elements: each element beats its opposite. Elemental enemies take +50% from the opposite element, -50% from their own. */
-const ELEMS = { fire: { n: 'Fire', ic: '🔥', opp: 'ice' }, ice: { n: 'Ice', ic: '❄', opp: 'fire' }, storm: { n: 'Storm', ic: '⚡', opp: 'wind' }, wind: { n: 'Wind', ic: '🌪', opp: 'storm' }, light: { n: 'Light', ic: '☀', opp: 'void' }, void: { n: 'Void', ic: '🌀', opp: 'light' } };
-TOWERS.fire.elem = 'fire'; TOWERS.missile.elem = 'fire'; TOWERS.flak.elem = 'wind'; TOWERS.cryo.elem = 'ice'; TOWERS.tesla.elem = 'storm'; TOWERS.beam.elem = 'light'; TOWERS.gravity.elem = 'void'; TOWERS.stun.elem = 'storm'; TOWERS.wind.elem = 'wind';
+const ELEMS = { fire: { n: 'Fire', ic: '🔥', opp: 'ice' }, ice: { n: 'Ice', ic: '❄', opp: 'fire' }, storm: { n: 'Storm', ic: '⛈', opp: 'wind' }, wind: { n: 'Wind', ic: '🌪', opp: 'storm' }, light: { n: 'Light', ic: '☀', opp: 'void' }, void: { n: 'Void', ic: '🌀', opp: 'light' } };
+TOWERS.fire.elem = 'fire'; TOWERS.missile.elem = 'fire'; TOWERS.flak.elem = 'wind'; TOWERS.cryo.elem = 'ice'; TOWERS.tesla.elem = 'storm'; TOWERS.beam.elem = 'light'; TOWERS.gravity.elem = 'void'; TOWERS.stun.elem = 'storm'; TOWERS.wind.elem = 'wind'; TOWERS.prism.elem = 'light'; TOWERS.siphon.elem = 'void';
 TOWERS.tesla.locked = 1;
-const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla', 'beam', 'gravity', 'fire', 'stun', 'wind', 'gatling'];
+const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla', 'beam', 'gravity', 'fire', 'stun', 'wind', 'gatling', 'prism', 'siphon'];
 const LOADOUT_N = 6;
 const avail = () => {
   let u = KINDS.filter(k => !TOWERS[k].locked || prog.tw[k] || OPEN_ALL);
@@ -74,12 +80,18 @@ ENEMY.thunderbrute = { name: 'Thunder Brute', hp: 330, sp: 21, gold: 26, leak: 3
 ENEMY.galedrone = { name: 'Gale Drone', hp: 30, sp: 46, gold: 5, leak: 1, col: '#8fe8d0', cost: 5, air: false, armor: 0, mods: {}, intro: [999, 1], elem: 'wind', note: 'A fast rotor drone that rides the wind. Storm (Arc, EMP) hits it hard; wind barely scratches it.' };
 ENEMY.galewing = { name: 'Gale Wing', hp: 22, sp: 80, gold: 4, leak: 1, col: '#bff5e6', cost: 4, air: true, armor: 0, mods: {}, intro: [999, 1], elem: 'wind', note: 'FLYING and very fast, a kite of cream and teal. Pulse and Arc can hit it; Flak is wind and hits it softly.' };
 ENEMY.gustbrute = { name: 'Gust Brute', hp: 320, sp: 22, gold: 26, leak: 3, col: '#d8b070', cost: 26, air: false, armor: 3, mods: { kinetic: 1.1 }, intro: [999, 1], elem: 'wind', note: 'Turbine-armored walker. Rail pierces it; storm towers hit it extra hard.' };
-const EH = { galedrone: 30, galewing: 30, gustbrute: 54, voltdrone: 30, stormwing: 30, thunderbrute: 54, emberdrone: 30, cinderwing: 30, magmabrute: 54, frostdrone: 30, rimewing: 30, glacier: 54, drone: 30, scout: 30, swarm: 22, stalker: 34, shield: 42, bomber: 60, brute: 54, boss: 96 };
-const MUZ = { wind: [0, -.42], gatling: [.45, 0], stun: [0, -.42], fire: [.45, 0], beam: [.42, 0], gravity: [0, -.4], pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
+ENEMY.glintdrone = { name: 'Glint Drone', hp: 34, sp: 44, gold: 5, leak: 1, col: '#ffe9a0', cost: 5, air: false, armor: 0, mods: {}, intro: [999, 1], elem: 'light', note: 'A drone of mirrored plates. Void (Gravity) hits it hard; light barely scratches it.' };
+ENEMY.sunwing = { name: 'Sun Wing', hp: 22, sp: 84, gold: 4, leak: 1, col: '#fff1b0', cost: 4, air: true, armor: 0, mods: {}, intro: [999, 1], elem: 'light', note: 'FLYING and very fast, a mirror-winged sunburst. Flak and Pulse can hit it.' };
+ENEMY.radiantbrute = { name: 'Radiant Brute', hp: 330, sp: 21, gold: 26, leak: 3, col: '#ffd24a', cost: 26, air: false, armor: 3, mods: { energy: .75, kinetic: 1.2 }, intro: [999, 1], elem: 'light', note: 'Mirror armor reflects beams. Rail pierces it; the void hurts it most.' };
+ENEMY.riftdrone = { name: 'Rift Drone', hp: 36, sp: 42, gold: 5, leak: 1, col: '#b07aff', cost: 5, air: false, armor: 0, mods: {}, intro: [999, 1], elem: 'void', note: 'A drone of black glass around a violet core. Light (Beam, Prism) hits it hard; the void barely scratches it.' };
+ENEMY.voidwing = { name: 'Void Wing', hp: 22, sp: 82, gold: 4, leak: 1, col: '#c9a0ff', cost: 4, air: true, armor: 0, mods: {}, intro: [999, 1], elem: 'void', note: 'FLYING and very fast, a manta of black glass. Flak and Pulse can hit it.' };
+ENEMY.umbrabrute = { name: 'Umbra Brute', hp: 340, sp: 21, gold: 26, leak: 3, col: '#8a5ad0', cost: 26, air: false, armor: 4, mods: { energy: .8, kinetic: 1.2 }, intro: [999, 1], elem: 'void', note: 'Obsidian armor with a void core. Rail pierces it; light hurts it most.' };
+const EH = { riftdrone: 30, voidwing: 30, umbrabrute: 54, glintdrone: 30, sunwing: 30, radiantbrute: 54, galedrone: 30, galewing: 30, gustbrute: 54, voltdrone: 30, stormwing: 30, thunderbrute: 54, emberdrone: 30, cinderwing: 30, magmabrute: 54, frostdrone: 30, rimewing: 30, glacier: 54, drone: 30, scout: 30, swarm: 22, stalker: 34, shield: 42, bomber: 60, brute: 54, boss: 96 };
+const MUZ = { siphon: [0, -.42], prism: [0, -.4], wind: [0, -.42], gatling: [.45, 0], stun: [0, -.42], fire: [.45, 0], beam: [.42, 0], gravity: [0, -.4], pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
 
 
 /* ---------- story ---------- */
-const SPEAK = { wynn: { name: 'Captain Wynn Aldous', img: 'u_wynn' }, ione: { name: 'Chief Ione Vael', img: 'u_ione' }, bruck: { name: 'Foreman Bruck', img: 'u_bruck' }, mira: { name: 'Mira', img: 'u_mira' }, nine: { name: 'Nine', img: 'u_nine' }, quill: { name: 'Quill', img: 'u_quill' }, oru: { name: 'Warden Oru', img: 'u_oru' } };
+const SPEAK = { vey: { name: 'Keeper Vey', img: 'u_vey' }, solene: { name: 'Dr. Solene Marr', img: 'u_solene' }, wynn: { name: 'Captain Wynn Aldous', img: 'u_wynn' }, ione: { name: 'Chief Ione Vael', img: 'u_ione' }, bruck: { name: 'Foreman Bruck', img: 'u_bruck' }, mira: { name: 'Mira', img: 'u_mira' }, nine: { name: 'Nine', img: 'u_nine' }, quill: { name: 'Quill', img: 'u_quill' }, oru: { name: 'Warden Oru', img: 'u_oru' } };
 const WORLDS = [
   { lv: 0, name: 'Bastion Academy', tag: 'The Exam', planet: 'u_planet_academy', pos: [30, 78], tower: 'gatling',
     intro: [['nine', 'Welcome to the Bastion Academy, Cadet {c}. I am Nine. I have trained every defender you have ever heard of, and a few you have not.'], ['nine', 'Today is your exam. Build towers on the glowing hexes, send the waves, and do not let anything touch the core.'], ['nine', 'Ground enemies walk. Air enemies fly. Not every tower can hit both, so read the little tags.']],
@@ -110,11 +122,19 @@ WORLDS.push({ lv: 6, name: 'Gale Reach', tag: 'Expansion · Wind', planet: 'u_pl
   intro: [['wynn', 'Captain Wynn Aldous, Gale Reach Skyport. The locals call it the Reach because the wind reaches for everything that is not bolted down. A twister will come through. It will not break your towers. It will pick them up, set them down facing the wrong way, and leave them dizzy. Dizzy towers do not shoot.'], ['nine', 'Wind machines laugh at wind and fear storm, Cadet {c}. Arc and the EMP pylon are storm. Flak is wind, so go easy on it here. The twister is announced by a marker on the ground. Move your attention, not your towers.']],
   win: ['wynn', 'Calm air. I have not seen the windsock hang straight in thirty years. Take the Cyclone. It pushes things the way the wind has been pushing me my whole life, and it does it on purpose, which is the only difference.'],
   lose: ['wynn', 'The Reach won. It usually does. Pick up your tools, tie down what you can, and go again.'], reward: null });
-const TWTXT = { wind: 'Cyclone tower (a gust that shoves every enemy in range backward, ground and air).', gatling: 'Gatling (a rotary gun that sprays small shots at ground and air).', stun: 'EMP tower (freezes every enemy in range for a moment, ground and air).', tesla: 'Arc tower (lightning that jumps between enemies, ground and air).', fire: 'Flame tower (a flame stream that sets ground enemies on fire; burn ignores armor and stacks).', cryo: 'Cryo tower (slows and shoots ice shards; three hits freeze an enemy and the next hit shatters it).', tesla: 'Arc tower (lightning that jumps between enemies).', beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
+WORLDS.push({ lv: 7, name: 'Solspire', tag: 'Expansion · Light', planet: 'u_planet_sol', pos: [48, 64], paid: true, price: 3.99, freeLv: 3, elem: 'light', tower: 'prism',
+  intro: [['solene', 'Doctor Solene Marr, Solspire Array. Good news: free power for a thousand years. Bad news: free power also means a solar flare sweeps across the field every so often and cooks anything that cannot take the glare. I wear sunglasses. Your towers do not have any.'], ['nine', 'Light machines shrug off light and fear the void, Cadet {c}. The Gravity well is void, so make it earn its keep. Beam and Prism feed on light and are immune to the flares. The flare route is drawn on the ground before it fires.']],
+  win: ['solene', 'Sunset! Do you know how rarely I get to say that here? Take the Prism. It catches light, bends it, and sends it down a line of things I would rather not meet. I call that recycling.'],
+  lose: ['solene', 'The sun won this round. It has had a lot of practice. Go again.'], reward: null });
+WORLDS.push({ lv: 8, name: 'Umbral Deep', tag: 'Expansion · Void', planet: 'u_planet_void', pos: [50, 11], paid: true, price: 3.99, freeLv: 3, elem: 'void', tower: 'siphon',
+  intro: [['vey', 'Keeper Vey, Umbral Deep. The cartographers marked this place unremarkable and then stopped coming back. The dark here is not empty. It gathers, and where it gathers, your towers go half blind. Do not argue with it. Break the crystal at its heart and it lets go.'], ['nine', 'Void machines shrug off the void and fear light, Cadet {c}. Beam and Prism see straight through the dark. When a haze settles, tap the crystal at its heart. It pays you in energy and the haze breaks.']],
+  win: ['vey', 'Light, at last. I had forgotten the color of my own hands. Take the Siphon. It lays a quiet curse on one enemy and the curse does the rest. I was never fond of it. I am very glad you are.'],
+  lose: ['vey', 'The dark kept the field. It is patient, so be patient with yourself. Again.'], reward: null });
+const TWTXT = { siphon: 'Siphon tower (a draining void curse that ignores armor and bursts when the enemy dies).', prism: 'Prism tower (a dazzling beam that pierces in a line and hits every enemy along it).', wind: 'Cyclone tower (a gust that shoves every enemy in range backward, ground and air).', gatling: 'Gatling (a rotary gun that sprays small shots at ground and air).', stun: 'EMP tower (freezes every enemy in range for a moment, ground and air).', tesla: 'Arc tower (lightning that jumps between enemies, ground and air).', fire: 'Flame tower (a flame stream that sets ground enemies on fire; burn ignores armor and stacks).', cryo: 'Cryo tower (slows and shoots ice shards; three hits freeze an enemy and the next hit shatters it).', tesla: 'Arc tower (lightning that jumps between enemies).', beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
 const REWARDS = { repair: 'Repair Pulse (wrench button): restores 5 lives, once per level.', over: 'Overcharge (bolt button): towers fire 50% faster for 8 seconds.' };
 const RANKS = [[0, 'Cadet'], [1, 'Defender'], [8, 'Guardian'], [16, 'Warden'], [26, 'Commander']];
 const rankOf = () => { const pts = totalCleared(); let r = RANKS[0][1]; RANKS.forEach(x => { if (pts >= x[0]) r = x[1]; }); return r; };
-const QUIPS = { wynn: ['Smooth air. Do not get used to it.', 'That twister had your name on it. It is still looking.', 'I have flown through worse. I was younger and it was stupider.', 'Tie it down or lose it. Same rule as marriage.'], ione: ['That one was meant for you. The rod took it. You are welcome.', 'Quietest forecast I have ever filed.', 'The rods are singing. That means we are winning.', 'Struck twice in my life. Do not recommend it.'], bruck: ['Not a single boot melted. I am going to tell everyone.', 'That is the quietest the smelter has been since the day we built it.', 'Hot work, clean finish. Take the rest of the shift off.', 'The vents are sulking. Good.'], mira: ['The pipes are ticking again. That is the sound of winning.', 'Frost: nothing. Mira: one. Do not tell the frost.', 'Station is warm, tea is hot. You are officially a hero.', 'Another platform saved. I am putting it on the fridge.'], nine: ['Clean work. Do not look so surprised.', 'Efficient. I am almost impressed.', 'Another one down. The core remains unbothered.', 'You are getting good at this, which is inconvenient for me.'], quill: ['Hull is holding! That was lovely.', 'You are a lifesaver. Literally. Station-wise.', 'I will put a sticker on your file.', 'No leaks. I checked twice.'], oru: ['The gates are quiet again.', 'Patience and good aim. Both useful.', 'Well held.', 'The road thanks you, in its way.'] };
+const QUIPS = { vey: ['The dark is quieter now. It is thinking.', 'Light is only a loud kind of absence of dark. Keep it loud.', 'I counted the stars once. Then I stopped, for my own good.', 'Well struck. The Deep noticed.'], solene: ['Gorgeous. Absolutely gorgeous. Mind the glare.', 'Free power and free chaos. It is a package deal.', 'I have burned my eyebrows off twice. Worth it.', 'Light is just patience that moves fast.'], wynn: ['Smooth air. Do not get used to it.', 'That twister had your name on it. It is still looking.', 'I have flown through worse. I was younger and it was stupider.', 'Tie it down or lose it. Same rule as marriage.'], ione: ['That one was meant for you. The rod took it. You are welcome.', 'Quietest forecast I have ever filed.', 'The rods are singing. That means we are winning.', 'Struck twice in my life. Do not recommend it.'], bruck: ['Not a single boot melted. I am going to tell everyone.', 'That is the quietest the smelter has been since the day we built it.', 'Hot work, clean finish. Take the rest of the shift off.', 'The vents are sulking. Good.'], mira: ['The pipes are ticking again. That is the sound of winning.', 'Frost: nothing. Mira: one. Do not tell the frost.', 'Station is warm, tea is hot. You are officially a hero.', 'Another platform saved. I am putting it on the fridge.'], nine: ['Clean work. Do not look so surprised.', 'Efficient. I am almost impressed.', 'Another one down. The core remains unbothered.', 'You are getting good at this, which is inconvenient for me.'], quill: ['Hull is holding! That was lovely.', 'You are a lifesaver. Literally. Station-wise.', 'I will put a sticker on your file.', 'No leaks. I checked twice.'], oru: ['The gates are quiet again.', 'Patience and good aim. Both useful.', 'Well held.', 'The road thanks you, in its way.'] };
 
 /* ---------- levels: 10 per world, generated; 3 difficulty tiers ---------- */
 const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(location.search);
@@ -215,6 +235,64 @@ function stormStep(dt) {
     for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0] - k.x, q[1] - k.y) <= 44) e.stun = Math.max(e.stun || 0, 1); }
     if (G.ores.length < 3) { const a = Math.random() * 6.283, ox = Math.max(16, Math.min(344, k.x + Math.cos(a) * 30)), oy = Math.max(30, Math.min(570, k.y + Math.sin(a) * 30)); G.ores.push({ x: ox, y: oy, born: G.clock, life: 10, im: 'p_cell', col: '90,190,255' }); if (!G.oreTip0) { G.oreTip0 = true; flash('Power cells drop where lightning lands: tap them for energy'); } }
   }
+}
+function hazeStep(dt) {
+  for (let i = G.ores.length - 1; i >= 0; i--) if (G.ores[i].zone && G.ores[i].zone.life <= 0) G.ores.splice(i, 1);
+  for (const t of G.towers) t.haze = Math.max(0, (t.haze || 0) - dt);
+  G.hzn -= dt;
+  if (G.hzn <= 0) {
+    G.hzn = Math.max(12, (18 - CUR.idx * .5) * [1, .85, .7][TIER]) * (.85 + Math.random() * .3);
+    const P = PADS(), prey = G.towers.filter(t => !['light', 'void'].includes(TOWERS[t.kind].elem)), pad = prey.length && Math.random() < .7 ? prey[Math.floor(Math.random() * prey.length)].pad : Math.floor(Math.random() * P.length);
+    if (!(CUR.vents && CUR.vents.includes(pad)) && G.hz.length < 2) { const p = P[pad]; G.hz.push({ x: p[0], y: p[1], r: 58, warn: 1.8, life: 10 }); if (!G.hzSeen) { G.hzSeen = true; flash('🌀 Void haze forming!'); } }
+  }
+  for (let i = G.hz.length - 1; i >= 0; i--) {
+    const z = G.hz[i];
+    if (z.warn > 0) { z.warn -= dt; if (z.warn <= 0) { G.ores.push({ x: z.x, y: z.y, born: G.clock, life: 99, im: 'p_vcrystal', col: '170,110,255', zone: z }); if (!G.oreTip0) { G.oreTip0 = true; flash('Tap the crystal at the heart of the haze to break it'); } } continue; }
+    z.life -= dt;
+    for (const t of G.towers) { const q = PADS()[t.pad]; if (Math.hypot(q[0] - z.x, q[1] - z.y) <= z.r && !['light', 'void'].includes(TOWERS[t.kind].elem)) t.haze = .25; }
+    if (z.life <= 0) G.hz.splice(i, 1);
+  }
+}
+function drawHaze(time) {
+  const im = spr('p_haze');
+  for (const z of G.hz) {
+    ctx.save(); ctx.translate(z.x, z.y);
+    if (z.warn > 0) { const f = 1 - z.warn / 1.8, pu = .5 + .5 * Math.sin(time / 70); ctx.beginPath(); ctx.arc(0, 0, z.r, 0, 7); ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(190,140,255,' + (.35 + .5 * pu) + ')'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.arc(0, 0, z.r * (1 - f), 0, 7); ctx.strokeStyle = 'rgba(255,255,255,' + (.2 + .4 * f) + ')'; ctx.lineWidth = 1.4; ctx.stroke(); }
+    else { const a = Math.min(1, z.life / 1, (10 - z.life) / .6 + .2); if (im) { ctx.globalAlpha = .85 * a; ctx.rotate(time / 2600); const sz = z.r * 2.5; ctx.drawImage(im, -sz / 2, -sz / 2, sz, sz); ctx.globalAlpha = .4 * a; ctx.rotate(-time / 1500); ctx.drawImage(im, -sz * .42, -sz * .42, sz * .84, sz * .84); }
+      else { const g = ctx.createRadialGradient(0, 0, 4, 0, 0, z.r); g.addColorStop(0, 'rgba(40,10,70,' + .8 * a + ')'); g.addColorStop(1, 'rgba(40,10,70,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, z.r, 0, 7); ctx.fill(); } }
+    ctx.restore();
+  }
+  for (const t of G.towers) if (t.haze > 0) { const p = PADS()[t.pad]; ctx.beginPath(); ctx.arc(p[0], p[1], 26, 0, 7); ctx.setLineDash([3, 4]); ctx.strokeStyle = 'rgba(190,140,255,.8)'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]); }
+}
+function flareStep(dt) {
+  for (let i = G.ores.length - 1; i >= 0; i--) if (G.clock - G.ores[i].born > G.ores[i].life) G.ores.splice(i, 1);
+  G.moteT -= dt;
+  if (G.moteT <= 0) {
+    G.moteT = 8 + Math.random() * 4;
+    if (G.ores.length < 3) { const p = pickShards(PADS(), CUR.paths, Math.random, 1, G.ores.map(o => [o.x, o.y]))[0]; if (p) { G.ores.push({ x: p[0], y: p[1], born: G.clock, life: 8, im: 'p_mote', col: '255,215,110' }); if (!G.oreTip0) { G.oreTip0 = true; flash('Sun motes twinkle for a few seconds: tap them for energy'); } } }
+  }
+  if (!G.fr) {
+    G.frT -= dt;
+    if (G.frT <= 0) {
+      G.frT = Math.max(11, (15 - CUR.idx * .5) * [1, .85, .7][TIER]) * (.85 + Math.random() * .3);
+      const P = PADS(), prey = G.towers.filter(t => TOWERS[t.kind].elem !== 'light'), a = prey.length && Math.random() < .75 ? PADS()[prey[Math.floor(Math.random() * prey.length)].pad] : P[Math.floor(Math.random() * P.length)];
+      const ang = Math.random() * 6.283, L = 260, x0 = a[0] - Math.cos(ang) * L / 2, y0 = a[1] - Math.sin(ang) * L / 2, x1 = a[0] + Math.cos(ang) * L / 2, y1 = a[1] + Math.sin(ang) * L / 2;
+      G.fr = { x0, y0, x1, y1, x: x0, y: y0, u: 0, warn: 2.2, R: 56, hit: new Set() }; if (!G.hzSeen) { G.hzSeen = true; flash('☀ Solar flare warning!'); }
+    }
+    return;
+  }
+  const fr = G.fr;
+  if (fr.warn > 0) { fr.warn -= dt; return; }
+  fr.u += dt / 3.6; fr.x = fr.x0 + (fr.x1 - fr.x0) * fr.u; fr.y = fr.y0 + (fr.y1 - fr.y0) * fr.u;
+  for (const t of G.towers) { const q = PADS()[t.pad]; if (!fr.hit.has(t) && Math.hypot(q[0] - fr.x, q[1] - fr.y) <= fr.R && TOWERS[t.kind].elem !== 'light') { fr.hit.add(t); if (!(t.frz > 0)) { t.frz = [2.4, 3.2, 4][TIER]; t.hzMax = t.frz; t.fzKind = 'blind'; t.warnH = 0; crumb('blinded ' + t.kind); } } }
+  if (Math.random() < dt * 40) part(fr.x + (Math.random() - .5) * 60, fr.y + (Math.random() - .5) * 60, 0, -30, .5, 2, '#fff3c0', true);
+  if (fr.u >= 1) G.fr = null;
+}
+function drawFlare(time) {
+  const fr = G.fr; if (!fr) return; ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  if (fr.warn > 0) { const pu = .5 + .5 * Math.sin(time / 60), f = 1 - fr.warn / 2.2; ctx.setLineDash([9, 8]); ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(255,240,170,' + (.35 + .4 * pu) + ')'; ctx.lineWidth = 2 * fr.R / 28; ctx.beginPath(); ctx.moveTo(fr.x0, fr.y0); ctx.lineTo(fr.x1, fr.y1); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(fr.x0, fr.y0, fr.R * (.4 + .6 * f), 0, 7); ctx.stroke(); }
+  else { const g = ctx.createRadialGradient(fr.x, fr.y, 4, fr.x, fr.y, fr.R * 1.15); g.addColorStop(0, 'rgba(255,255,245,.95)'); g.addColorStop(.45, 'rgba(255,225,140,.55)'); g.addColorStop(1, 'rgba(255,200,90,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fr.x, fr.y, fr.R * 1.15, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(255,245,200,.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(fr.x, fr.y, fr.R, 0, 7); ctx.stroke(); }
+  ctx.restore();
 }
 function galeStep(dt) {
   for (let i = G.ores.length - 1; i >= 0; i--) { const o = G.ores[i]; if (o.vx) { o.x += o.vx * dt; o.y += Math.sin(G.clock * 1.6 + o.x * .05) * 9 * dt; if (o.x > 380) G.ores.splice(i, 1); } else if (G.clock - o.born > o.life) G.ores.splice(i, 1); }
@@ -336,7 +414,7 @@ let tips = true; try { tips = localStorage.getItem('orbitbastion_tips') !== '0';
 /* ---------- rewards: research, mastery, rank perks, medals ---------- */
 if (!prog.res) prog.res = {}; if (prog.rp === undefined) prog.rp = 0; if (!prog.medals) prog.medals = {}; if (!prog.flags) prog.flags = {};
 const NODES = [];
-const SP_TXT = { wind: ['Squall', 'Gusts shove enemies 30% farther.'], gatling: ['Overspin', 'Fires 15% faster.'], stun: ['Overload', 'The EMP recharges 20% faster.'], fire: ['Inferno', 'Burn stacks up to 5 instead of 3.'], pulse: ['Concussion', 'Hit enemies are slowed 20% for 1 second.'], rail: ['Critical shots', '20% chance for double damage.'], missile: ['Wide blast', '+25% blast radius.'], flak: ['Double burst', '25% chance of a second burst.'], cryo: ['Brittle frost', 'Slowed enemies take +10% damage from everything.'], tesla: ['Overload', '+1 chain jump and +15% damage.'], beam: ['Fast focus', 'Reaches full power in 1.6 s instead of 2.5 s.'], gravity: ['Heavy well', '+30% pull strength.'] };
+const SP_TXT = { siphon: ['Hollow', 'Death bursts hit twice as hard.'], prism: ['Refraction', 'The beam hits 25% harder.'], wind: ['Squall', 'Gusts shove enemies 30% farther.'], gatling: ['Overspin', 'Fires 15% faster.'], stun: ['Overload', 'The EMP recharges 20% faster.'], fire: ['Inferno', 'Burn stacks up to 5 instead of 3.'], pulse: ['Concussion', 'Hit enemies are slowed 20% for 1 second.'], rail: ['Critical shots', '20% chance for double damage.'], missile: ['Wide blast', '+25% blast radius.'], flak: ['Double burst', '25% chance of a second burst.'], cryo: ['Brittle frost', 'Slowed enemies take +10% damage from everything.'], tesla: ['Overload', '+1 chain jump and +15% damage.'], beam: ['Fast focus', 'Reaches full power in 1.6 s instead of 2.5 s.'], gravity: ['Heavy well', '+30% pull strength.'] };
 KINDS.forEach(k => {
   NODES.push({ id: k + '.dmg', scope: k, label: 'Damage', desc: '+6% damage per rank', max: 3, costs: [2, 3, 4] });
   NODES.push({ id: k + '.rng', scope: k, label: 'Range', desc: '+4% range per rank', max: 3, costs: [2, 3, 4] });
@@ -439,7 +517,7 @@ function posAt(pi, d) {
 const ePos = e => posAt(e.pi, e.d);
 function startLevel(L, idx, tier, quiet, dly) { crumb('start ' + L + '-' + (idx || 0) + '-' + (tier || 0) + (dly ? ' daily' : ''));
   LV = L; IDX = idx || 0; TIER = tier || 0; CUR = buildLevel(LV, IDX, TIER); if (dly) applyTwist(CUR, dly.tw, dly.sd); SFX.theme(L); PL = pathData(CUR); WAVES = makeWaves(CUR);
-  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, vs: (CUR.vents || []).map((pi, k) => ({ pad: pi, t: 7 + k * 4 + Math.random() * 3 })), repairUsed: false, overT: 0, overCd: 0, shards: [], shT: 3, shardHit: 0, ores: [], ls: [], lsT: 6, tw: [], twT: 7, podT: 6 };
+  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, vs: (CUR.vents || []).map((pi, k) => ({ pad: pi, t: 7 + k * 4 + Math.random() * 3 })), repairUsed: false, overT: 0, overCd: 0, shards: [], shT: 3, shardHit: 0, ores: [], ls: [], lsT: 6, tw: [], twT: 7, podT: 6, fr: null, frT: 8, moteT: 5, hz: [], hzn: 7 };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return CUR.waves; }
@@ -474,6 +552,9 @@ function tStats(t) {
   const r = tStats0(t), b = TOWERS[t.kind], k = t.kind; if (b.pull) r.pull = b.pull * (t.lvl <= 3 ? 1 + .45 * (t.lvl - 1) : 2.4);
   if (b.push) { r.push = b.push * (t.lvl <= 3 ? 1 + .35 * (t.lvl - 1) : 2.4); if (rk('wind.sp')) r.push *= 1.3; }
   if (k === 'gatling' && rk('gatling.sp')) r.rate *= .85;
+  if (k === 'prism' && rk('prism.sp')) r.dmg *= 1.25;
+  if (b.drain) r.drain = b.drain * (r.dmg / b.dmg);
+  if (t.haze > 0) r.range = Math.round(r.range * .5);
   if (b.stun) { r.stun = b.stun * (t.lvl <= 3 ? 1 + .3 * (t.lvl - 1) : 2.2); if (rk('stun.sp')) r.rate *= .8; }
   r.dmg *= 1 + .06 * rk(k + '.dmg') + masteryOf(k).bonus + perkDmg(); r.range = Math.round(r.range * (1 + .04 * rk(k + '.rng'))); r.rate *= 1 - .05 * rk(k + '.rate');
   if (b.burn) r.burn = b.burn * (r.dmg / b.dmg);
@@ -572,6 +653,7 @@ function useFreeze() { crumb('freeze'); if (G.freeze > 0 || !G.running) return; 
 function killEnemy(e, i) {
   const def = ENEMY[e.type], q = ePos(e), air = def.air;
   G.gold += def.gold; G.enemies.splice(i, 1); hud();
+  if (e.drainT > 0) { const pw = rk('siphon.sp') ? 60 : 30; burst(q[0], q[1], 16, '#b07aff', 100, .6, 2.4, true); G.fx.push({ k: 'ring', p: [q[0], q[1]], r: 42, t: 0 }); for (const o of G.enemies) { const oq = ePos(o); if (Math.hypot(oq[0] - q[0], oq[1] - q[1]) <= 42) { dealDamage(o, pw, 'energy', 99, 'siphon'); o.drainT = Math.max(o.drainT || 0, 2); o.drainPow = Math.max(o.drainPow || 0, 4); } } }
   stats.kills++; stats.byType[e.type] = (stats.byType[e.type] || 0) + 1; if (def.air) stats.air++; if (e.type === 'boss') stats.bossKills++; if (e.lk) stats.mk[e.lk] = (stats.mk[e.lk] || 0) + 1;
   if (stats.kills % 25 === 0 || e.type === 'boss') checkMedals();
   const big = e.type === 'boss' ? 4 : e.type === 'brute' || e.type === 'bomber' ? 2 : 1;
@@ -696,7 +778,7 @@ function drawVent(i, p, time) {
   ctx.beginPath(); ctx.arc(0, 0, VENT_R, 0, 7); ctx.setLineDash([4, 6]); ctx.strokeStyle = warn ? 'rgba(255,90,40,' + (.5 + .4 * Math.sin(time / 80)) + ')' : 'rgba(255,140,60,.22)'; ctx.lineWidth = warn ? 3 : 1.5; ctx.stroke(); ctx.setLineDash([]);
   ctx.globalCompositeOperation = 'lighter'; glow(0, 0, warn ? 34 : 26, '#ff5a1a', warn ? .9 : .4 + .2 * pu);
   ctx.globalCompositeOperation = 'source-over'; const vim = spr('p_vent'); if (vim) { const vw = 50 + (warn ? 3 * Math.sin(time / 50) : 0), vh = vim.naturalHeight / vim.naturalWidth * vw; ctx.drawImage(vim, -vw / 2, -vh / 2 - 2, vw, vh); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (warn ? .55 : .2) + .15 * pu; ctx.drawImage(vim, -vw / 2, -vh / 2 - 2, vw, vh); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
-  if (warn) { ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('⚠', 0, -22); }
+  if (warn) { ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; const wi = spr('ic_warn'); if (wi) ctx.drawImage(wi, -9, -33, 18, 18); }
   ctx.restore();
 }
 const hazardInterval = () => Math.max(5, (16 - CUR.idx * .9) * [1, .75, .55][TIER]) * (.8 + Math.random() * .4);
@@ -705,7 +787,7 @@ function breakShard(sh) {
   sh.dead = 1; stats.shards = (stats.shards || 0) + 1; G.shardHit++;
   burst(sh.x, sh.y - 6, 26, '#cfefff', 130, .9, 2.2, true); burst(sh.x, sh.y - 4, 10, '#6fc4ff', 70, 1.1, 3.4, true);
   G.fx.push({ k: 'ring', p: [sh.x, sh.y], r: 34, t: 0 }); SFX.play('shatter');
-  const g = 8; G.gold += g; G.nums.push({ x: sh.x, y: sh.y - 10, t: 0, text: '+' + g + '⚡', col: NCOL.gold, big: false }); hud();
+  const g = 8; G.gold += g; G.nums.push({ x: sh.x, y: sh.y - 10, t: 0, text: '+' + g, col: NCOL.gold, big: false }); hud();
   if (!G.shardTip) { G.shardTip = true; flash('Ice shards fall from above and block shots: tap to break them for energy'); }
 }
 function shardStep(dt) {
@@ -725,8 +807,8 @@ function shardStep(dt) {
   }
 }
 function collectOre(o) {
-  G.ores.splice(G.ores.indexOf(o), 1); burst(o.x, o.y - 6, 18, '#ffd27a', 110, .7, 2.2, true); G.fx.push({ k: 'ring', p: [o.x, o.y], r: 28, t: 0 }); SFX.play('shatter');
-  const g = 8; G.gold += g; G.nums.push({ x: o.x, y: o.y - 12, t: 0, text: '+' + g + '⚡', col: NCOL.gold, big: false }); hud(); stats.ores = (stats.ores || 0) + 1;
+  G.ores.splice(G.ores.indexOf(o), 1); if (o.zone) { o.zone.life = 0; burst(o.zone.x, o.zone.y, 30, '#c9a0ff', 150, .8, 2.6, true); } burst(o.x, o.y - 6, 18, '#ffd27a', 110, .7, 2.2, true); G.fx.push({ k: 'ring', p: [o.x, o.y], r: 28, t: 0 }); SFX.play('shatter');
+  const g = 8; G.gold += g; G.nums.push({ x: o.x, y: o.y - 12, t: 0, text: '+' + g, col: NCOL.gold, big: false }); hud(); stats.ores = (stats.ores || 0) + 1;
 }
 function drawOres(time) {
   for (const o of G.ores) {
@@ -772,6 +854,8 @@ function step(dt) {
   if (CUR.hazard === 'heat' && G.running) heatStep(dt);
   if (CUR.hazard === 'storm' && G.running) stormStep(dt);
   if (CUR.hazard === 'gale' && G.running) galeStep(dt);
+  if (CUR.hazard === 'flare' && G.running) flareStep(dt);
+  if (CUR.hazard === 'haze' && G.running) hazeStep(dt);
   if (CUR.hazard === 'frost') shardStep(dt);
   G.overT = Math.max(0, G.overT - dt); G.overCd = Math.max(0, G.overCd - dt);
   G.t += dt; G.clock += dt; G.strike = Math.max(0, G.strike - dt); G.freeze = Math.max(0, G.freeze - dt); G.freezeT = Math.max(0, G.freezeT - dt); G.shake = Math.max(0, G.shake - dt * 2);
@@ -816,6 +900,7 @@ function step(dt) {
       if (Math.random() < dt * 9) { const q = ePos(e); part(q[0] + (Math.random() - .5) * 8, q[1] - 8, (Math.random() - .5) * 10, -22, .45, 1.8, '#ff9a3a', true); }
       if (e.burnT <= 0) e.burnStacks = 0;
     }
+    if (e.drainT > 0) { e.drainT -= dt; const dd = e.drainPow * elemMult(e.elem ? { elem: e.elem } : def, 'siphon') * dt; e.hp -= dd; e.lk = 'siphon'; stats.dmgBy.siphon = (stats.dmgBy.siphon || 0) + dd; if (Math.random() < dt * 10) { const q = ePos(e); part(q[0] + (Math.random() - .5) * 8, q[1] - 8, (Math.random() - .5) * 12, -18, .5, 1.8, '#b07aff', true); } }
     if (e.fz > 0) { e.fz -= dt; e.slow = 1; }
     if (e.stun > 0) { e.stun -= dt; if (Math.random() < dt * 16) { const q = ePos(e); part(q[0] + (Math.random() - .5) * 14, q[1] - 6 - Math.random() * 8, (Math.random() - .5) * 40, (Math.random() - .5) * 40, .22, 1.6, '#bfe9ff', true); } }
     if (e.gust > 0) e.gust -= dt;
@@ -895,6 +980,14 @@ function fire(t, p, best, s) {
   if (t.kind === 'pulse') { G.waves.push({ x: PADS()[t.pad][0], y: PADS()[t.pad][1] - 4, r: 8, max: s.range, dmg: s.dmg, hit: [] }); burst(m[0], m[1], 6, '#aef2ff', 40, .3, 1.6, true); return; }
   if (t.kind === 'tesla') { chain(t, m, best, s); return; }
   if (t.kind === 'fire') { flame(t, m, best, s); return; }
+  if (t.kind === 'siphon') {
+    dealDamage(best, s.dmg, 'energy', b.ap, 'siphon'); best.drainT = 4; best.drainPow = s.drain; G.fx.push({ k: 'beam', a: m, b: [q[0], ty], t: 0 }); burst(q[0], ty, 8, '#b07aff', 60, .4, 2, true); return;
+  }
+  if (t.kind === 'prism') {
+    const dx = q[0] - m[0], dy = ty - m[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, ex = m[0] + ux * s.range, ey = m[1] + uy * s.range;
+    G.enemies.slice().forEach(e => { const eq = ePos(e), ey2 = eq[1] - (ENEMY[e.type].air ? 14 : 0), u = (eq[0] - m[0]) * ux + (ey2 - m[1]) * uy, v = Math.abs((eq[0] - m[0]) * uy - (ey2 - m[1]) * ux); if (u > -6 && u <= s.range + 6 && v <= 13) dealDamage(e, s.dmg, 'energy', b.ap, 'prism'); });
+    G.fx.push({ k: 'beam', a: m, b: [ex, ey], t: 0 }); burst(q[0], ty, 8, '#fff1b0', 70, .3, 1.8, true); return;
+  }
   if (t.kind === 'rail') { // instant beam
     const crit = rk('rail.sp') && Math.random() < .2; dealDamage(best, s.dmg * (crit ? 2 : 1), b.type, b.ap, 'rail'); G.fx.push({ k: 'beam', a: m, b: [q[0], ty], t: 0 }); burst(q[0], ty, 8, '#cfe6ff', 70, .3, 1.8, true); G.shake = Math.max(G.shake, .08); return;
   }
@@ -948,9 +1041,9 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792580197';
+const ART_V = '1792583437';
 const IM = {};
-['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
+['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
 const ROT = { rail: 1, missile: 1, flak: 1, beam: 1, fire: 1, gatling: 1 }, TURN = { rail: 5, missile: 5.5, flak: 8, beam: 6, fire: 7, gatling: 9 }, HL = [0, 44, 48, 53, 58];
 let HM = {}; fetch('art/heads.json?v=' + ART_V).then(r => r.json()).then(j => { HM = j; }).catch(() => {});
@@ -975,7 +1068,7 @@ function glow(x, y, r, col, a) { const g = ctx.createRadialGradient(x, y, 0, x, 
 const ease = x => { x = Math.min(1, Math.max(0, x)); const c = 1.7; return Math.max(.001, 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2)); };
 
 /* Puppet animation: the picture is split into parts so legs step, arms swing and wings flap (the AI cannot redraw clean walking poses). */
-const FLY = { scout: 1, rimewing: 1, cinderwing: 1, stormwing: 1, galewing: 1 };
+const FLY = { scout: 1, rimewing: 1, cinderwing: 1, stormwing: 1, galewing: 1, sunwing: 1, voidwing: 1 };
 function puppet(sp, w, h, type, ph, time, e) {
   const sw = sp.naturalWidth, sh = sp.naturalHeight;
   if (FLY[type]) {
@@ -990,7 +1083,7 @@ function puppet(sp, w, h, type, ph, time, e) {
   const ly = sh * (seam - ov), lh = sh * (1 - seam + ov), dy = -h / 2 + h * (seam - ov), dh = h * (1 - seam + ov), mw = .04;
   ctx.drawImage(sp, 0, ly, sw * (.5 + mw), lh, -w/2 + sL * sg, dy - lL, w * (.5 + mw), dh);
   ctx.drawImage(sp, sw * (.5 - mw), ly, sw * (.5 + mw), lh, -w * mw + sR * sg, dy - lR, w * (.5 + mw), dh);
-  const arm = (type === 'brute' || type === 'shield' || type === 'glacier' || type === 'magmabrute' || type === 'thunderbrute' || type === 'gustbrute') ? Math.sin(ph) * .07 : 0, uh = sh * (seam + ov), dh2 = h * (seam + ov);
+  const arm = (type === 'brute' || type === 'shield' || type === 'glacier' || type === 'magmabrute' || type === 'thunderbrute' || type === 'gustbrute' || type === 'radiantbrute' || type === 'umbrabrute') ? Math.sin(ph) * .07 : 0, uh = sh * (seam + ov), dh2 = h * (seam + ov);
   if (arm) {
     const e1 = .34, e2 = .66, ov2 = .03;
     ctx.save(); ctx.translate(-w * (.5 - e1 / 2), -h / 2 + h * .18); ctx.rotate(arm); ctx.drawImage(sp, 0, 0, sw * (e1 + ov2), uh, -w * e1 / 2, -h * .18, w * (e1 + ov2), dh2); ctx.restore();
@@ -1040,9 +1133,13 @@ function drawVortex(t, time) {
 }
 function drawFrost(t, time) {
   const p = PADS()[t.pad];
-  if (t.warnH > 0) { const a = .5 + .5 * Math.sin(time / 80); ctx.beginPath(); ctx.arc(p[0], p[1], 27, 0, 7); ctx.strokeStyle = 'rgba(255,120,50,' + a + ')'; ctx.lineWidth = 3; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]); ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffb060'; ctx.fillText('⚠', p[0], p[1] - 34); }
+  if (t.warnH > 0) { const a = .5 + .5 * Math.sin(time / 80); ctx.beginPath(); ctx.arc(p[0], p[1], 27, 0, 7); ctx.strokeStyle = 'rgba(255,120,50,' + a + ')'; ctx.lineWidth = 3; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]); ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffb060'; const wi = spr('ic_warn'); if (wi) ctx.drawImage(wi, p[0] - 9, p[1] - 46, 18, 18); }
   if (t.warn > 0) { const a = .5 + .5 * Math.sin(time / 90); ctx.beginPath(); ctx.arc(p[0], p[1], 27, 0, 7); ctx.strokeStyle = 'rgba(160,225,255,' + a + ')'; ctx.lineWidth = 3; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]); ctx.font = '16px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('❄', p[0], p[1] - 34); }
-  if (t.frz > 0 && t.fzKind === 'gale') {
+  if (t.frz > 0 && t.fzKind === 'blind') {
+    const mp = 6.283 * (t.frz / (t.hzMax || 4)), pu = .5 + .5 * Math.sin(time / 90);
+    ctx.globalCompositeOperation = 'lighter'; glow(p[0], p[1] - 6, 34, '#fff3c0', .6 + .3 * pu); ctx.strokeStyle = 'rgba(255,250,220,.9)'; ctx.lineWidth = 1.6; for (let k = 0; k < 6; k++) { const a = k * 1.047 + time / 400; ctx.beginPath(); ctx.moveTo(p[0] + Math.cos(a) * 8, p[1] - 6 + Math.sin(a) * 8); ctx.lineTo(p[0] + Math.cos(a) * 26, p[1] - 6 + Math.sin(a) * 26); ctx.stroke(); } ctx.globalCompositeOperation = 'source-over';
+    ctx.beginPath(); ctx.arc(p[0], p[1], 28, -1.57, -1.57 + mp, false); ctx.strokeStyle = 'rgba(255,225,130,.95)'; ctx.lineWidth = 3; ctx.stroke();
+  } else if (t.frz > 0 && t.fzKind === 'gale') {
     const mp = 6.283 * (t.frz / (t.hzMax || 4)); ctx.save(); ctx.translate(p[0], p[1] - 6); ctx.lineCap = 'round';
     for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, 14 + k * 5, time / 140 + k * 2.1, time / 140 + k * 2.1 + 2.2); ctx.strokeStyle = 'rgba(190,245,225,' + (.8 - k * .18) + ')'; ctx.lineWidth = 2.2; ctx.stroke(); }
     ctx.restore(); ctx.beginPath(); ctx.arc(p[0], p[1], 28, -1.57, -1.57 + mp, false); ctx.strokeStyle = 'rgba(150,235,210,.95)'; ctx.lineWidth = 3; ctx.stroke();
@@ -1099,7 +1196,7 @@ function drawTower(t, time) {
   ctx.save(); ctx.translate(p[0], p[1]);
   ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(0, 12, w*.42*bs, 8, 0, 0, 7); ctx.fill();
   const lean = t.kind === 'pulse' ? Math.sin(time / 700 + t.pad) * .01 : (t.has ? Math.max(-1, Math.min(1, dy)) * .1 * (flip ? -1 : 1) : Math.sin(time / 900 + t.pad) * .02) + (t.kind === 'flak' && t.has ? dx * .12 : 0);
-  ctx.translate(-dx * 4.5 * r * (t.kind === 'cryo' || t.kind === 'tesla' || t.kind === 'pulse' || t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind' ? 0 : 1), -h*.32 + idle * .8 - (1 - bs) * 26 * (age < .5 ? 1 : 0));
+  ctx.translate(-dx * 4.5 * r * (t.kind === 'cryo' || t.kind === 'tesla' || t.kind === 'pulse' || t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind' || t.kind === 'prism' ? 0 : 1), -h*.32 + idle * .8 - (1 - bs) * 26 * (age < .5 ? 1 : 0));
   ctx.rotate(lean); if (flip) ctx.scale(-1, 1); const sq = 1 + .05 * r; ctx.scale(bs * sq, bs / sq);
   ctx.shadowColor = k === 4 ? '#ffd24a' : c; ctx.shadowBlur = (k === 4 ? 16 : 6) + 4 * Math.sin(time / 180 + t.pad) + 10 * r;
   ctx.drawImage(sp, -w/2, -h/2, w, h); ctx.shadowBlur = 0;
@@ -1109,7 +1206,7 @@ function drawTower(t, time) {
   const m = muzzle(t);
   if (r > .35) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 10 + 12 * r, c, Math.min(1, r * 1.1)); ctx.globalCompositeOperation = 'source-over'; }
   else if (t.kind === 'rail' && t.has) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 6 + 6 * (1 - Math.max(0, t.cd) / tStats(t).rate), '#9fd0ff', .5); ctx.globalCompositeOperation = 'source-over'; }
-  else if (t.kind === 'tesla' || t.kind === 'cryo' || t.kind === 'pulse' || t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind') { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 3 * Math.sin(time / 150 + t.pad), c, .35); ctx.globalCompositeOperation = 'source-over'; }
+  else if (t.kind === 'tesla' || t.kind === 'cryo' || t.kind === 'pulse' || t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind' || t.kind === 'prism') { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 3 * Math.sin(time / 150 + t.pad), c, .35); ctx.globalCompositeOperation = 'source-over'; }
   for (let i = 0; i < Math.min(k, 3); i++) { ctx.beginPath(); ctx.arc(p[0] - (Math.min(k,3)-1)*4 + i*8, p[1] + 21, 2.4, 0, 7); ctx.fillStyle = k === 4 ? '#ffd24a' : '#fff'; ctx.fill(); }
   if (k === 4) { ctx.font = 'bold 9px system-ui'; ctx.fillStyle = '#ffd24a'; ctx.textAlign = 'center'; ctx.fillText('PRIME', p[0], p[1] + 31); }
 }
@@ -1143,6 +1240,8 @@ function draw(time) {
   if (G.ores.length) drawOres(time);
   if (G.ls && G.ls.length) drawStrikes(time);
   if (G.tw && G.tw.length) drawTwisters(time);
+  if (G.fr) drawFlare(time);
+  if (G.hz && G.hz.length) drawHaze(time);
   const d = PL[0].pts[PL[0].pts.length - 1], cs = spr('p_core');
   if (cs) { const ch = 52, cw = cs.naturalWidth / cs.naturalHeight * ch; ctx.shadowColor = '#7defff'; ctx.shadowBlur = 20 + 6 * Math.sin(time / 300); ctx.drawImage(cs, d[0]-cw/2, d[1]+8-ch/2, cw, ch); ctx.shadowBlur = 0; }
   PADS().forEach((p, i) => {
@@ -1291,7 +1390,7 @@ function updatePreview() {
   if (G.over) { bar.style.display = 'none'; prevKey = ''; return; }
   const nxt = WAVES[G.wave], n = G.wave + 1;
   if (!nxt) { const k = 'done' + G.running; if (k !== prevKey) { prevKey = k; bar.style.display = 'flex'; bar.innerHTML = '<span class="wl">' + (G.running ? 'FINAL WAVE IN PROGRESS' : 'ALL WAVES SENT') + '</span>'; } return; }
-  const hint = waveHint(nxt) || (CUR.hazard === 'frost' ? '❄ Frost storms freeze random towers (Missile is immune). Tap a frozen tower to thaw it for ⚡20.' : CUR.hazard === 'heat' ? '🌋 Lava vents erupt and overheat nearby towers (ice towers are immune). Tap an overheated tower to cool it for ⚡20.' : CUR.hazard === 'storm' ? '⛈ Lightning strikes knock towers offline (Arc and EMP are grounded and immune). Tap a knocked-out tower to reboot it for ⚡20.' : CUR.hazard === 'gale' ? '🌪 Twisters spin towers around and speed up enemies inside them (Cyclone and Flak are anchored and immune). Tap a dizzy tower to realign it for ⚡20.' : ''), key = [LV, IDX, TIER, G.wave, G.running, hint].join('|');
+  const hint = waveHint(nxt) || (CUR.hazard === 'frost' ? '❄ Frost storms freeze random towers (Missile is immune). Tap a frozen tower to thaw it for ⚡20.' : CUR.hazard === 'heat' ? '🌋 Lava vents erupt and overheat nearby towers (ice towers are immune). Tap an overheated tower to cool it for ⚡20.' : CUR.hazard === 'storm' ? '⛈ Lightning strikes knock towers offline (Arc and EMP are grounded and immune). Tap a knocked-out tower to reboot it for ⚡20.' : CUR.hazard === 'gale' ? '🌪 Twisters spin towers around and speed up enemies inside them (Cyclone and Flak are anchored and immune). Tap a dizzy tower to realign it for ⚡20.' : CUR.hazard === 'flare' ? '☀ A solar flare beam sweeps along a marked route and blinds every tower it touches (Beam and Prism feed on light and are immune). Tap a blinded tower to refocus it for ⚡20.' : CUR.hazard === 'haze' ? '🌀 Void haze halves the range of towers inside it (Beam, Prism, Gravity and Siphon see through it). Tap the crystal at its heart to break the haze and earn energy.' : ''), key = [LV, IDX, TIER, G.wave, G.running, hint].join('|');
   if (key === prevKey) return; prevKey = key; bar.style.display = 'flex';
   const counts = {}; nxt.forEach(g => { counts[g[0]] = (counts[g[0]] || 0) + g[1]; });
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -1355,6 +1454,7 @@ function statRows(kind, lvl) {
   if (s.splash) R.push(['Blast radius', String(s.splash), s.splash]);
   if (s.chain) R.push(['Chain jumps', String(s.chain), s.chain]);
   if (s.slow) R.push(['Slows by', Math.round(s.slow * 100) + '%', s.slow]);
+  if (s.drain) R.push(['Drain', Math.round(s.drain) + '/s for 4 s, ignores armor', s.drain]);
   if (s.push) R.push(['Pushback', Math.round(s.push) + ' px every ' + s.rate.toFixed(1) + ' s', s.push]);
   if (s.stun) R.push(['Stun', s.stun.toFixed(1) + ' s every ' + s.rate.toFixed(1) + ' s', s.stun]);
   if (s.burn) R.push(['Burn', Math.round(s.burn) + '/s per stack (max ' + (rk('fire.sp') ? 5 : 3) + ', ignores armor)', s.burn]);
@@ -1403,7 +1503,7 @@ function renderSheet() {
     else btns += '<button class="act up no">Prime tower</button>';
     const mfee = moveFee(t), canMove = !G.running && G.gold >= mfee;
     btns += '<button class="act mv' + (canMove ? '' : ' no') + '" id="bMove">' + (G.running ? 'Move<br><small>between waves</small>' : 'Move ⚡ ' + mfee) + '</button>';
-    if (t.frz > 0) btns = '<button class="act up' + (G.gold < 20 ? ' no' : '') + '" id="bThaw" style="background:' + (t.fzKind === 'heat' ? '#c8531c' : t.fzKind === 'shock' ? '#3a6fd0' : t.fzKind === 'gale' ? '#2fa88a' : '#2b8fd0') + '">' + (t.fzKind === 'heat' ? 'Cool ⚡ 20' : t.fzKind === 'shock' ? 'Reboot ⚡ 20' : t.fzKind === 'gale' ? 'Realign ⚡ 20' : 'Thaw ⚡ 20') + '</button>' + btns;
+    if (t.frz > 0) btns = '<button class="act up' + (G.gold < 20 ? ' no' : '') + '" id="bThaw" style="background:' + (t.fzKind === 'heat' ? '#c8531c' : t.fzKind === 'shock' ? '#3a6fd0' : t.fzKind === 'gale' ? '#2fa88a' : t.fzKind === 'blind' ? '#b8921c' : '#2b8fd0') + '">' + (t.fzKind === 'heat' ? 'Cool ⚡ 20' : t.fzKind === 'shock' ? 'Reboot ⚡ 20' : t.fzKind === 'gale' ? 'Realign ⚡ 20' : t.fzKind === 'blind' ? 'Refocus ⚡ 20' : 'Thaw ⚡ 20') + '</button>' + btns;
     btns += '<button class="act sell" id="bSell">Sell ⚡ ' + sellVal(t) + '</button>';
     const nextLvl = t.lvl < 3 ? t.lvl + 1 : t.lvl === 3 ? 4 : 0, mm = masteryOf(t.kind);
     sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + (t.lvl < 4 ? '  (green = after upgrade)' : '') + '</h4>' + statGrid(t.kind, t.lvl, t.lvl < 3 ? nextLvl : 0) + (t.lvl === 3 ? '<div class="info">Merge with a second max-tier ' + b.name + ' to make a Prime: about 5x damage.</div>' : '')
@@ -1700,7 +1800,7 @@ window.__td = { buildLevel, get CUR() { return CUR; }, LPW, TIERS, prog, avail, 
 grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { hideAll(); show('ovCall'); } else showLevels(); requestAnimationFrame(loop); setTimeout(resize, 200);
 // ?demo=3 (ice) or ?demo=4 (fire): the game plays itself so you can watch (add &unlock=1 so every tower is available)
 { const dm = /[?&]demo=(\d)/.exec(location.search); if (dm) {
-  const w = +dm[1], pref = w === 6 ? ['wind', 'tesla', 'rail', 'gatling', 'stun', 'pulse'] : w === 5 ? ['stun', 'tesla', 'flak', 'rail', 'pulse', 'missile'] : w === 4 ? ['fire', 'rail', 'flak', 'cryo', 'missile', 'pulse'] : ['pulse', 'cryo', 'rail', 'flak', 'missile', 'tesla'];
+  const w = +dm[1], pref = w === 8 ? ['siphon', 'beam', 'prism', 'rail', 'pulse', 'gravity'] : w === 7 ? ['prism', 'beam', 'gravity', 'rail', 'pulse', 'missile'] : w === 6 ? ['wind', 'tesla', 'rail', 'gatling', 'stun', 'pulse'] : w === 5 ? ['stun', 'tesla', 'flak', 'rail', 'pulse', 'missile'] : w === 4 ? ['fire', 'rail', 'flak', 'cryo', 'missile', 'pulse'] : ['pulse', 'cryo', 'rail', 'flak', 'missile', 'tesla'];
   const lvl = +((/[?&]lvl=(\d+)/.exec(location.search) || [0, 2])[1]);
   hideAll(); startLevel(w, lvl, 0, true); G.speed = 2; $('bSpeed').textContent = '2×'; let ki = 0;
   setInterval(() => { try {
@@ -1754,4 +1854,29 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
     gl.uniform1f(uT, ts / 1000); gl.uniform1f(uA, w / hh); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
   requestAnimationFrame(mapfxLoop);
+}
+
+// every emoji in the interface is swapped for an AI-made icon picture (the emoji stays as the alt text)
+{
+  const MAP = { '⚡': 'energy', '❤': 'heart', '★': 'star', '☆': 'staroff', '🔒': 'lock', '🔓': 'unlock', '✈': 'air', '⛰': 'ground', '❄': 'ice', '🔥': 'fire', '🌪': 'wind', '🌋': 'vent', '⛈': 'storm', '⚠': 'warn', '🏅': 'medal', '✓': 'check', '🌀': 'void', '☀': 'light', '🛠': 'repair', '🔧': 'repair', '☄': 'strike', '👍': 'up', '👎': 'down', '🔵': 't_pulse', '➖': 't_rail', '🚀': 't_missile', '🔆': 't_beam', '🔫': 't_gatling', '📡': 't_stun', ':arc:': 'arc', ':boost:': 'boost', ':flak:': 't_flak', ':prism:': 'prism', ':siphon:': 'siphon' };
+  const keys = Object.keys(MAP).sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const RE = new RegExp('(' + keys.join('|') + ')️?', 'g'), TEST = new RegExp('(' + keys.join('|') + ')');
+  const SKIP = /^(SCRIPT|STYLE|TEXTAREA|OPTION|TITLE|NOSCRIPT)$/;
+  function swap(root) {
+    const list = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    for (let n = w.nextNode(); n; n = w.nextNode()) if (n.parentNode && !SKIP.test(n.parentNode.nodeName) && TEST.test(n.nodeValue)) list.push(n);
+    list.forEach(n => {
+      const txt = n.nodeValue, fr = document.createDocumentFragment(); let last = 0, m; RE.lastIndex = 0;
+      while ((m = RE.exec(txt))) { if (m.index > last) fr.appendChild(document.createTextNode(txt.slice(last, m.index))); const im = document.createElement('img'); im.className = 'ic ic-' + MAP[m[1]]; im.alt = m[1]; im.src = 'art/ic_' + MAP[m[1]] + '.webp?v=' + ART_V; fr.appendChild(im); last = m.index + m[0].length; }
+      if (last < txt.length) fr.appendChild(document.createTextNode(txt.slice(last)));
+      n.parentNode.replaceChild(fr, n);
+    });
+  }
+  let busy = false;
+  const mo = new MutationObserver(ms => {
+    if (busy) return; busy = true;
+    try { for (const m of ms) { if (m.type === 'characterData') { if (m.target.parentNode) swap(m.target.parentNode); } else m.addedNodes.forEach(nd => { if (nd.nodeType === 3) { if (nd.parentNode) swap(nd.parentNode); } else if (nd.nodeType === 1 && nd.nodeName !== 'IMG') swap(nd); }); } } catch (e) {}
+    mo.takeRecords(); busy = false;
+  });
+  swap(document.body); mo.observe(document.body, { childList: true, subtree: true, characterData: true });
 }
