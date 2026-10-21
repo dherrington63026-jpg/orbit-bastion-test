@@ -3,7 +3,7 @@
 const W = 360, H = 600, START_LIVES = 20;
 
 const LEVELS = [
-  { name:'Landing Dock', sub:'Learn the basics', waves:8, hp:1.0, gold:230, hue:210,
+  { name:'Landing Dock', sub:'Learn the basics', waves:8, hp:.8, gold:300, hue:210,
     paths:[[[-20,60],[310,60],[310,160],[50,160],[50,260],[310,260],[310,360],[50,360],[50,460],[230,460],[230,570]]],
     pads:[[100,110],[190,110],[270,110],[100,210],[190,210],[270,210],[100,310],[190,310],[270,310],[100,410],[190,410],[150,515]] },
   { name:'Ring Corridor', sub:'Longer lanes, tighter slots', waves:10, hp:1.05, gold:340, hue:280,
@@ -66,7 +66,7 @@ function eligible(L, w) { return Object.keys(ENEMY).filter(t => t !== 'boss' && 
 function makeWaves(L) {
   const lv = LEVELS[L], out = [];
   for (let w = 1; w <= lv.waves; w++) {
-    const budget = 38 * (1 + .42 * (w - 1)) * (1 + .12 * L) * (w === lv.waves ? .7 : 1);
+    const budget = 38 * (1 + .42 * (w - 1)) * (1 + .12 * L) * (w === lv.waves ? .7 : 1) * (L === 0 ? .8 : 1);
     const el = eligible(L, w), fresh = el.filter(t => ENEMY[t].intro[0] === L && ENEMY[t].intro[1] === w);
     const picks = fresh.slice();
     for (let i = 0; picks.length < Math.min(3, el.length) && i < 12; i++) { const t = el[(w * 2 + i * 3 + L) % el.length]; if (!picks.includes(t)) picks.push(t); }
@@ -115,7 +115,7 @@ function startLevel(L, quiet) {
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return LEVELS[LV].waves; }
-function enemyHp(type, w) { return ENEMY[type].hp * LEVELS[LV].hp * (1 + (type === 'boss' ? .12 : .32) * (w - 1)); }
+function enemyHp(type, w) { return ENEMY[type].hp * LEVELS[LV].hp * (1 + (type === 'boss' ? .12 : .32) * (w - 1)) * (type === 'boss' ? [.3, .5, .7][LV] || 1 : 1); }
 function flash(t) { const m = $('msg'); m.textContent = t; m.style.opacity = 1; clearTimeout(flash.t); flash.t = setTimeout(() => m.style.opacity = 0, 1300); }
 function intro(type) {
   if (prog.seen.includes(type)) return; prog.seen.push(type); save();
@@ -315,7 +315,7 @@ function endGame(win) {
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792533875';
+const ART_V = '1792557556';
 const IM = {};
 ['bg_1','bg_2','bg_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
