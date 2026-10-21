@@ -538,19 +538,18 @@ function lavaFlow(bgi, time) {
     x.drawImage(bgi, (cv.width - bgi.naturalWidth * k) / 2, (cv.height - bgi.naturalHeight * k) / 2, bgi.naturalWidth * k, bgi.naturalHeight * k);
     let id; try { id = x.getImageData(0, 0, mw, mh); } catch (e) { LAVA = { key, off: 1 }; return; }
     const d = id.data;
-    for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], bl = d[i + 2], hot = r > 140 && r > g * 1.25 && bl < 120 && g > 30; d[i + 3] = hot ? Math.min(230, (r - 130) * 1.6) : 0; if (hot) { d[i] = 255; d[i + 1] = Math.min(255, g * 1.3 + 40); d[i + 2] = Math.min(120, bl); } }
+    for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], bl = d[i + 2], q = Math.max(0, Math.min(1, (r - 150) / 90)), org = Math.max(0, Math.min(1, (r * .85 - g) / 40)); d[i + 3] = bl < 140 ? Math.pow(q, 1.6) * org * 135 : 0; d[i + 1] = Math.min(190, g * 1.05); d[i + 2] = Math.min(50, bl); }
     x.putImageData(id, 0, 0);
     const t = document.createElement('canvas'); t.width = mw; t.height = mh;
     LAVA = { key, mask: c, tmp: t, ctx: t.getContext('2d'), mw, mh };
   }
-  lavaRivers(time);
   if (LAVA.off) return;
   const x = LAVA.ctx, w = LAVA.mw, h = LAVA.mh;
   x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, w, h); x.globalAlpha = .5 + .2 * Math.sin(time / 900); x.drawImage(LAVA.mask, 0, 0); x.globalAlpha = 1;
   x.globalCompositeOperation = 'source-atop';
   const band = (period, speed, col, a, slant) => { const o = (time * speed) % period; for (let y = -period + o; y < h + period; y += period) { const g = x.createLinearGradient(0, y, slant, y + period); g.addColorStop(0, 'rgba(255,200,80,0)'); g.addColorStop(.5, col); g.addColorStop(1, 'rgba(255,200,80,0)'); x.globalAlpha = a; x.fillStyle = g; x.fillRect(0, y, w, period); } x.globalAlpha = 1; };
   band(70, .018, 'rgba(255,235,150,1)', .95, 26); band(110, .011, 'rgba(255,150,40,1)', .8, -30); band(46, .03, 'rgba(255,255,220,1)', .55, 14);
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.globalAlpha = .6;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.globalAlpha = .55;
   const k2 = 1.05, dx = Math.sin(time / 9000) * 7, dy = Math.cos(time / 11000) * 7; ctx.drawImage(LAVA.tmp, dx, dy, cv.width, cv.height);
   ctx.globalAlpha = .2 + .08 * Math.sin(time / 600); ctx.drawImage(LAVA.tmp, dx - 5, dy - 5, cv.width + 10, cv.height + 10);
   ctx.restore();
@@ -787,7 +786,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792576127';
+const ART_V = '1792576704';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
