@@ -19,13 +19,13 @@ LEVELS.push({ name: 'Glacier Mir', sub: 'Frozen platforms, frost storms', waves:
   pool: ['frostdrone', 'rimewing', 'swarm', 'stalker', 'shield', 'bomber', 'glacier'], poolIntro: { frostdrone: [0, 1], rimewing: [0, 2], swarm: [1, 1], stalker: [2, 1], shield: [4, 1], bomber: [6, 1], glacier: [7, 1] } });
 const TOWERS = {
   pulse:   { name:'Pulse',   icon:'🔵', cost:55,  range:64,  dmg:6,  rate:1.0,  col:'#6fe3ff', hits:['ground','air'], type:'energy',    ap:0, aoe:1, desc:'Sends out a shockwave that hits EVERY enemy in range, ground and air.', strong:'crowds, swarms, scouts', weak:'armor, shields' },
-  rail:    { name:'Rail',    icon:'➖', cost:110, range:130, dmg:48, rate:1.5, col:'#ffffff', hits:['ground'],       type:'kinetic',   ap:6, desc:'Ground only. Long range, pierces armor.', strong:'brutes, stalkers', weak:'swarms, air (cannot hit)' },
-  missile: { name:'Missile', icon:'🚀', cost:120, range:82,  dmg:20, rate:1.4, col:'#ff9a4a', hits:['ground'],       type:'explosive', ap:0, splash:36, desc:'Ground only. Blast hits groups.', strong:'swarms, groups', weak:'brutes, air (cannot hit)' },
+  rail:    { name:'Rail',    icon:'➖', cost:105, range:130, dmg:60, rate:1.5, col:'#ffffff', hits:['ground'],       type:'kinetic',   ap:6, desc:'Ground only. Long range, pierces armor.', strong:'brutes, stalkers', weak:'swarms, air (cannot hit)' },
+  missile: { name:'Missile', icon:'🚀', cost:110, range:84,  dmg:27, rate:1.4, col:'#ff9a4a', hits:['ground'],       type:'explosive', ap:0, splash:36, desc:'Ground only. Blast hits groups.', strong:'swarms, groups', weak:'brutes, air (cannot hit)' },
   flak:    { name:'Flak',    icon:'✈️', cost:100, range:92,  dmg:14, rate:.7,  col:'#ffcf6b', hits:['air'],          type:'explosive', ap:0, splash:30, desc:'Air only. Bursts shred flyers.', strong:'scouts, bombers, boss', weak:'ground (cannot hit)' },
   cryo:    { name:'Cryo',    icon:'❄️', cost:90,  range:66,  dmg:9,  rate:1,   col:'#9fd8ff', hits:['ground','air'], type:'cold',      ap:0, slow:.32, locked:1, desc:'Slows everything near it and shoots ice shards. 3 hits freeze an enemy; the next hit shatters it for +50%.', strong:'setting up big hits, fast enemies', weak:'low damage on its own' },
   beam:    { name:'Beam',    icon:'🔆', cost:150, range:92,  dmg:22, rate:.1,  col:'#ff7ae6', hits:['ground','air'], type:'energy',    ap:3, locked:1, desc:'Locks on with a continuous beam that grows stronger the longer it holds a target.', strong:'bosses, brutes, shields', weak:'swarms (one target)' },
   gravity: { name:'Gravity', icon:'🌀', cost:125, range:72,  dmg:0,  rate:1,   col:'#7b8cff', hits:['ground','air'], type:'gravity',   ap:0, locked:1, pull:16, desc:'Pulls enemies backward and slows them. Bosses resist.', strong:'holding crowds in a kill zone', weak:'does no damage' },
-  tesla:   { name:'Arc',     icon:'⚡', cost:130, range:64,  dmg:15, rate:1.0, col:'#c28bff', hits:['ground','air'], type:'electric',  ap:0, chain:3, desc:'Lightning jumps between enemies, ground and air.', strong:'shields, swarms', weak:'boss, brutes' }
+  tesla:   { name:'Arc',     icon:'⚡', cost:150, range:64,  dmg:15, rate:1.0, col:'#c28bff', hits:['ground','air'], type:'electric',  ap:0, chain:3, desc:'Lightning jumps between enemies, ground and air. Each jump hits 20% weaker.', strong:'shields, swarms', weak:'boss, brutes' }
 };
 /* elements: each element beats its opposite. Elemental enemies take +50% from the opposite element, -50% from their own. */
 const ELEMS = { fire: { n: 'Fire', ic: '🔥', opp: 'ice' }, ice: { n: 'Ice', ic: '❄', opp: 'fire' }, storm: { n: 'Storm', ic: '⚡', opp: 'wind' }, wind: { n: 'Wind', ic: '🌪', opp: 'storm' }, light: { n: 'Light', ic: '☀', opp: 'void' }, void: { n: 'Void', ic: '🌀', opp: 'light' } };
@@ -75,7 +75,7 @@ const WORLDS = [
     win: ['oru', 'Both gates held. Take the Overcharge: every tower fires faster for a short while. And take this Gravity Well. It does not hurt anything. It simply makes them late.'], tower: 'gravity',
     lose: ['oru', 'The gates are patient. So are we. Again.'], reward: 'over' }
 ];
-WORLDS.push({ lv: 3, name: 'Glacier Mir', tag: 'Expansion · Ice', planet: 'u_planet_glacier', pos: [74, 26], paid: true, price: 2.99, freeLv: 3, elem: 'ice', tower: 'cryo',
+WORLDS.push({ lv: 3, name: 'Glacier Mir', tag: 'Expansion · Ice', planet: 'u_planet_glacier', pos: [74, 26], paid: true, price: 3.99, freeLv: 3, elem: 'ice', tower: 'cryo',
   intro: [['mira', 'Mira, station chief. Welcome to Glacier Mir, where the thermostat is a rumour. When a frost storm rolls through, it freezes a turret solid mid-shot, and I get to stand there and watch.'], ['nine', 'Ice enemies shrug off ice and fear fire, Cadet {c}. Missile is a fire tower: it burns them, and the storms cannot freeze it. If a tower does freeze, tap it and pay for a thaw. Pride is not worth a wave.']],
   win: ['mira', 'Listen to that. Nothing. No storms, no scrabbling, just the pipes ticking as they warm up. I had forgotten how good that sounds. Take the Cryo tower. It is the cold, but on our side this time. Try not to cuddle it.'],
   lose: ['mira', 'The cold won that round. It always does the first time. Pour something hot and go again.'], reward: null });
@@ -567,7 +567,7 @@ function chain(t, m, first, s) {
     for (const e of G.enemies) { if (hitSet.includes(e) || !canHit('tesla', e)) continue; const q = tv(e), d = Math.hypot(q[0]-cur[0], q[1]-cur[1]); if (d < nd) { nd = d; nx = e; } }
     if (!nx) break; hitSet.push(nx); cur = tv(nx); pts.push(cur);
   }
-  hitSet.forEach(e => { dealDamage(e, s.dmg, 'electric', 0, 'tesla'); const q = tv(e); burst(q[0], q[1], 4, '#d9b6ff', 50, .25, 1.6, true); });
+  hitSet.forEach((e, ji) => { dealDamage(e, s.dmg * Math.pow(.8, ji), 'electric', 0, 'tesla'); const q = tv(e); burst(q[0], q[1], 4, '#d9b6ff', 50, .25, 1.6, true); });
   G.fx.push({ k: 'bolt', pts, t: 0 });
 }
 function hitShot(s, tg, q) {
@@ -606,7 +606,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792573242';
+const ART_V = '1792573637';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','lane_1','lane_2','lane_3','lane_4','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
