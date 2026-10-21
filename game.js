@@ -21,9 +21,12 @@ const TOWERS = {
   missile: { name:'Missile', icon:'🚀', cost:120, range:82,  dmg:20, rate:1.4, col:'#ff9a4a', hits:['ground'],       type:'explosive', ap:0, splash:36, desc:'Ground only. Blast hits groups.', strong:'swarms, groups', weak:'brutes, air (cannot hit)' },
   flak:    { name:'Flak',    icon:'✈️', cost:100, range:92,  dmg:14, rate:.7,  col:'#ffcf6b', hits:['air'],          type:'explosive', ap:0, splash:30, desc:'Air only. Bursts shred flyers.', strong:'scouts, bombers, boss', weak:'ground (cannot hit)' },
   cryo:    { name:'Cryo',    icon:'❄️', cost:90,  range:66,  dmg:0,  rate:1,   col:'#9fd8ff', hits:['ground','air'], type:'cold',      ap:0, slow:.32, desc:'Slows ground AND air. No damage.', strong:'speedsters', weak:'does no damage' },
+  beam:    { name:'Beam',    icon:'🔆', cost:150, range:92,  dmg:22, rate:.1,  col:'#ff7ae6', hits:['ground','air'], type:'energy',    ap:3, locked:1, desc:'Locks on with a continuous beam that grows stronger the longer it holds a target.', strong:'bosses, brutes, shields', weak:'swarms (one target)' },
+  gravity: { name:'Gravity', icon:'🌀', cost:125, range:72,  dmg:0,  rate:1,   col:'#7b8cff', hits:['ground','air'], type:'gravity',   ap:0, locked:1, pull:16, desc:'Pulls enemies backward and slows them. Bosses resist.', strong:'holding crowds in a kill zone', weak:'does no damage' },
   tesla:   { name:'Arc',     icon:'⚡', cost:130, range:64,  dmg:15, rate:1.0, col:'#c28bff', hits:['ground','air'], type:'electric',  ap:0, chain:3, desc:'Lightning jumps between enemies, ground and air.', strong:'shields, swarms', weak:'boss, brutes' }
 };
-const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla'];
+const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla', 'beam', 'gravity'];
+const avail = () => KINDS.filter(k => !TOWERS[k].locked || prog.tw[k]);
 const TAG = k => TOWERS[k].hits.length === 2 ? 'Ground+Air' : TOWERS[k].hits[0] === 'air' ? 'Air only' : 'Ground only';
 
 /* air: flies (only 'air' towers hit it). armor: flat damage cut per hit. mods: damage type multipliers. intro: [sector, wave] it first appears. */
@@ -38,7 +41,7 @@ const ENEMY = {
   boss:   { name:'Dreadnought',hp:2300,sp:18, gold:170, leak:10, col:'#ff3b6b', cost:140, air:true,  armor:4, mods:{ electric:.8, explosive:1.2 },      intro:[0,99], note:'BOSS. Flying! Bring Flak.' }
 };
 const EH = { drone: 30, scout: 30, swarm: 22, stalker: 34, shield: 42, bomber: 60, brute: 54, boss: 96 };
-const MUZ = { pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
+const MUZ = { beam: [.42, 0], gravity: [0, -.4], pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
 
 
 /* ---------- story ---------- */
@@ -50,13 +53,14 @@ const WORLDS = [
     lose: ['nine', 'Failed? Nobody fails the exam, they just take it twice. Again.'], reward: null },
   { lv: 1, name: 'Halcyon Ring', tag: 'Orbital habitat', planet: 'u_planet_halcyon', pos: [70, 56],
     intro: [['quill', 'Quill here, Halcyon Ring maintenance. The bombers showed up an hour ago and my coffee is still warm. Please hurry.'], ['nine', 'Bombers fly and wear armor, Cadet {c}. Flak is your friend. So is Arc against shields.']],
-    win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you an upgrade: the Repair Pulse. Use it once per level when the core is hurting.'],
+    win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you two: the Repair Pulse for emergencies, and a prototype Beam Prism tower. Do not ask where I got the crystal.'], tower: 'beam',
     lose: ['quill', 'Hang on, I will patch the hull. Want to try again?'], reward: 'repair' },
   { lv: 2, name: 'Gatefall', tag: 'Twin gates', planet: 'u_planet_gate', pos: [30, 34],
     intro: [['oru', 'Two gates, one core, and nowhere to sit down. Welcome to Gatefall.'], ['nine', 'They arrive from both sides and meet at the core. Cover both lanes, Cadet {c}.']],
-    win: ['oru', 'Both gates held. Take the Overcharge: every tower fires faster for a short while. Use it when it counts.'],
+    win: ['oru', 'Both gates held. Take the Overcharge: every tower fires faster for a short while. And take this Gravity Well. It does not hurt anything. It simply makes them late.'], tower: 'gravity',
     lose: ['oru', 'The gates are patient. So are we. Again.'], reward: 'over' }
 ];
+const TWTXT = { beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
 const REWARDS = { repair: 'Repair Pulse (wrench button): restores 5 lives, once per level.', over: 'Overcharge (bolt button): towers fire 50% faster for 8 seconds.' };
 const RANKS = [[0, 'Cadet'], [1, 'Defender'], [4, 'Guardian'], [7, 'Warden'], [9, 'Commander']];
 const rankOf = () => { const pts = prog.stars.reduce((a, b) => a + b, 0); let r = RANKS[0][1]; RANKS.forEach(x => { if (pts >= x[0]) r = x[1]; }); return r; };
@@ -89,7 +93,8 @@ function makeWaves(L) {
 const SKEY = 'orbitbastion_stats_v1', PKEY = 'orbitbastion_progress_v1';
 function loadJSON(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ? Object.assign(d, v) : d; } catch (e) { return d; } }
 let stats = loadJSON(SKEY, { first: Date.now(), days: {}, runs: 0, wins: 0, losses: 0, wavesCleared: 0, bestWave: 0, funYes: 0, funNo: 0, unlockTaps: 0, speedTaps: 0, builds: {}, upgrades: 0, merges: 0, abilities: 0, secs: 0 });
-let prog = loadJSON(PKEY, { stars: [0, 0, 0], seen: [], call: '', ab: { repair: false, over: false }, sawIntro: [] });
+let prog = loadJSON(PKEY, { stars: [0, 0, 0], seen: [], call: '', ab: { repair: false, over: false }, sawIntro: [], tw: { beam: false, gravity: false } });
+if (!prog.tw) prog.tw = { beam: false, gravity: false };
 if (!prog.ab) prog.ab = { repair: false, over: false }; if (!prog.sawIntro) prog.sawIntro = [];
 function save() { try { localStorage.setItem(SKEY, JSON.stringify(stats)); localStorage.setItem(PKEY, JSON.stringify(prog)); } catch (e) {} }
 const dk = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate(); };
@@ -110,8 +115,8 @@ function posAt(pi, d) {
 }
 const ePos = e => posAt(e.pi, e.d);
 function startLevel(L, quiet) {
-  LV = L; PL = pathData(L); WAVES = makeWaves(L);
-  G = { lives: START_LIVES, gold: LEVELS[L].gold, wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
+  LV = L; SFX.theme(L); PL = pathData(L); WAVES = makeWaves(L);
+  G = { lives: START_LIVES, gold: LEVELS[L].gold, wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, repairUsed: false, overT: 0, overCd: 0 };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return LEVELS[LV].waves; }
@@ -140,9 +145,10 @@ function spawn(type) {
   const hp = enemyHp(type, G.wave), pi = G.nextPath++ % PL.length;
   G.enemies.push({ type, hp, max: hp, d: 0, pi, slow: 0, bob: Math.random() * 6, flash: 0, ph: Math.random() * 6, age: 0, trail: 0 });
   SFX.play('spawn'); intro(type);
-  if (type === 'boss') { G.warn = 2.8; G.shake = Math.max(G.shake, .7); SFX.play('warn'); }
+  if (type === 'boss') { G.warn = 2.8; G.slowmo = 1.6; G.bossAt = ePos(G.enemies[G.enemies.length - 1]); G.shake = Math.max(G.shake, .7); SFX.play('warn'); SFX.play('roar'); }
 }
-function tStats(t) {
+function tStats(t) { const r = tStats0(t), b = TOWERS[t.kind]; if (b.pull) r.pull = b.pull * (t.lvl <= 3 ? 1 + .45 * (t.lvl - 1) : 2.4); return r; }
+function tStats0(t) {
   const b = TOWERS[t.kind], k = t.lvl;
   const dm = k <= 3 ? 1 + .65 * (k - 1) : 5.6, rng = k <= 3 ? (k - 1) * 8 : 24, rt = k <= 3 ? 1 - .1 * (k - 1) : .6;
   return { range: Math.round(b.range * (k <= 3 ? 1 + .15 * (k - 1) : 1.5)), dmg: b.dmg * dm, rate: b.rate * rt, slow: b.slow ? Math.min(.7, b.slow + (k <= 3 ? .09 * (k - 1) : .3)) : 0, splash: b.splash ? b.splash + (k <= 3 ? 6 * (k - 1) : 20) : 0, chain: b.chain ? b.chain + (k <= 3 ? k - 1 : 4) : 0 };
@@ -180,7 +186,7 @@ function sellTower(t) { SFX.play('sell'); G.gold += sellVal(t); G.towers.splice(
 /* damage with armor + weaknesses */
 function dealDamage(e, base, type, ap) {
   const d = ENEMY[e.type], m = (d.mods && d.mods[type]) || 1, raw = base * m, arm = Math.max(0, (d.armor || 0) - (ap || 0));
-  const dmg = Math.max(raw * .2, raw - arm); e.hp -= dmg; e.flash = .1; numPop(e, dmg, type); SFX.play('hit'); return dmg;
+  const dmg = Math.max(raw * .2, raw - arm); e.hp -= dmg; e.flash = .1; numPop(e, dmg, type); SFX.play('hit'); if (base >= 30 && e.type !== 'boss') e.d = Math.max(0, e.d - 2.5); return dmg;
 }
 function muzzle(t) {
   const p = PADS()[t.pad], hi = headInfo(t);
@@ -197,11 +203,11 @@ function useStrike(x, y) {
   if (G.strike > 0) return;
   SFX.play('strike'); G.strike = 45; stats.abilities++; save(); G.shake = .8;
   for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0]-x, q[1]-y) <= 55) { dealDamage(e, 160 + G.wave * 14, 'explosive', 99); } }
-  G.fx.push({ k: 'strike', p: [x, y], t: 0 }); burst(x, y, 40, '#ffd24a', 140, .9, 3, true);
+  G.fx.push({ k: 'strike', p: [x, y], t: 0 }); G.fx.push({ k: 'skybeam', p: [x, y], t: 0 }); burst(x, y, 40, '#ffd24a', 140, .9, 3, true);
 }
-function useRepair() { if (!prog.ab.repair || G.repairUsed || G.over || G.lives >= START_LIVES) return; SFX.play('repair'); G.repairUsed = true; G.lives = Math.min(START_LIVES, G.lives + 5); G.fx.push({ k: 'freeze', t: 0 }); flash('Repaired +5 lives'); hud(); }
-function useOver() { if (!prog.ab.over || G.overCd > 0 || G.over || !G.running) return; SFX.play('boost'); G.overT = 8; G.overCd = 50; stats.abilities++; save(); flash('Overcharge!'); G.fx.push({ k: 'merge', p: [W/2, H/2], t: 0, col: '#ffd24a' }); }
-function useFreeze() { if (G.freeze > 0 || !G.running) return; SFX.play('freeze'); G.freeze = 40; G.freezeT = 4; stats.abilities++; save(); G.fx.push({ k: 'freeze', t: 0 }); }
+function useRepair() { if (!prog.ab.repair || G.repairUsed || G.over || G.lives >= START_LIVES) return; SFX.play('repair'); G.repairUsed = true; G.lives = Math.min(START_LIVES, G.lives + 5); G.fx.push({ k: 'heal', t: 0 }); flash('Repaired +5 lives'); hud(); }
+function useOver() { if (!prog.ab.over || G.overCd > 0 || G.over || !G.running) return; SFX.play('boost'); G.overT = 8; G.overCd = 50; stats.abilities++; save(); flash('Overcharge!'); for (const t of G.towers) { const p0 = PADS()[t.pad]; G.fx.push({ k: 'merge', p: p0, t: 0, col: '#ffd24a' }); burst(p0[0], p0[1], 10, '#ffd24a', 70, .6, 2, true); } }
+function useFreeze() { if (G.freeze > 0 || !G.running) return; SFX.play('freeze'); G.freeze = 40; G.freezeT = 4; stats.abilities++; save(); G.fx.push({ k: 'freeze', t: 0 }); for (const e of G.enemies) { const q = ePos(e); G.fx.push({ k: 'ice', p: [q[0], q[1] - (ENEMY[e.type].air ? 14 : 0)], t: 0 }); } }
 
 function killEnemy(e, i) {
   const def = ENEMY[e.type], q = ePos(e), air = def.air;
@@ -228,6 +234,12 @@ function step(dt) {
     t.ring -= dt; if (any && t.ring <= 0) { t.ring = 1.3; G.fx.push({ k: 'ring', p, r: s.range, t: 0 }); SFX.play('cryo'); }
     t.acc -= dt; if (t.acc <= 0) { t.acc = any ? .07 : .22; const a = Math.random() * 6.283; part(p[0] + Math.cos(a) * 8, p[1] - 22, Math.cos(a) * 8, -14 - Math.random() * 10, .9, 1.6, '#cfeeff', true); }
   }
+  for (const t of G.towers) if (t.kind === 'gravity') {
+    const s = tStats(t), p = PADS()[t.pad]; let any = false;
+    for (const e of G.enemies) { const q = ePos(e); if (Math.hypot(q[0] - p[0], q[1] - p[1]) <= s.range) { e.d = Math.max(0, e.d - s.pull * (e.type === 'boss' ? .3 : 1) * dt); e.slow = Math.max(e.slow, .18); any = true; } }
+    t.ring -= dt; if (any && t.ring <= 0) { t.ring = 1.0; G.fx.push({ k: 'vortex', p, r: s.range, t: 0 }); SFX.play('gravity'); }
+    t.acc -= dt; if (t.acc <= 0) { t.acc = any ? .05 : .2; const a = Math.random() * 6.283, rr = s.range * (.7 + Math.random() * .3); part(p[0] + Math.cos(a) * rr, p[1] + Math.sin(a) * rr, -Math.cos(a) * rr * 1.1 - Math.sin(a) * 18, -Math.sin(a) * rr * 1.1 + Math.cos(a) * 18, .8, 1.6, '#9aa8ff', true); }
+  }
   for (let i = G.enemies.length - 1; i >= 0; i--) {
     const e = G.enemies[i], def = ENEMY[e.type];
     e.flash = Math.max(0, e.flash - dt); e.d += def.sp * (1 - e.slow) * dt;
@@ -241,7 +253,7 @@ function step(dt) {
   for (const t of G.towers) {
     t.rec = Math.max(0, t.rec - dt * 5);
     const s = tStats(t), p = PADS()[t.pad];
-    if (t.kind === 'cryo') continue;
+    if (t.kind === 'cryo' || t.kind === 'gravity') continue;
     let best = null, bd = -1;
     for (const e of G.enemies) { if (!canHit(t.kind, e)) continue; const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range && e.d > bd) { best = e; bd = e.d; } }
     if (best) { const q = ePos(best); t.ang = Math.atan2(q[1] - (ENEMY[best.type].air ? 14 : 0) - p[1], q[0] - p[0]); t.has = true; } else t.has = false;
@@ -250,6 +262,17 @@ function step(dt) {
       if (best) { const df = angDiff(t.ang, t.aim), mx = TURN[t.kind] * dt * (G.overT > 0 ? 1.3 : 1); t.aim += Math.max(-mx, Math.min(mx, df)); ready = Math.abs(angDiff(t.ang, t.aim)) < .2; }
       else t.aim += Math.sin(G.clock * .7 + t.pad) * .35 * dt;
     } else t.aim = t.ang;
+    if (t.kind === 'beam') {
+      if (best && ready) {
+        if (t.tgt === best) t.chan = (t.chan || 0) + dt; else { t.tgt = best; t.chan = 0; }
+        const ramp = 1 + Math.min(1, t.chan / 2.5); t.ramp = ramp; t.beamOn = best;
+        t.dacc = (t.dacc || 0) + s.dmg * ramp * (G.overT > 0 ? 1.5 : 1) * dt; t.dt2 = (t.dt2 || 0) + dt;
+        if (t.dt2 >= .25) { dealDamage(best, t.dacc, 'energy', 3); t.dacc = 0; t.dt2 = 0; }
+        t.acc -= dt; if (t.acc <= 0) { t.acc = .35; SFX.play('beam'); }
+        t.rec = .5;
+      } else { t.beamOn = null; t.chan = 0; t.tgt = null; }
+      continue;
+    }
     t.cd -= dt * (G.overT > 0 ? 1.5 : 1); if (t.cd > 0) continue;
     if (!best || !ready) { t.cd = 0; if (t.kind === 'tesla') { t.acc -= dt; } continue; }
     t.cd = s.rate; t.rec = 1; fire(t, p, best, s);
@@ -329,16 +352,17 @@ function endGame(win) {
   const wd = WORLDS[LV], q = win ? wd.win : wd.lose, spk = SPEAK[q[0]];
   let extra = '';
   if (win && wd.reward && !prog.ab[wd.reward]) { prog.ab[wd.reward] = true; extra = '<br><b>New ability:</b> ' + REWARDS[wd.reward]; save(); }
+  if (win && wd.tower && !prog.tw[wd.tower]) { prog.tw[wd.tower] = true; extra += '<br><b>New tower:</b> ' + TWTXT[wd.tower]; save(); }
   $('eQuote').innerHTML = '<b>' + spk.name + ':</b> ' + q[1].replace('{c}', (prog.call || 'Cadet').replace(/</g, '&lt;')) + extra + (win ? '<br><b>Rank:</b> ' + rankOf() : '');
   setTimeout(() => show('ovEnd'), 700);
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792558140';
+const ART_V = '1792558818';
 const IM = {};
-['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
+['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
-const ROT = { rail: 1, missile: 1, flak: 1 }, TURN = { rail: 5, missile: 5.5, flak: 8 }, HL = [0, 44, 48, 53, 58];
+const ROT = { rail: 1, missile: 1, flak: 1, beam: 1 }, TURN = { rail: 5, missile: 5.5, flak: 8, beam: 6 }, HL = [0, 44, 48, 53, 58];
 let HM = {}; fetch('art/heads.json?v=' + ART_V).then(r => r.json()).then(j => { HM = j; }).catch(() => {});
 function headInfo(t) {
   const n = 'h_' + t.kind + '_' + t.lvl, im = spr(n), m = HM[n];
@@ -382,13 +406,23 @@ function drawEnemy(e, time) {
   }
   ctx.shadowColor = col; ctx.shadowBlur = e.type === 'boss' ? 22 : 8; ctx.drawImage(sp, -w/2, -h/2, w, h); ctx.shadowBlur = 0;
   if (e.type === 'shield') { ctx.globalAlpha = .25 + .15 * Math.sin(time / 200); ctx.strokeStyle = '#8fd0ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, h * .62, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
+  if (e.slow > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .28; ctx.shadowColor = '#7fd8ff'; ctx.shadowBlur = 14; ctx.drawImage(sp, -w/2, -h/2, w, h); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
   if (e.flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .65; ctx.drawImage(sp, -w/2, -h/2, w, h); }
   ctx.restore();
   const by = q[1] + hop - h/2 - 8;
   if (e.hp < e.max) { const bw = Math.max(18, w*.8); ctx.fillStyle = '#000b'; ctx.fillRect(q[0]-bw/2, by, bw, 3.5); ctx.fillStyle = e.hp/e.max > .5 ? '#5be07a' : e.hp/e.max > .25 ? '#ffd24a' : '#ff5470'; ctx.fillRect(q[0]-bw/2, by, bw*Math.max(0, e.hp/e.max), 3.5); }
   if (air) { ctx.fillStyle = '#cfe6ff'; ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.fillText('✈', q[0], by - 2); }
 }
+function drawVortex(t, time) {
+  const p = PADS()[t.pad], s = tStats(t); ctx.save(); ctx.translate(p[0], p[1]); ctx.globalCompositeOperation = 'lighter';
+  glow(0, 0, s.range, '#4a5bd8', .22);
+  for (let i = 0; i < 3; i++) { const k = ((time / 1400 + i / 3) % 1), r = s.range * (1 - k); ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2); ctx.strokeStyle = 'rgba(150,165,255,' + (.5 * k) + ')'; ctx.lineWidth = 1.6; ctx.stroke(); }
+  ctx.rotate(time / 600); for (let i = 0; i < 4; i++) { ctx.rotate(1.571); ctx.beginPath(); ctx.arc(0, 0, s.range * .6, 0, .9); ctx.strokeStyle = 'rgba(180,190,255,.35)'; ctx.lineWidth = 2; ctx.stroke(); }
+  ctx.restore();
+}
 function drawTower(t, time) {
+  if (t.kind === 'gravity') drawVortex(t, time);
+  if (G.overT > 0) { const p0 = PADS()[t.pad]; ctx.globalCompositeOperation = 'lighter'; glow(p0[0], p0[1], 30, '#ffd24a', .35 + .2 * Math.sin(time / 90)); ctx.globalCompositeOperation = 'source-over'; }
   const p = PADS()[t.pad], b = TOWERS[t.kind], k = t.lvl, c = b.col, sp = spr('t_' + t.kind + '_' + k), hi = headInfo(t);
   if (hi) {
     const age = G.clock - t.born, bs = age < .5 ? ease(age / .5) : 1, r = t.rec, ps = spr('p_pad'), ca = Math.cos(t.aim), sa = Math.sin(t.aim);
@@ -415,7 +449,7 @@ function drawTower(t, time) {
   ctx.save(); ctx.translate(p[0], p[1]);
   ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(0, 12, w*.42*bs, 8, 0, 0, 7); ctx.fill();
   const lean = t.kind === 'pulse' ? Math.sin(time / 700 + t.pad) * .01 : (t.has ? Math.max(-1, Math.min(1, dy)) * .1 * (flip ? -1 : 1) : Math.sin(time / 900 + t.pad) * .02) + (t.kind === 'flak' && t.has ? dx * .12 : 0);
-  ctx.translate(-dx * 4.5 * r * (t.kind === 'cryo' || t.kind === 'tesla' || t.kind === 'pulse' ? 0 : 1), -h*.32 + idle * .8 - (1 - bs) * 26 * (age < .5 ? 1 : 0));
+  ctx.translate(-dx * 4.5 * r * (t.kind === 'cryo' || t.kind === 'tesla' || t.kind === 'pulse' || t.kind === 'gravity' ? 0 : 1), -h*.32 + idle * .8 - (1 - bs) * 26 * (age < .5 ? 1 : 0));
   ctx.rotate(lean); if (flip) ctx.scale(-1, 1); const sq = 1 + .05 * r; ctx.scale(bs * sq, bs / sq);
   ctx.shadowColor = k === 4 ? '#ffd24a' : c; ctx.shadowBlur = (k === 4 ? 16 : 6) + 4 * Math.sin(time / 180 + t.pad) + 10 * r;
   ctx.drawImage(sp, -w/2, -h/2, w, h); ctx.shadowBlur = 0;
@@ -425,7 +459,7 @@ function drawTower(t, time) {
   const m = muzzle(t);
   if (r > .35) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 10 + 12 * r, c, Math.min(1, r * 1.1)); ctx.globalCompositeOperation = 'source-over'; }
   else if (t.kind === 'rail' && t.has) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 6 + 6 * (1 - Math.max(0, t.cd) / tStats(t).rate), '#9fd0ff', .5); ctx.globalCompositeOperation = 'source-over'; }
-  else if (t.kind === 'tesla' || t.kind === 'cryo' || t.kind === 'pulse') { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 3 * Math.sin(time / 150 + t.pad), c, .35); ctx.globalCompositeOperation = 'source-over'; }
+  else if (t.kind === 'tesla' || t.kind === 'cryo' || t.kind === 'pulse' || t.kind === 'gravity') { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 3 * Math.sin(time / 150 + t.pad), c, .35); ctx.globalCompositeOperation = 'source-over'; }
   for (let i = 0; i < Math.min(k, 3); i++) { ctx.beginPath(); ctx.arc(p[0] - (Math.min(k,3)-1)*4 + i*8, p[1] + 21, 2.4, 0, 7); ctx.fillStyle = k === 4 ? '#ffd24a' : '#fff'; ctx.fill(); }
   if (k === 4) { ctx.font = 'bold 9px system-ui'; ctx.fillStyle = '#ffd24a'; ctx.textAlign = 'center'; ctx.fillText('PRIME', p[0], p[1] + 31); }
 }
@@ -435,6 +469,7 @@ function draw(time) {
   if (bgi) { const k = Math.max(cv.width / bgi.naturalWidth, cv.height / bgi.naturalHeight) * 1.05, dx = Math.sin(time / 9000) * 7, dy = Math.cos(time / 11000) * 7; ctx.drawImage(bgi, (cv.width - bgi.naturalWidth*k)/2 + dx, (cv.height - bgi.naturalHeight*k)/2 + dy, bgi.naturalWidth*k, bgi.naturalHeight*k); ctx.fillStyle = 'rgba(4,8,22,' + (LV === 2 ? .6 : .4) + ')'; ctx.fillRect(0,0,cv.width,cv.height); }
   const sx = G.shake > 0 ? (Math.random() - .5) * 6 * G.shake * SC : 0, sy = G.shake > 0 ? (Math.random() - .5) * 6 * G.shake * SC : 0;
   ctx.setTransform(SC,0,0,SC,OX + sx,OY + sy); ctx.save(); ctx.beginPath(); ctx.rect(-40,-40,W+80,H+80); ctx.clip();
+  if (G.slowmo > 0) { const zk = Math.min(1, G.slowmo / 1.6), z = 1 + .16 * Math.sin(zk * Math.PI * .5) * zk, bp = (G.enemies.find(e => e.type === 'boss') ? ePos(G.enemies.find(e => e.type === 'boss')) : G.bossAt) || [W / 2, H / 2]; ctx.translate(bp[0], bp[1]); ctx.scale(z, z); ctx.translate(-bp[0], -bp[1]); }
   const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0, 'hsl(' + hue + ',55%,9%)'); g.addColorStop(1, 'hsl(' + (hue+30) + ',60%,5%)'); if (!bgi) { ctx.fillStyle = g; ctx.fillRect(0,0,W,H); }
   for (const s of (bgi ? [] : STARS)) { ctx.globalAlpha = .4 + .5 * Math.abs(Math.sin(time/1500 + s[3])); ctx.fillStyle = '#fff'; ctx.fillRect(s[0], s[1], s[2], s[2]); } ctx.globalAlpha = 1;
   // slow drifting colored fog + dust motes (adds depth)
@@ -466,6 +501,17 @@ function draw(time) {
   sorted.filter(e => !ENEMY[e.type].air).forEach(e => drawEnemy(e, time));
   G.towers.slice().sort((a, b) => PADS()[a.pad][1] - PADS()[b.pad][1]).forEach(t => drawTower(t, time));
   sorted.filter(e => ENEMY[e.type].air).forEach(e => drawEnemy(e, time));
+  // continuous beams
+  for (const t of G.towers) if (t.kind === 'beam' && t.beamOn && G.enemies.includes(t.beamOn)) {
+    const m = muzzle(t), q = ePos(t.beamOn), qy = q[1] - (ENEMY[t.beamOn.type].air ? 14 : 0), rp = (t.ramp || 1) - 1, fl = .8 + .2 * Math.sin(time / 30), w0 = 2 + 4 * rp;
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(255,90,220,' + (.35 * fl) + ')'; ctx.lineWidth = w0 * 3.2; ctx.beginPath(); ctx.moveTo(m[0], m[1]); ctx.lineTo(q[0], qy); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,150,240,' + fl + ')'; ctx.lineWidth = w0 * 1.5; ctx.shadowColor = '#ff5ae0'; ctx.shadowBlur = 14; ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,' + fl + ')'; ctx.lineWidth = Math.max(1.2, w0 * .5); ctx.stroke();
+    glow(q[0], qy, 14 + 12 * rp, '#ff7ae6', .8); glow(m[0], m[1], 10, '#ffd0f4', .7);
+    if (Math.random() < .6) part(q[0], qy, (Math.random() - .5) * 70, (Math.random() - .5) * 70, .3, 1.5, '#ffb0f0', true);
+    ctx.globalCompositeOperation = 'source-over';
+  }
   // pulse shockwaves
   for (const w of G.waves) {
     const k = Math.min(1, w.r / w.max), a = Math.max(0, 1 - k * k);
@@ -502,6 +548,10 @@ function draw(time) {
     if (f.k === 'strike') { ctx.globalCompositeOperation = 'lighter'; glow(f.p[0], f.p[1], 70 * (.4 + f.t), '#ffe38a', a); ctx.globalCompositeOperation = 'source-over'; ctx.beginPath(); ctx.arc(f.p[0], f.p[1], 55 * (.3 + f.t*1.6), 0, 7); ctx.strokeStyle = 'rgba(255,255,255,' + a + ')'; ctx.lineWidth = 3; ctx.stroke(); }
     if (f.k === 'merge') { ctx.beginPath(); ctx.arc(f.p[0], f.p[1], 20 + f.t*50, 0, 7); ctx.strokeStyle = f.col === '#fff' ? 'rgba(255,255,255,' + a + ')' : 'rgba(255,210,74,' + a + ')'; ctx.lineWidth = 3; ctx.stroke(); }
     if (f.k === 'build') { ctx.beginPath(); ctx.arc(f.p[0], f.p[1], 10 + f.t*40, 0, 7); ctx.strokeStyle = 'rgba(125,239,255,' + a + ')'; ctx.lineWidth = 2; ctx.stroke(); }
+    if (f.k === 'skybeam') { const pr = Math.min(1, f.t / .22), a2 = f.t < .22 ? 1 : Math.max(0, 1 - (f.t - .22) / .35), yy = -40 + (f.p[1] + 40) * pr; ctx.globalCompositeOperation = 'lighter'; const wg = ctx.createLinearGradient(f.p[0] - 16, 0, f.p[0] + 16, 0); wg.addColorStop(0, 'rgba(255,200,80,0)'); wg.addColorStop(.5, 'rgba(255,250,220,' + a2 + ')'); wg.addColorStop(1, 'rgba(255,200,80,0)'); ctx.fillStyle = wg; ctx.fillRect(f.p[0] - 16, -40, 32, yy + 40); ctx.globalCompositeOperation = 'source-over'; }
+    if (f.k === 'vortex') { ctx.beginPath(); ctx.arc(f.p[0], f.p[1], f.r * (1 - Math.min(1, f.t / .6)), 0, 7); ctx.strokeStyle = 'rgba(150,165,255,' + Math.max(0, .55 - f.t * .9) + ')'; ctx.lineWidth = 3; ctx.stroke(); }
+    if (f.k === 'ice') { const al = Math.max(0, 1 - f.t / .6); ctx.strokeStyle = 'rgba(190,235,255,' + al + ')'; ctx.lineWidth = 1.6; for (let i = 0; i < 6; i++) { const a3 = i * 1.047 + f.t * 2, r1 = 3, r2 = 11 + f.t * 8; ctx.beginPath(); ctx.moveTo(f.p[0] + Math.cos(a3) * r1, f.p[1] + Math.sin(a3) * r1); ctx.lineTo(f.p[0] + Math.cos(a3) * r2, f.p[1] + Math.sin(a3) * r2); ctx.stroke(); } }
+    if (f.k === 'heal') { const c0 = PL[0].pts[PL[0].pts.length - 1], al = Math.max(0, 1 - f.t / .6); ctx.beginPath(); ctx.arc(c0[0], c0[1] + 8, 14 + f.t * 160, 0, 7); ctx.strokeStyle = 'rgba(90,255,150,' + al + ')'; ctx.lineWidth = 4; ctx.stroke(); }
     if (f.k === 'freeze') { ctx.fillStyle = 'rgba(159,216,255,' + a*.25 + ')'; ctx.fillRect(-40, -40, W+80, H+80); }
     if (f.k === 'hit') { ctx.fillStyle = 'rgba(255,40,70,' + Math.max(0, .3 - f.t*.6) + ')'; ctx.fillRect(-40, -40, W+80, H+80); }
   }
@@ -552,6 +602,7 @@ function hud() {
   else { go.textContent = G.wave >= maxWave() ? 'Done' : (autoWave && G.autoT > 0 ? 'Next wave ' + Math.ceil(G.autoT) + ' · tap' : 'Send wave ' + (G.wave + 1)); go.disabled = G.wave >= maxWave(); }
   if ($('sheet').style.display === 'block') renderSheet();
 }
+let lastBoss = false;
 function ui2() {
   const total = Math.max(1, G.waveTotal), left = G.spawnQ.length + G.enemies.length;
   const frac = (Math.max(0, G.wave - (G.running ? 1 : 0)) + (G.running ? 1 - left / total : 0)) / maxWave();
@@ -559,6 +610,7 @@ function ui2() {
   const boss = G.enemies.find(e => e.type === 'boss');
   $('boss').style.display = boss ? 'block' : 'none'; if (boss) $('boss').querySelector('i').style.width = Math.max(0, boss.hp / boss.max * 100) + '%';
   $('warn').style.display = G.warn > 0 ? 'block' : 'none';
+  if (!!boss !== lastBoss) { lastBoss = !!boss; SFX.boss(lastBoss); }
 }
 function abilityUI() {
   for (const [id, key, cdMax] of [['aStrike', 'strike', 45], ['aFreeze', 'freeze', 40]]) {
@@ -583,7 +635,7 @@ function renderSheet() {
   const sh = $('sheet');
   if (G.build != null) {
     const p = PADS()[G.build]; sh.className = p[1] > 300 ? 'top' : 'bot'; sh.style.display = 'block';
-    sh.innerHTML = '<h4>Build a tower</h4><div class="row">' + KINDS.map(k => { const b = TOWERS[k]; return '<button class="tb' + (G.gold < b.cost ? ' no' : '') + '" data-b="' + k + '"><b>' + b.icon + '</b>' + b.name + '<br>⚡ ' + b.cost + '<i class="tag ' + (b.hits.length === 2 ? 'both' : b.hits[0]) + '">' + (b.hits.length === 2 ? 'G+A' : b.hits[0] === 'air' ? 'AIR' : 'GND') + '</i></button>'; }).join('') + '</div><div class="info" id="binfo">Pick a tower. GND = ground only · AIR = air only · G+A = both.</div>';
+    sh.innerHTML = '<h4>Build a tower</h4><div class="row" style="flex-wrap:wrap">' + avail().map(k => { const b = TOWERS[k]; return '<button class="tb' + (G.gold < b.cost ? ' no' : '') + '" style="flex:1 1 ' + (avail().length > 6 ? '22%' : '14%') + '" data-b="' + k + '"><b>' + b.icon + '</b>' + b.name + '<br>⚡ ' + b.cost + '<i class="tag ' + (b.hits.length === 2 ? 'both' : b.hits[0]) + '">' + (b.hits.length === 2 ? 'G+A' : b.hits[0] === 'air' ? 'AIR' : 'GND') + '</i></button>'; }).join('') + '</div><div class="info" id="binfo">Pick a tower. GND = ground only · AIR = air only · G+A = both.</div>';
     sh.querySelectorAll('[data-b]').forEach(el => {
       el.onclick = () => {
         const k = el.dataset.b; if (G.gold < TOWERS[k].cost) { $('binfo').textContent = 'Not enough ⚡ yet.'; return; }
@@ -700,10 +752,10 @@ let last = 0;
 function loop(ts) {
   const dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
   const paused = [...document.querySelectorAll('.ov')].some(o => o.style.display === 'flex');
-  if (!paused && !G.over) { for (let i = 0; i < G.speed; i++) step(dt); stats.secs += dt; if (Math.random() < .01) save(); abilityUI(); ui2(); }
+  if (!paused && !G.over) { const sf = G.slowmo > 0 ? .35 : 1; G.slowmo = Math.max(0, G.slowmo - dt); for (let i = 0; i < G.speed; i++) step(dt * sf); stats.secs += dt; if (Math.random() < .01) save(); abilityUI(); ui2(); }
   else if (G.over) { G.clock += dt; for (let i = G.parts.length - 1; i >= 0; i--) { const q = G.parts[i]; q.life -= dt; if (q.life <= 0) G.parts.splice(i, 1); else { q.x += q.vx * dt; q.y += q.vy * dt; } } for (const f of G.fx) f.t += dt; }
   requestAnimationFrame(loop);
   try { draw(ts); } catch (e) { window.__drawErr = e; try { ctx.restore(); } catch (e2) {} }
 }
-window.__td = { endGame, step, get G() { return G; }, startLevel, sendWave, buildTower, upgradeTower, mergeTowers, mergePartners, useFreeze, useStrike, LEVELS, TOWERS, ENEMY, KINDS, PADS, canHit, get WAVES() { return WAVES; }, prog };
+window.__td = { avail, endGame, step, get G() { return G; }, startLevel, sendWave, buildTower, upgradeTower, mergeTowers, mergePartners, useFreeze, useStrike, LEVELS, TOWERS, ENEMY, KINDS, PADS, canHit, get WAVES() { return WAVES; }, prog };
 autoUI(); resize(); startLevel(0, true); if (!prog.call) { hideAll(); show('ovCall'); } else showLevels(); requestAnimationFrame(loop); setTimeout(resize, 200);

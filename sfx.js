@@ -1,7 +1,8 @@
 'use strict';
 /* Orbit Bastion sound: everything is synthesized in the browser (no audio files, no fees). */
 const SFX = (() => {
-  let ac = null, master = null, musicGain = null, on = true, musicOn = true, last = {}, musicStarted = false;
+  const THEMES = [[[220, 261.6, 329.6], [174.6, 220, 261.6], [261.6, 329.6, 392], [196, 246.9, 293.7]], [[146.8, 174.6, 220], [233.1, 293.7, 349.2], [174.6, 220, 261.6], [261.6, 329.6, 392]], [[164.8, 196, 246.9], [261.6, 329.6, 392], [196, 246.9, 293.7], [146.8, 185, 220]]];
+  let theme = 0, bossOn = false, bossTimer = null, ac = null, master = null, musicGain = null, on = true, musicOn = true, last = {}, musicStarted = false;
   try { on = localStorage.getItem('orbitbastion_sfx') !== '0'; musicOn = localStorage.getItem('orbitbastion_music') !== '0'; } catch (e) {}
   function init() {
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
@@ -53,6 +54,9 @@ const SFX = (() => {
     freeze: () => { noise(.8, .25, 'highpass', 4000, 9000); tone('sine', 1400, 300, .8, .18); },
     boost: () => { tone('sawtooth', 200, 1200, .5, .22); tone('triangle', 600, 1800, .5, .12, .1); },
     repair: () => { tone('sine', 520, 780, .4, .2); tone('sine', 780, 1040, .4, .2, .15); },
+    beam: () => { tone('sawtooth', 180, 220, .4, .07); tone('sine', 900, 1100, .35, .05); },
+    gravity: () => { tone('sine', 90, 40, .9, .22); noise(.9, .07, 'lowpass', 400, 80); },
+    roar: () => { tone('sawtooth', 60, 35, 1.6, .5); noise(1.5, .35, 'lowpass', 500, 60); tone('square', 90, 45, 1.2, .18, .1); },
     spawn: () => { tone('sine', 120, 480, .3, .12); },
     portal: () => { tone('sawtooth', 70, 140, .9, .13); noise(.9, .08, 'bandpass', 300, 1200); }
   };
@@ -67,12 +71,11 @@ const SFX = (() => {
   // calm generative pad: Am - F - C - G, slow filter drift
   function startMusic() {
     if (musicStarted || !ac) return; musicStarted = true;
-    const chords = [[220, 261.6, 329.6], [174.6, 220, 261.6], [261.6, 329.6, 392], [196, 246.9, 293.7]];
     const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700; lp.Q.value = .7; lp.connect(musicGain);
     const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = .07; lg.gain.value = 260; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
     const bar = 8; let n = 0;
     function chord() {
-      const t = ac.currentTime, c = chords[n % 4]; n++;
+      const t = ac.currentTime, c = THEMES[theme][n % 4]; n++;
       c.concat([c[0] / 2]).forEach((f, i) => {
         [-6, 6].forEach(det => { const o = ac.createOscillator(), g = ac.createGain(); o.type = i === 3 ? 'sine' : 'sawtooth'; o.frequency.value = f; o.detune.value = det;
           g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(i === 3 ? .09 : .035, t + 2.2); g.gain.linearRampToValueAtTime(0.0001, t + bar + .4);
@@ -83,8 +86,17 @@ const SFX = (() => {
     }
     chord(); setInterval(chord, bar * 1000);
   }
+  function bossBeat() {
+    if (!ac || !bossOn || !musicOn) return;
+    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + .18);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + .25); o.connect(g); g.connect(master); o.start(t); o.stop(t + .3);
+    const b = ac.createOscillator(), bg = ac.createGain(); b.type = 'sawtooth'; b.frequency.value = THEMES[theme][0][0] / 2; bg.gain.setValueAtTime(.0001, t); bg.gain.exponentialRampToValueAtTime(.12, t + .02); bg.gain.exponentialRampToValueAtTime(.0001, t + .35);
+    const lpf = ac.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = 400; b.connect(lpf); lpf.connect(bg); bg.connect(master); b.start(t); b.stop(t + .4);
+  }
   return {
     init, play,
+    theme(n) { theme = Math.max(0, Math.min(THEMES.length - 1, n | 0)); },
+    boss(on) { bossOn = on; if (on && !bossTimer) bossTimer = setInterval(bossBeat, 420); if (!on && bossTimer) { clearInterval(bossTimer); bossTimer = null; } },
     get on() { return on; }, get music() { return musicOn; },
     setOn(v) { on = v; try { localStorage.setItem('orbitbastion_sfx', v ? '1' : '0'); } catch (e) {} if (master) master.gain.value = v ? .55 : 0; },
     setMusic(v) { musicOn = v; try { localStorage.setItem('orbitbastion_music', v ? '1' : '0'); } catch (e) {} if (musicGain) musicGain.gain.value = v ? .5 : 0; }
