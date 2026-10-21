@@ -20,15 +20,19 @@ const TOWERS = {
   rail:    { name:'Rail',    icon:'➖', cost:110, range:130, dmg:48, rate:1.5, col:'#ffffff', hits:['ground'],       type:'kinetic',   ap:6, desc:'Ground only. Long range, pierces armor.', strong:'brutes, stalkers', weak:'swarms, air (cannot hit)' },
   missile: { name:'Missile', icon:'🚀', cost:120, range:82,  dmg:20, rate:1.4, col:'#ff9a4a', hits:['ground'],       type:'explosive', ap:0, splash:36, desc:'Ground only. Blast hits groups.', strong:'swarms, groups', weak:'brutes, air (cannot hit)' },
   flak:    { name:'Flak',    icon:'✈️', cost:100, range:92,  dmg:14, rate:.7,  col:'#ffcf6b', hits:['air'],          type:'explosive', ap:0, splash:30, desc:'Air only. Bursts shred flyers.', strong:'scouts, bombers, boss', weak:'ground (cannot hit)' },
-  cryo:    { name:'Cryo',    icon:'❄️', cost:90,  range:66,  dmg:0,  rate:1,   col:'#9fd8ff', hits:['ground','air'], type:'cold',      ap:0, slow:.32, desc:'Slows ground AND air. No damage.', strong:'speedsters', weak:'does no damage' },
+  cryo:    { name:'Cryo',    icon:'❄️', cost:90,  range:66,  dmg:9,  rate:1,   col:'#9fd8ff', hits:['ground','air'], type:'cold',      ap:0, slow:.32, locked:1, desc:'Slows everything near it and shoots ice shards. 3 hits freeze an enemy; the next hit shatters it for +50%.', strong:'setting up big hits, fast enemies', weak:'low damage on its own' },
   beam:    { name:'Beam',    icon:'🔆', cost:150, range:92,  dmg:22, rate:.1,  col:'#ff7ae6', hits:['ground','air'], type:'energy',    ap:3, locked:1, desc:'Locks on with a continuous beam that grows stronger the longer it holds a target.', strong:'bosses, brutes, shields', weak:'swarms (one target)' },
   gravity: { name:'Gravity', icon:'🌀', cost:125, range:72,  dmg:0,  rate:1,   col:'#7b8cff', hits:['ground','air'], type:'gravity',   ap:0, locked:1, pull:16, desc:'Pulls enemies backward and slows them. Bosses resist.', strong:'holding crowds in a kill zone', weak:'does no damage' },
   tesla:   { name:'Arc',     icon:'⚡', cost:130, range:64,  dmg:15, rate:1.0, col:'#c28bff', hits:['ground','air'], type:'electric',  ap:0, chain:3, desc:'Lightning jumps between enemies, ground and air.', strong:'shields, swarms', weak:'boss, brutes' }
 };
+/* elements: each element beats its opposite. Elemental enemies take +50% from the opposite element, -50% from their own. */
+const ELEMS = { fire: { n: 'Fire', ic: '🔥', opp: 'ice' }, ice: { n: 'Ice', ic: '❄', opp: 'fire' }, storm: { n: 'Storm', ic: '⚡', opp: 'wind' }, wind: { n: 'Wind', ic: '🌪', opp: 'storm' }, light: { n: 'Light', ic: '☀', opp: 'void' }, void: { n: 'Void', ic: '🌀', opp: 'light' } };
+TOWERS.cryo.elem = 'ice'; TOWERS.tesla.elem = 'storm'; TOWERS.beam.elem = 'light'; TOWERS.gravity.elem = 'void';
+TOWERS.tesla.locked = 1;
 const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla', 'beam', 'gravity'];
 const LOADOUT_N = 6;
 const avail = () => {
-  let u = KINDS.filter(k => !TOWERS[k].locked || prog.tw[k]);
+  let u = KINDS.filter(k => !TOWERS[k].locked || prog.tw[k] || OPEN_ALL);
   if (typeof CUR !== 'undefined' && CUR && CUR.only) return u.filter(k => CUR.only.includes(k));
   if (u.length > LOADOUT_N) { const lo = (prog.loadout || []).filter(k => u.includes(k)); u = lo.length === LOADOUT_N ? lo : u.slice(0, LOADOUT_N); }
   return u;
@@ -55,18 +59,18 @@ const SPEAK = { nine: { name: 'Nine', img: 'u_nine' }, quill: { name: 'Quill', i
 const WORLDS = [
   { lv: 0, name: 'Bastion Academy', tag: 'The Exam', planet: 'u_planet_academy', pos: [30, 78],
     intro: [['nine', 'Welcome to the Bastion Academy, Cadet {c}. I am Nine. I have trained every defender you have ever heard of, and a few you have not.'], ['nine', 'Today is your exam. Build towers on the glowing hexes, send the waves, and do not let anything touch the core.'], ['nine', 'Ground enemies walk. Air enemies fly. Not every tower can hit both, so read the little tags.']],
-    win: ['nine', 'Passed. Do not let it go to your head. It will anyway. Orders just arrived: the Halcyon Ring is under attack. Pack a bag.'],
+    win: ['nine', 'Passed. Do not let it go to your head. It will anyway. Orders just arrived: the Halcyon Ring is under attack. Pack a bag. Take a Cryo emitter from the vault. It is cold, and I am told so is my sense of humour.'], tower: 'cryo',
     lose: ['nine', 'Failed? Nobody fails the exam, they just take it twice. Again.'], reward: null },
   { lv: 1, name: 'Halcyon Ring', tag: 'Orbital habitat', planet: 'u_planet_halcyon', pos: [70, 56],
     intro: [['quill', 'Quill here, Halcyon Ring maintenance. The bombers showed up an hour ago and my coffee is still warm. Please hurry.'], ['nine', 'Bombers fly and wear armor, Cadet {c}. Flak is your friend. So is Arc against shields.']],
-    win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you two: the Repair Pulse for emergencies, and a prototype Beam Prism tower. Do not ask where I got the crystal.'], tower: 'beam',
+    win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you two: the Repair Pulse for emergencies, and a prototype Beam Prism tower. I also found an Arc coil in the storage bay. Do not ask where I got the crystal.'], tower: ['beam', 'tesla'],
     lose: ['quill', 'Hang on, I will patch the hull. Want to try again?'], reward: 'repair' },
   { lv: 2, name: 'Gatefall', tag: 'Twin gates', planet: 'u_planet_gate', pos: [30, 34],
     intro: [['oru', 'Two gates, one core, and nowhere to sit down. Welcome to Gatefall.'], ['nine', 'They arrive from both sides and meet at the core. Cover both lanes, Cadet {c}.']],
     win: ['oru', 'Both gates held. Take the Overcharge: every tower fires faster for a short while. And take this Gravity Well. It does not hurt anything. It simply makes them late.'], tower: 'gravity',
     lose: ['oru', 'The gates are patient. So are we. Again.'], reward: 'over' }
 ];
-const TWTXT = { beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
+const TWTXT = { cryo: 'Cryo tower (slows and shoots ice shards; three hits freeze an enemy and the next hit shatters it).', tesla: 'Arc tower (lightning that jumps between enemies).', beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
 const REWARDS = { repair: 'Repair Pulse (wrench button): restores 5 lives, once per level.', over: 'Overcharge (bolt button): towers fire 50% faster for 8 seconds.' };
 const RANKS = [[0, 'Cadet'], [1, 'Defender'], [8, 'Guardian'], [16, 'Warden'], [26, 'Commander']];
 const rankOf = () => { const pts = totalCleared(); let r = RANKS[0][1]; RANKS.forEach(x => { if (pts >= x[0]) r = x[1]; }); return r; };
@@ -168,8 +172,8 @@ function makeWaves(lv) {
 const SKEY = 'orbitbastion_stats_v1', PKEY = 'orbitbastion_progress_v1';
 function loadJSON(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ? Object.assign(d, v) : d; } catch (e) { return d; } }
 let stats = loadJSON(SKEY, { first: Date.now(), days: {}, runs: 0, wins: 0, losses: 0, wavesCleared: 0, bestWave: 0, funYes: 0, funNo: 0, unlockTaps: 0, speedTaps: 0, builds: {}, upgrades: 0, merges: 0, abilities: 0, secs: 0, kills: 0, air: 0, bossKills: 0, mk: {}, dmgBy: {}, byType: {}, cosTry: 0 });
-let prog = loadJSON(PKEY, { stars: [0, 0, 0], seen: [], call: '', ab: { repair: false, over: false }, sawIntro: [], tw: { beam: false, gravity: false }, tier: 0 });
-if (!prog.tw) prog.tw = { beam: false, gravity: false };
+let prog = loadJSON(PKEY, { stars: [0, 0, 0], seen: [], call: '', ab: { repair: false, over: false }, sawIntro: [], tw: { beam: false, gravity: false, cryo: false, tesla: false }, tier: 0 });
+if (!prog.tw) prog.tw = { beam: false, gravity: false, cryo: false, tesla: false };
 if (!prog.ab) prog.ab = { repair: false, over: false }; if (!prog.sawIntro) prog.sawIntro = [];
 const scKey = (w, i, t) => w + '-' + i + '-' + t;
 if (!prog.sc) { prog.sc = {}; (prog.stars || []).forEach((st, w) => { if (st > 0) prog.sc[scKey(w, 0, 0)] = st; }); }
@@ -211,6 +215,7 @@ const perkEnergy = () => rankIdx() >= 1 ? 20 : 0, perkLife = () => rankIdx() >= 
 const cdMult = () => Math.max(.4, 1 - .08 * rk('g.cd') - perkCd());
 const maxLives = () => START_LIVES + rk('g.lives') + perkLife();
 const startBonus = () => 15 * rk('g.energy') + perkEnergy();
+function grantTowers() { WORLDS.forEach((w, i) => { if (cleared(i, LPW - 1, 0)) [].concat(w.tower || []).forEach(tk => { prog.tw[tk] = true; }); }); save(); }
 const MEDALS = [
   ['win', 'First Victory', 'Win any level.', () => stats.wins >= 1],
   ['perfect', 'Perfect Defense', 'Win a level without losing a life.', () => !!prog.flags.perfect],
@@ -301,7 +306,7 @@ function flash(t) { const m = $('msg'); m.textContent = t; m.style.opacity = 1; 
 function intro(type) {
   if (prog.seen.includes(type)) return; prog.seen.push(type); save();
   const d = ENEMY[type], el = $('intro');
-  el.innerHTML = '<img src="art/e_' + type + '.webp?v=' + ART_V + '"><div><b>NINE: NEW · ' + d.name + '</b> · ' + (d.air ? '✈ Air' : '⛰ Ground') + '<br><span>' + d.note + '</span></div>';
+  el.innerHTML = '<img src="art/e_' + type + '.webp?v=' + ART_V + '"><div><b>NINE: NEW · ' + d.name + '</b> · ' + (d.air ? '✈ Air' : '⛰ Ground') + '<br><span>' + d.note + (d.elem ? '<br>' + elemNote(d) : '') + '</span></div>';
   el.style.display = 'flex'; clearTimeout(intro.t); intro.t = setTimeout(() => el.style.display = 'none', 5500);
 }
 
@@ -376,9 +381,14 @@ function moveTower(t, pad) { crumb('move ' + t.kind + ' to pad ' + pad);
 function sellTower(t) { crumb('sell ' + t.kind); stats.sells = (stats.sells || 0) + 1; if (G.clock - t.born < 30) { stats.regretSells = (stats.regretSells || 0) + 1; G.regret = true; save(); } SFX.play('sell'); G.gold += sellVal(t); G.towers.splice(G.towers.indexOf(t), 1); hud(); }
 
 /* damage with armor + weaknesses */
+function addFrost(e) {
+  e.frost = Math.min(3, (e.frost || 0) + 1); e.frostT = 3.5;
+  if (e.frost >= 3) { e.frost = 0; e.fz = e.type === 'boss' ? .3 : 1.0; e.shat = true; const q = ePos(e); G.fx.push({ k: 'ice', p: [q[0], q[1] - (ENEMY[e.type].air ? 14 : 0)], t: 0 }); SFX.play('cryo'); }
+}
+function elemMult(d, kind) { const te = kind && TOWERS[kind] && TOWERS[kind].elem; if (!d.elem || !te) return 1; return te === d.elem ? .5 : (ELEMS[d.elem].opp === te ? 1.5 : 1); }
 function dealDamage(e, base, type, ap, kind) {
-  const d = ENEMY[e.type], m = (d.mods && d.mods[type]) || 1, raw = base * m * (e.slow > 0 && rk('cryo.sp') ? 1.1 : 1), arm = Math.max(0, (d.armor || 0) - (ap || 0));
-  const dmg = Math.max(raw * .2, raw - arm); e.hp -= dmg; e.flash = .1; if (kind) { e.lk = kind; stats.dmgBy[kind] = (stats.dmgBy[kind] || 0) + dmg; } numPop(e, dmg, type); SFX.play('hit'); if (base >= 30 && e.type !== 'boss') e.d = Math.max(0, e.d - 2.5); return dmg;
+  const d = ENEMY[e.type], m = (d.mods && d.mods[type]) || 1, raw = base * m * elemMult(d, kind) * (e.shat ? 1.5 : 1) * (e.slow > 0 && rk('cryo.sp') ? 1.1 : 1), arm = Math.max(0, (d.armor || 0) - (ap || 0));
+  const dmg = Math.max(raw * .2, raw - arm); e.hp -= dmg; e.flash = .1; if (e.shat) { e.shat = false; const q = ePos(e); burst(q[0], q[1], 10, '#dff6ff', 80, .4, 2, true); } if (kind) { e.lk = kind; stats.dmgBy[kind] = (stats.dmgBy[kind] || 0) + dmg; } numPop(e, dmg, type); SFX.play('hit'); if (base >= 30 && e.type !== 'boss') e.d = Math.max(0, e.d - 2.5); return dmg;
 }
 function muzzle(t) {
   const p = PADS()[t.pad], hi = headInfo(t);
@@ -436,7 +446,10 @@ function step(dt) {
   }
   for (let i = G.enemies.length - 1; i >= 0; i--) {
     const e = G.enemies[i], def = ENEMY[e.type];
-    e.flash = Math.max(0, e.flash - dt); e.d += def.sp * (1 - e.slow) * CUR.spMult * dt;
+    e.flash = Math.max(0, e.flash - dt);
+    if (e.frostT > 0) { e.frostT -= dt; if (e.frostT <= 0) e.frost = 0; }
+    if (e.fz > 0) { e.fz -= dt; e.slow = 1; }
+    e.d += def.sp * (1 - e.slow) * CUR.spMult * dt;
     if (e.slow > 0 && Math.random() < .15) { const q = ePos(e); part(q[0] + (Math.random()-.5) * 10, q[1] - 6, 0, -10, .5, 1.4, '#bfe6ff', true); }
     if (e.hp <= 0) { killEnemy(e, i); continue; }
     if (e.d >= PL[e.pi].len) {
@@ -447,7 +460,7 @@ function step(dt) {
   for (const t of G.towers) {
     t.rec = Math.max(0, t.rec - dt * 5);
     const s = tStats(t), p = PADS()[t.pad];
-    if (t.kind === 'cryo' || t.kind === 'gravity') continue;
+    if (t.kind === 'gravity') continue;
     let best = null, bd = -1;
     for (const e of G.enemies) { if (!canHit(t.kind, e)) continue; const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range && e.d > bd) { best = e; bd = e.d; } }
     if (best) { const q = ePos(best); t.ang = Math.atan2(q[1] - (ENEMY[best.type].air ? 14 : 0) - p[1], q[0] - p[0]); t.has = true; } else t.has = false;
@@ -534,7 +547,7 @@ function hitShot(s, tg, q) {
     if (s.kind !== 'flak') G.decals.push({ x: q[0], y: q[1], r: s.splash * .8, t: 0 });
     if (s.kind === 'flak') { burst(q[0], q[1], 10, '#ffcf6b', 70, .4, 1.8, true); burst(q[0], q[1], 5, '#444', 30, .7, 3, false); }
     else { burst(q[0], q[1], 16, '#ff9a4a', 90, .5, 2.2, true); burst(q[0], q[1], 8, '#3a3a40', 40, .9, 3.2, false); G.shake = Math.max(G.shake, .12); }
-  } else if (tg) { dealDamage(tg, s.dmg, s.type, s.ap, s.kind); burst(q[0], q[1], 4, tcol(s.kind), 45, .25, 1.6, true); }
+  } else if (tg) { dealDamage(tg, s.dmg, s.type, s.ap, s.kind); if (s.kind === 'cryo') addFrost(tg); burst(q[0], q[1], 4, tcol(s.kind), 45, .25, 1.6, true); }
 }
 function funDue() { const n = (stats.funYes || 0) + (stats.funNo || 0); if (n >= 8) return false; if (!prog.funLast) return stats.wins >= 2; return Date.now() - prog.funLast > 2 * 86400000; }
 function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wave + ' lives ' + G.lives);
@@ -554,14 +567,14 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
   $('eNext').style.display = nextOpen ? 'block' : 'none';
   let extra = (rpGain ? '<br><b>Research:</b> +' + rpGain + ' RP' : '') + dailyMsg;
   if (win && fin && wd.reward && !prog.ab[wd.reward]) { prog.ab[wd.reward] = true; extra = '<br><b>New ability:</b> ' + REWARDS[wd.reward]; save(); }
-  if (win && fin && wd.tower && !prog.tw[wd.tower]) { prog.tw[wd.tower] = true; extra += '<br><b>New tower:</b> ' + TWTXT[wd.tower]; save(); }
+  if (win && fin) { [].concat(wd.tower || []).forEach(tk => { if (!prog.tw[tk]) { prog.tw[tk] = true; extra += '<br><b>New tower:</b> ' + TWTXT[tk]; save(); } }); }
   $('eQuote').innerHTML = '<b>' + spk.name + ':</b> ' + q[1].replace('{c}', (prog.call || 'Cadet').replace(/</g, '&lt;')) + extra + (win ? '<br><b>Rank:</b> ' + rankOf() : '');
   const fd = win && funDue(); $('eFun').style.display = fd ? 'block' : 'none'; document.querySelectorAll('#eFun button').forEach(x => x.style.opacity = 1);
   setTimeout(() => show('ovEnd'), 700);
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792571121';
+const ART_V = '1792572236';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -634,11 +647,13 @@ function drawEnemy(e, time) {
   ctx.shadowColor = col; ctx.shadowBlur = e.type === 'boss' ? 22 : 8; puppet(sp, w, h, e.type, cyc, time, e); ctx.shadowBlur = 0;
   if (e.type === 'shield') { ctx.globalAlpha = .25 + .15 * Math.sin(time / 200); ctx.strokeStyle = '#8fd0ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, h * .62, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
   if (e.slow > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .28; ctx.shadowColor = '#7fd8ff'; ctx.shadowBlur = 14; puppet(sp, w, h, e.type, cyc, time, e); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
+  if (e.fz > 0 || e.frost > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = e.fz > 0 ? .6 : .12 * e.frost; ctx.shadowColor = '#bfe9ff'; ctx.shadowBlur = 16; puppet(sp, w, h, e.type, cyc, time, e); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
   if (e.flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .65; puppet(sp, w, h, e.type, cyc, time, e); }
   ctx.restore();
   const by = q[1] + hop - h/2 - 8;
   if (e.hp < e.max) { const bw = Math.max(18, w*.8); ctx.fillStyle = '#000b'; ctx.fillRect(q[0]-bw/2, by, bw, 3.5); ctx.fillStyle = e.hp/e.max > .5 ? '#5be07a' : e.hp/e.max > .25 ? '#ffd24a' : '#ff5470'; ctx.fillRect(q[0]-bw/2, by, bw*Math.max(0, e.hp/e.max), 3.5); }
   if (air) { ctx.fillStyle = '#cfe6ff'; ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.fillText('✈', q[0], by - 2); }
+  if (def.elem) { const wk = ELEMS[ELEMS[def.elem].opp]; ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(wk.ic, q[0] + (air ? 12 : 0), by - 4); }
 }
 function drawVortex(t, time) {
   const p = PADS()[t.pad], s = tStats(t); ctx.save(); ctx.translate(p[0], p[1]); ctx.globalCompositeOperation = 'lighter';
@@ -859,8 +874,8 @@ function updatePreview() {
   if (key === prevKey) return; prevKey = key; bar.style.display = 'flex';
   const counts = {}; nxt.forEach(g => { counts[g[0]] = (counts[g[0]] || 0) + g[1]; });
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  bar.innerHTML = '<span class="wl">' + (G.running ? 'NEXT · WAVE ' + n : 'INCOMING · WAVE ' + n) + '<small>' + total + ' enemies</small></span><div class="wchips">' + Object.entries(counts).map(([t, c]) => '<button class="wc' + (t === 'boss' ? ' boss' : '') + '" data-e="' + t + '"><img src="art/e_' + t + '.webp?v=' + ART_V + '" alt=""><b>×' + c + '</b><i>' + (ENEMY[t].air ? '✈' : '⛰') + '</i></button>').join('') + '</div>' + (hint ? '<div class="wh">⚠ ' + hint + '</div>' : '');
-  bar.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { const d = ENEMY[b.dataset.e], el = $('intro'); SFX.play('click'); el.innerHTML = '<img src="art/e_' + b.dataset.e + '.webp?v=' + ART_V + '"><div><b>' + d.name + '</b> · ' + (d.air ? '✈ Air' : '⛰ Ground') + (d.armor ? ' · Armor ' + d.armor : '') + '<br><span>' + d.note + '</span></div>'; el.style.display = 'flex'; clearTimeout(intro.t); intro.t = setTimeout(() => el.style.display = 'none', 5000); });
+  bar.innerHTML = '<span class="wl">' + (G.running ? 'NEXT · WAVE ' + n : 'INCOMING · WAVE ' + n) + '<small>' + total + ' enemies</small></span><div class="wchips">' + Object.entries(counts).map(([t, c]) => '<button class="wc' + (t === 'boss' ? ' boss' : '') + '" data-e="' + t + '"><img src="art/e_' + t + '.webp?v=' + ART_V + '" alt=""><b>×' + c + '</b><i>' + (ENEMY[t].air ? '✈' : '⛰') + (ENEMY[t].elem ? ' ' + ELEMS[ELEMS[ENEMY[t].elem].opp].ic : '') + '</i></button>').join('') + '</div>' + (hint ? '<div class="wh">⚠ ' + hint + '</div>' : '');
+  bar.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { const d = ENEMY[b.dataset.e], el = $('intro'); SFX.play('click'); el.innerHTML = '<img src="art/e_' + b.dataset.e + '.webp?v=' + ART_V + '"><div><b>' + d.name + '</b> · ' + (d.air ? '✈ Air' : '⛰ Ground') + (d.armor ? ' · Armor ' + d.armor : '') + '<br><span>' + d.note + (d.elem ? '<br>' + elemNote(d) : '') + '</span></div>'; el.style.display = 'flex'; clearTimeout(intro.t); intro.t = setTimeout(() => el.style.display = 'none', 5000); });
 }
 
 function hud() {
@@ -903,6 +918,7 @@ function coach() {
 }
 function closeSheet() { G.sel = null; G.build = null; $('sheet').style.display = 'none'; }
 /* tower stats shown while building and when a tower is selected: includes tier, research, mastery and rank perks */
+const elemNote = d => d.elem ? ('Element: ' + ELEMS[d.elem].ic + ' ' + ELEMS[d.elem].n + ' · weak to ' + ELEMS[ELEMS[d.elem].opp].ic + ' ' + ELEMS[ELEMS[d.elem].opp].n + ' · resists ' + ELEMS[d.elem].ic) : '';
 function statRows(kind, lvl) {
   const b = TOWERS[kind], s = tStats({ kind, lvl }), f1 = x => (Math.round(x * 10) / 10), R = [];
   const shooter = b.dmg > 0 && !b.beam, dps = shooter ? s.dmg / s.rate : 0;
@@ -920,7 +936,8 @@ function statRows(kind, lvl) {
   if (s.slow) R.push(['Slows by', Math.round(s.slow * 100) + '%', s.slow]);
   if (s.pull) R.push(['Pull', f1(s.pull) + ' / s', s.pull]);
   if (b.ap) R.push(['Armor pierce', String(b.ap), b.ap]);
-  R.push(['Damage type', b.type === 'gravity' || b.type === 'cold' ? b.type : b.type, 0]);
+  if (b.elem) R.push(['Element', ELEMS[b.elem].ic + ' ' + ELEMS[b.elem].n, 0]);
+  R.push(['Damage type', b.type, 0]);
   return R;
 }
 function bonusLine(kind) {
@@ -995,7 +1012,7 @@ function showLevels() {
   hideAll(); show('ovLevels');
 }
 function showWorld(w) {
-  const wd = WORLDS[w]; $('wlTitle').textContent = wd.name; $('wlSub').textContent = wd.tag + ' · ' + worldCleared(w) + ' / ' + LPW + ' cleared';
+  const wd = WORLDS[w]; $('wlTitle').textContent = wd.name; $('wlSub').textContent = wd.tag + ' · ' + worldCleared(w) + ' / ' + LPW + ' cleared' + ([].concat(wd.tower || []).length ? ' · Clear level 10 to unlock: ' + [].concat(wd.tower).map(k => TOWERS[k].icon + ' ' + TOWERS[k].name).join(', ') : '');
   const tierUnlocked = t => OPEN_ALL || t === 0 || (() => { for (let i = 0; i < LPW; i++) if (cleared(w, i, t - 1)) return true; return false; })();
   if (!tierUnlocked(prog.tier || 0)) prog.tier = 0;
   $('wlTiers').innerHTML = TIERS.map((T, t) => '<button class="chip2' + ((prog.tier || 0) === t ? ' on' : '') + (tierUnlocked(t) ? '' : ' lock') + '" data-t="' + t + '">' + (tierUnlocked(t) ? '' : '🔒 ') + T.n + '</button>').join('');
@@ -1236,4 +1253,4 @@ function loop(ts) {
   try { draw(ts); } catch (e) { window.__drawErr = e; logErr('draw: ' + e.message, 'draw'); try { ctx.restore(); } catch (e2) {} }
 }
 window.__td = { buildLevel, get CUR() { return CUR; }, LPW, TIERS, prog, avail, endGame, step, get G() { return G; }, startLevel, sendWave, buildTower, upgradeTower, mergeTowers, mergePartners, useFreeze, useStrike, LEVELS, TOWERS, ENEMY, KINDS, PADS, canHit, get WAVES() { return WAVES; }, prog };
-autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { hideAll(); show('ovCall'); } else showLevels(); requestAnimationFrame(loop); setTimeout(resize, 200);
+grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { hideAll(); show('ovCall'); } else showLevels(); requestAnimationFrame(loop); setTimeout(resize, 200);
