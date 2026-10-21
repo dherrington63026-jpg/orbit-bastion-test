@@ -93,40 +93,40 @@ const MUZ = { siphon: [0, -.42], prism: [0, -.4], wind: [0, -.42], gatling: [.45
 /* ---------- story ---------- */
 const SPEAK = { vey: { name: 'Keeper Vey', img: 'u_vey' }, solene: { name: 'Dr. Solene Marr', img: 'u_solene' }, wynn: { name: 'Captain Wynn Aldous', img: 'u_wynn' }, ione: { name: 'Chief Ione Vael', img: 'u_ione' }, bruck: { name: 'Foreman Bruck', img: 'u_bruck' }, mira: { name: 'Mira', img: 'u_mira' }, nine: { name: 'Nine', img: 'u_nine' }, quill: { name: 'Quill', img: 'u_quill' }, oru: { name: 'Warden Oru', img: 'u_oru' } };
 const WORLDS = [
-  { lv: 0, name: 'Bastion Academy', tag: 'The Exam', planet: 'u_planet_academy', pos: [30, 78], tower: 'gatling',
+  { lv: 0, name: 'Bastion Academy', tag: 'The Exam', planet: 'u_planet_academy', pos: [48, 81], tower: 'gatling',
     intro: [['nine', 'Welcome to the Bastion Academy, Cadet {c}. I am Nine. I have trained every defender you have ever heard of, and a few you have not.'], ['nine', 'Today is your exam. Build towers on the glowing hexes, send the waves, and do not let anything touch the core.'], ['nine', 'Ground enemies walk. Air enemies fly. Not every tower can hit both, so read the little tags.']],
     win: ['nine', 'Passed. Do not let it go to your head. It will anyway. Take the Gatling from the armory: it is loud, it is fast, and it is not subtle. Orders just arrived: the Halcyon Ring is under attack. Pack a bag. '],
     lose: ['nine', 'Failed? Nobody fails the exam, they just take it twice. Again.'], reward: null },
-  { lv: 1, name: 'Halcyon Ring', tag: 'Orbital habitat', planet: 'u_planet_halcyon', pos: [70, 56],
+  { lv: 1, name: 'Halcyon Ring', tag: 'Orbital habitat', planet: 'u_planet_halcyon', pos: [72, 62],
     intro: [['quill', 'Quill here, Halcyon Ring maintenance. The bombers showed up an hour ago and my coffee is still warm. Please hurry.'], ['nine', 'Bombers fly and wear armor, Cadet {c}. Flak is your friend. So is Arc against shields.']],
     win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you two: the Repair Pulse for emergencies, and a prototype Beam Prism tower. Do not ask where I got the crystal.'], tower: 'beam',
     lose: ['quill', 'Hang on, I will patch the hull. Want to try again?'], reward: 'repair' },
-  { lv: 2, name: 'Gatefall', tag: 'Twin gates', planet: 'u_planet_gate', pos: [30, 34],
+  { lv: 2, name: 'Gatefall', tag: 'Twin gates', planet: 'u_planet_gate', pos: [28, 25],
     intro: [['oru', 'Two gates, one core, and nowhere to sit down. Welcome to Gatefall.'], ['nine', 'They arrive from both sides and meet at the core. Cover both lanes, Cadet {c}.']],
     win: ['oru', 'Both gates held. Take the Overcharge: every tower fires faster for a short while. And take this Gravity Well. It does not hurt anything. It simply makes them late.'], tower: 'gravity',
     lose: ['oru', 'The gates are patient. So are we. Again.'], reward: 'over' }
 ];
-WORLDS.push({ lv: 3, name: 'Glacier Mir', tag: 'Expansion · Ice', planet: 'u_planet_glacier', pos: [74, 26], paid: true, price: 3.99, freeLv: 3, elem: 'ice', tower: 'cryo',
+WORLDS.push({ lv: 3, name: 'Glacier Mir', tag: 'Expansion · Ice', planet: 'u_planet_glacier', pos: [72, 26], paid: true, price: 3.99, freeLv: 3, elem: 'ice', tower: 'cryo',
   intro: [['mira', 'Mira, station chief. Welcome to Glacier Mir, where the thermostat is a rumour. When a frost storm rolls through, it freezes a turret solid mid-shot, and I get to stand there and watch.'], ['nine', 'Ice enemies shrug off ice and fear fire, Cadet {c}. Missile is a fire tower: it burns them, and the storms cannot freeze it. If a tower does freeze, tap it and pay for a thaw. Pride is not worth a wave.']],
   win: ['mira', 'Listen to that. Nothing. No storms, no scrabbling, just the pipes ticking as they warm up. I had forgotten how good that sounds. Take the Cryo tower. It is the cold, but on our side this time. Try not to cuddle it.'],
   lose: ['mira', 'The cold won that round. It always does the first time. Pour something hot and go again.'], reward: null });
-WORLDS.push({ lv: 4, name: 'Cinder Moon', tag: 'Expansion · Fire', planet: 'u_planet_cinder', pos: [24, 12], paid: true, price: 3.99, freeLv: 3, elem: 'fire', tower: 'fire',
+WORLDS.push({ lv: 4, name: 'Cinder Moon', tag: 'Expansion · Fire', planet: 'u_planet_cinder', pos: [26, 8], paid: true, price: 3.99, freeLv: 3, elem: 'fire', tower: 'fire',
   intro: [['bruck', 'Foreman Bruck, Cinder Moon smelter. Welcome to the one place in the system where the floor is also the problem. The vents blow on a rhythm. Anything standing near one gets cooked stiff, so do not stand near one. I will say that again louder if you forget.'], ['nine', 'Fire enemies shrug off fire and fear ice, Cadet {c}. Cryo hits them for extra, and ice towers are immune to the vents. The vents are marked on the map and they erupt on a rhythm. Learn the rhythm.']],
   win: ['bruck', 'Quiet. Do you hear that? That is the sound of nobody\'s boots melting. Take the Flame Spire. We used it for welding. It is still welding, mostly enemies to the floor.'],
   lose: ['bruck', 'The moon won. The moon usually does. Splash some water on your face and go again.'], reward: null });
-WORLDS.push({ lv: 5, name: 'Stormwatch', tag: 'Expansion · Storm', planet: 'u_planet_storm', pos: [72, 80], paid: true, price: 3.99, freeLv: 3, elem: 'storm', tower: ['tesla', 'stun'],
+WORLDS.push({ lv: 5, name: 'Stormwatch', tag: 'Expansion · Storm', planet: 'u_planet_storm', pos: [28, 61], paid: true, price: 3.99, freeLv: 3, elem: 'storm', tower: ['tesla', 'stun'],
   intro: [['ione', 'Chief Ione Vael, Stormwatch Station. Today\'s forecast: lightning, followed by more lightning, with a short lull while it reloads. The rods on this plateau pull the strikes in close. When one lands on a tower it knocks the whole thing offline. Do not take it personally. It is weather.'], ['nine', 'Storm machines shrug off storm and fear wind, Cadet {c}. Flak is wind, and it will shred them. Strikes are announced by a marker on the ground. Read the sky, then move or cover the tower.']],
   win: ['ione', 'Clear skies. First time in nine years I have heard this plateau go quiet. Take the Arc coil and the EMP pylon. Both are grounded, both are loud, and neither one minds the weather. I would give you my umbrella too, but a strike took it in spring.'],
   lose: ['ione', 'The storm took the plateau. It does that. Reset the rods, dry your boots, and go again.'], reward: null });
-WORLDS.push({ lv: 6, name: 'Gale Reach', tag: 'Expansion · Wind', planet: 'u_planet_gale', pos: [26, 56], paid: true, price: 3.99, freeLv: 3, elem: 'wind', tower: 'wind',
+WORLDS.push({ lv: 6, name: 'Gale Reach', tag: 'Expansion · Wind', planet: 'u_planet_gale', pos: [28, 43], paid: true, price: 3.99, freeLv: 3, elem: 'wind', tower: 'wind',
   intro: [['wynn', 'Captain Wynn Aldous, Gale Reach Skyport. The locals call it the Reach because the wind reaches for everything that is not bolted down. A twister will come through. It will not break your towers. It will pick them up, set them down facing the wrong way, and leave them dizzy. Dizzy towers do not shoot.'], ['nine', 'Wind machines laugh at wind and fear storm, Cadet {c}. Arc and the EMP pylon are storm. Flak is wind, so go easy on it here. The twister is announced by a marker on the ground. Move your attention, not your towers.']],
   win: ['wynn', 'Calm air. I have not seen the windsock hang straight in thirty years. Take the Cyclone. It pushes things the way the wind has been pushing me my whole life, and it does it on purpose, which is the only difference.'],
   lose: ['wynn', 'The Reach won. It usually does. Pick up your tools, tie down what you can, and go again.'], reward: null });
-WORLDS.push({ lv: 7, name: 'Solspire', tag: 'Expansion · Light', planet: 'u_planet_sol', pos: [48, 64], paid: true, price: 3.99, freeLv: 3, elem: 'light', tower: 'prism',
+WORLDS.push({ lv: 7, name: 'Solspire', tag: 'Expansion · Light', planet: 'u_planet_sol', pos: [72, 44], paid: true, price: 3.99, freeLv: 3, elem: 'light', tower: 'prism',
   intro: [['solene', 'Doctor Solene Marr, Solspire Array. Good news: free power for a thousand years. Bad news: free power also means a solar flare sweeps across the field every so often and cooks anything that cannot take the glare. I wear sunglasses. Your towers do not have any.'], ['nine', 'Light machines shrug off light and fear the void, Cadet {c}. The Gravity well is void, so make it earn its keep. Beam and Prism feed on light and are immune to the flares. The flare route is drawn on the ground before it fires.']],
   win: ['solene', 'Sunset! Do you know how rarely I get to say that here? Take the Prism. It catches light, bends it, and sends it down a line of things I would rather not meet. I call that recycling.'],
   lose: ['solene', 'The sun won this round. It has had a lot of practice. Go again.'], reward: null });
-WORLDS.push({ lv: 8, name: 'Umbral Deep', tag: 'Expansion · Void', planet: 'u_planet_void', pos: [50, 11], paid: true, price: 3.99, freeLv: 3, elem: 'void', tower: 'siphon',
+WORLDS.push({ lv: 8, name: 'Umbral Deep', tag: 'Expansion · Void', planet: 'u_planet_void', pos: [72, 9], paid: true, price: 3.99, freeLv: 3, elem: 'void', tower: 'siphon',
   intro: [['vey', 'Keeper Vey, Umbral Deep. The cartographers marked this place unremarkable and then stopped coming back. The dark here is not empty. It gathers, and where it gathers, your towers go half blind. Do not argue with it. Break the crystal at its heart and it lets go.'], ['nine', 'Void machines shrug off the void and fear light, Cadet {c}. Beam and Prism see straight through the dark. When a haze settles, tap the crystal at its heart. It pays you in energy and the haze breaks.']],
   win: ['vey', 'Light, at last. I had forgotten the color of my own hands. Take the Siphon. It lays a quiet curse on one enemy and the curse does the rest. I was never fond of it. I am very glad you are.'],
   lose: ['vey', 'The dark kept the field. It is patient, so be patient with yourself. Again.'], reward: null });
@@ -1041,7 +1041,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792583437';
+const ART_V = '1792587702';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1552,7 +1552,7 @@ function showWorld(w) {
   $('wlGrid').innerHTML = html;
   $('wlGrid').querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (b.classList.contains('pay')) { showBuy(w); return; } if (b.classList.contains('lock')) { $('wlFoot').textContent = tierOpen(w, i, t) ? 'Clear the level before it first.' : 'Clear this level on ' + TIERS[t - 1].n + ' first.'; return; } startLevel(w, i, t); });
   $('wlFoot').textContent = WORLDS[w].paid && !owned(w) ? 'The first ' + (WORLDS[w].freeLv || 3) + ' levels are free to try. Unlock the rest for $' + WORLDS[w].price.toFixed(2) + '.' : 'Stars: 3 = lose 2 lives or fewer. Hard and Nightmare give tougher waves.';
-  $('wlBuy').style.display = WORLDS[w].paid && !owned(w) ? 'block' : 'none'; $('wlBuy').textContent = 'Unlock ' + WORLDS[w].name + ' · $' + WORLDS[w].price.toFixed(2);
+  $('wlBuy').style.display = WORLDS[w].paid && !owned(w) ? 'block' : 'none'; $('wlBuy').textContent = 'Unlock ' + WORLDS[w].name + ' · $' + (WORLDS[w].price || 0).toFixed(2);
   hideAll(); show('ovWorld');
 }
 $('wlBack').onclick = showLevels;
