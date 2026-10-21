@@ -180,7 +180,7 @@ function shardBlocked(kind, p, q, air) {
   if (air || kind === 'missile' || kind === 'pulse') return false;
   const dx = q[0] - p[0], dy = q[1] - p[1], L2 = dx * dx + dy * dy || 1;
   for (const sh of G.shards) {
-    if (sh.dead > 0) continue; const u = ((sh.x - p[0]) * dx + (sh.y - p[1]) * dy) / L2; if (u <= 0 || u >= 1) continue;
+    if (sh.dead > 0 || sh.delay > 0) continue; const u = ((sh.x - p[0]) * dx + (sh.y - p[1]) * dy) / L2; if (u <= 0 || u >= 1) continue;
     if (Math.hypot(p[0] + dx * u - sh.x, p[1] + dy * u - sh.y) < SHARD_R) { sh.blk = G.clock; return true; }
   }
   return false;
@@ -354,7 +354,7 @@ function posAt(pi, d) {
 const ePos = e => posAt(e.pi, e.d);
 function startLevel(L, idx, tier, quiet, dly) { crumb('start ' + L + '-' + (idx || 0) + '-' + (tier || 0) + (dly ? ' daily' : ''));
   LV = L; IDX = idx || 0; TIER = tier || 0; CUR = buildLevel(LV, IDX, TIER); if (dly) applyTwist(CUR, dly.tw, dly.sd); SFX.theme(L); PL = pathData(CUR); WAVES = makeWaves(CUR);
-  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, vs: (CUR.vents || []).map((pi, k) => ({ pad: pi, t: 7 + k * 4 + Math.random() * 3 })), repairUsed: false, overT: 0, overCd: 0, shards: (CUR.shards || []).map(s => ({ x: s[0], y: s[1], sz: s[2], sd: s[3], dead: 0, born: 0 })), shardHit: 0 };
+  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, vs: (CUR.vents || []).map((pi, k) => ({ pad: pi, t: 7 + k * 4 + Math.random() * 3 })), repairUsed: false, overT: 0, overCd: 0, shards: [], shT: 3, shardHit: 0 };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return CUR.waves; }
@@ -509,6 +509,24 @@ function heatStep(dt) {
   }
 }
 let LAVA = null;
+// molten rivers wandering down the middle catwalk: soft glow, hot core, slow slugs of brighter lava
+const RIV = [[-.05, .05, .0062, 0, 1], [.045, .046, .0079, 2.3, .8], [.0, .03, .0105, 4.4, 1.15]];
+function lavaRivers(time) {
+  const W = cv.width, H = cv.height, S = W / 412, cx = W * .52; ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  RIV.forEach((r, k) => {
+    const pts = []; for (let y = -20; y <= H + 20; y += 12 * S) { const f = y / S; pts.push([cx + W * r[0] + W * r[1] * (Math.sin(f * r[2] * 2.2 + r[3]) * .7 + Math.sin(f * r[2] * 5.3 + k * 2) * .3) + W * .01 * Math.sin(f * .05 + time / 5000 + k), y]); }
+    const path = () => { ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); };
+    const sc = (.9 + .2 * Math.sin(time / 1700 + k * 2)) * S, pu = .85 + .15 * Math.sin(time / 420 + k * 1.7);
+    ctx.globalCompositeOperation = 'source-over'; path(); ctx.strokeStyle = 'rgba(12,4,2,.38)'; ctx.lineWidth = 34 * sc; ctx.stroke();
+    ctx.globalCompositeOperation = 'lighter';
+    [[26, .1], [19, .16], [13, .3]].forEach(l => { path(); ctx.strokeStyle = 'rgba(255,80,10,' + l[1] * pu + ')'; ctx.lineWidth = l[0] * sc; ctx.stroke(); });
+    path(); ctx.strokeStyle = 'rgba(255,135,25,.85)'; ctx.lineWidth = 8 * sc; ctx.stroke();
+    path(); ctx.strokeStyle = 'rgba(255,190,80,.5)'; ctx.lineWidth = 3.6 * sc; ctx.stroke();
+    path(); ctx.setLineDash([34 * S, 90 * S]); ctx.lineDashOffset = -time * .035 * r[4] * S; ctx.strokeStyle = 'rgba(255,235,170,.38)'; ctx.lineWidth = 4.2 * sc; ctx.stroke(); ctx.setLineDash([]);
+    for (let b = 0; b < 3; b++) { const t2 = ((time / 3600 * r[4] + b / 3 + k * .27) % 1), y = t2 * (H + 40) - 20, i = Math.min(pts.length - 1, Math.max(0, Math.round((y + 20) / (12 * S)))), q = pts[i], a = Math.sin(t2 * Math.PI); const g = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], 12 * S); g.addColorStop(0, 'rgba(255,230,150,' + .55 * a + ')'); g.addColorStop(1, 'rgba(255,120,20,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q[0], q[1], 12 * S, 0, 7); ctx.fill(); }
+  });
+  ctx.restore();
+}
 // animated lava: find the glowing lava in the backdrop once, then sweep moving bright bands through only those pixels
 function lavaFlow(bgi, time) {
   const bv = CUR.bgv || 0, key = LV + '|' + cv.width + 'x' + cv.height + '|' + bv, mw = Math.max(90, Math.round(cv.width / 1.7)), mh = Math.max(150, Math.round(cv.height / 1.7));
@@ -525,6 +543,7 @@ function lavaFlow(bgi, time) {
     const t = document.createElement('canvas'); t.width = mw; t.height = mh;
     LAVA = { key, mask: c, tmp: t, ctx: t.getContext('2d'), mw, mh };
   }
+  lavaRivers(time);
   if (LAVA.off) return;
   const x = LAVA.ctx, w = LAVA.mw, h = LAVA.mh;
   x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, w, h); x.globalAlpha = .5 + .2 * Math.sin(time / 900); x.drawImage(LAVA.mask, 0, 0); x.globalAlpha = 1;
@@ -548,20 +567,35 @@ function drawVent(i, p, time) {
 const hazardInterval = () => Math.max(5, (16 - CUR.idx * .9) * [1, .75, .55][TIER]) * (.8 + Math.random() * .4);
 const HZ_DUR = () => [4, 5, 6][TIER];
 function breakShard(sh) {
-  sh.dead = 38 + Math.random() * 12; stats.shards = (stats.shards || 0) + 1; G.shardHit++;
+  sh.dead = 1; stats.shards = (stats.shards || 0) + 1; G.shardHit++;
   burst(sh.x, sh.y - 6, 26, '#cfefff', 130, .9, 2.2, true); burst(sh.x, sh.y - 4, 10, '#6fc4ff', 70, 1.1, 3.4, true);
   G.fx.push({ k: 'ring', p: [sh.x, sh.y], r: 34, t: 0 }); SFX.play('shatter');
   const g = 8; G.gold += g; G.nums.push({ x: sh.x, y: sh.y - 10, t: 0, text: '+' + g + '⚡', col: NCOL.gold, big: false }); hud();
-  if (!G.shardTip) { G.shardTip = true; flash('Ice shards break for energy and regrow'); }
+  if (!G.shardTip) { G.shardTip = true; flash('Ice shards fall from above: tap to break them for energy'); }
 }
 function shardStep(dt) {
-  for (const sh of G.shards) {
-    if (sh.dead > 0) { sh.dead -= dt; if (sh.dead <= 0) { const rest = G.shards.filter(o => o !== sh && !o.dead).map(o => [o.x, o.y]); const p = pickShards(PADS(), CUR.paths, Math.random, 1, rest)[0]; if (p) { sh.x = p[0]; sh.y = p[1]; sh.sz = p[2]; sh.sd = p[3]; sh.born = G.clock; } else sh.dead = 5; } }
+  if (!G.running) return;
+  for (let i = G.shards.length - 1; i >= 0; i--) {
+    const sh = G.shards[i];
+    if (sh.dead) { G.shards.splice(i, 1); continue; }
+    if (sh.delay > 0) {
+      sh.delay -= dt;
+      if (sh.delay <= 0) { sh.delay = 0; sh.born = G.clock; G.shake = Math.max(G.shake, .4); SFX.play('crash'); burst(sh.x, sh.y, 24, '#dff4ff', 120, .7, 2.4, true); burst(sh.x, sh.y, 12, '#7cc8ff', 70, .9, 3.2, true); G.fx.push({ k: 'ring', p: [sh.x, sh.y], r: 40, t: 0 }); G.decals.push({ x: sh.x, y: sh.y, r: 16, t: 0 }); }
+    }
+  }
+  G.shT -= dt;
+  if (G.shT <= 0) {
+    G.shT = 6 + Math.random() * 5;
+    if (G.shards.length < 5) { const p = pickShards(PADS(), CUR.paths, Math.random, 1, G.shards.map(o => [o.x, o.y]))[0]; if (p) G.shards.push({ x: p[0], y: p[1], sz: p[2], sd: p[3], dead: 0, born: 0, delay: 1.5 }); }
   }
 }
 function drawShards(time) {
   for (const sh of G.shards) {
-    if (sh.dead > 0) continue; const grow = Math.min(1, (G.clock - sh.born + .001) / .9), e = 1 - Math.pow(1 - grow, 3), z = sh.sz * e * 12;
+    if (sh.dead > 0) continue;
+    if (sh.delay > 0) { const f = 1 - sh.delay / 1.5, pu = .5 + .5 * Math.sin(time / 70); ctx.save(); ctx.translate(sh.x, sh.y); ctx.beginPath(); ctx.ellipse(0, 3, 10 + 8 * f, 5 + 3 * f, 0, 0, 7); ctx.fillStyle = 'rgba(120,200,255,' + (.12 + .2 * f) + ')'; ctx.fill(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(190,235,255,' + (.5 + .4 * pu) + ')'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+      const fz = sh.sz * 12, fy = -Math.pow(Math.min(1, sh.delay / .5), 2) * 330; if (sh.delay < .5) { ctx.globalCompositeOperation = 'lighter'; const tr = ctx.createLinearGradient(0, fy - 90, 0, fy); tr.addColorStop(0, 'rgba(160,220,255,0)'); tr.addColorStop(1, 'rgba(200,240,255,.7)'); ctx.fillStyle = tr; ctx.fillRect(-4, fy - 90, 8, 90); ctx.globalCompositeOperation = 'source-over'; const g1 = ctx.createLinearGradient(0, fy - fz * 2, 0, fy + 4); g1.addColorStop(0, '#f4fcff'); g1.addColorStop(1, '#3a88d4'); ctx.fillStyle = g1; ctx.beginPath(); ctx.moveTo(-fz * .6, fy); ctx.lineTo(0, fy - fz * 2.6); ctx.lineTo(fz * .6, fy); ctx.lineTo(0, fy + fz * .5); ctx.closePath(); ctx.fill(); }
+      ctx.restore(); continue; }
+    const grow = Math.min(1, (G.clock - sh.born + .001) / .25), e = 1 - Math.pow(1 - grow, 3), z = sh.sz * e * 12;
     ctx.save(); ctx.translate(sh.x, sh.y);
     if (sh.blk && G.clock - sh.blk < .6) { ctx.beginPath(); ctx.arc(0, -z * .6, SHARD_R + 5 + 3 * Math.sin(time / 90), 0, 7); ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(190,235,255,.9)'; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]); }
     ctx.fillStyle = 'rgba(0,10,30,.45)'; ctx.beginPath(); ctx.ellipse(1, 6, 3 + z * .95, 3.4, 0, 0, 7); ctx.fill();
@@ -595,7 +629,7 @@ function step(dt) {
   if (G.over) return;
   if (CUR.hazard === 'frost' && G.running) hazardStep(dt);
   if (CUR.hazard === 'heat' && G.running) heatStep(dt);
-  if (G.shards.length) shardStep(dt);
+  if (CUR.hazard === 'frost') shardStep(dt);
   G.overT = Math.max(0, G.overT - dt); G.overCd = Math.max(0, G.overCd - dt);
   G.t += dt; G.clock += dt; G.strike = Math.max(0, G.strike - dt); G.freeze = Math.max(0, G.freeze - dt); G.freezeT = Math.max(0, G.freezeT - dt); G.shake = Math.max(0, G.shake - dt * 2);
   while (G.spawnQ.length && G.spawnQ[0].at <= G.t) spawn(G.spawnQ.shift().type);
@@ -640,7 +674,7 @@ function step(dt) {
     let best = null, bd = -1;
     let blocked = false;
     for (const e of G.enemies) { if (!canHit(t.kind, e)) continue; const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range && e.d > bd) { if (G.shards.length && shardBlocked(t.kind, p, q, ENEMY[e.type].air)) { blocked = true; continue; } best = e; bd = e.d; } }
-    if (blocked && !best && !G.blkTip) { G.blkTip = true; flash('An ice shard blocks the shot: tap it to break it'); }
+    if (blocked && !best && !G.blkTip) { G.blkTip = true; flash('A fallen ice shard blocks the shot: tap it to break it'); }
     if (best) { const q = ePos(best); t.ang = Math.atan2(q[1] - (ENEMY[best.type].air ? 14 : 0) - p[1], q[0] - p[0]); t.has = true; } else t.has = false;
     let ready = true;
     if (ROT[t.kind]) {
@@ -753,7 +787,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792575501';
+const ART_V = '1792576127';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1409,7 +1443,7 @@ cv.addEventListener('pointerdown', ev => {
     if (ph >= 0 && !G.towers.some(o => o.pad === ph) && !(CUR.vents && CUR.vents.includes(ph))) { if (moveTower(mt, ph)) { G.sel = mt; } } else flash('Move cancelled');
     coach(); renderSheet(); return;
   }
-  const shh = PADS().some(p => Math.hypot(p[0] - x, p[1] - y) < 16) ? null : G.shards.find(q => !q.dead && Math.abs(q.x - x) < 15 && y > q.y - 32 && y < q.y + 8);
+  const shh = PADS().some(p => Math.hypot(p[0] - x, p[1] - y) < 16) ? null : G.shards.find(q => !q.dead && !(q.delay > 0) && Math.abs(q.x - x) < 15 && y > q.y - 32 && y < q.y + 8);
   if (shh) { breakShard(shh); return; }
   let hit = -1, bd = 26;
   PADS().forEach((p, i) => { const d = Math.hypot(p[0]-x, p[1]-y); if (d < bd) { bd = d; hit = i; } });

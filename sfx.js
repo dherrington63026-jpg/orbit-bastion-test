@@ -51,6 +51,7 @@ const SFX = (() => {
     win: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone('triangle', f, f, .5, .22, i * .12)); },
     lose: () => { [392, 330, 262, 196].forEach((f, i) => tone('sawtooth', f, f * .98, .5, .16, i * .2)); },
     strike: () => { tone('sawtooth', 2000, 60, .8, .3); noise(.9, .5, 'lowpass', 2500, 80, .35); tone('sine', 80, 30, .8, .8, .35); },
+    crash: () => { noise(.5, .4, 'lowpass', 1800, 300); tone('sine', 160, 50, .35, .3); noise(.25, .25, 'highpass', 3000, 8000); },
     shatter: () => { noise(.35, .3, 'highpass', 3500, 9000); tone('triangle', 2400, 900, .25, .12); tone('sine', 3200, 1500, .3, .08); },
     freeze: () => { noise(.8, .25, 'highpass', 4000, 9000); tone('sine', 1400, 300, .8, .18); },
     boost: () => { tone('sawtooth', 200, 1200, .5, .22); tone('triangle', 600, 1800, .5, .12, .1); },
