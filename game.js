@@ -887,7 +887,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792578429';
+const ART_V = '1792578830';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1646,3 +1646,41 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
     if (!G.running && G.wave < maxWave()) sendWave();
   } catch (e) {} }, 350);
 } }
+
+// the galaxy behind the map screens swirls: the painted nebula is rotated around its core, faster near the middle, with two cross-faded phases so it turns forever without winding up
+{
+  const cvm = document.createElement('canvas'); cvm.id = 'mapfx'; document.body.insertBefore(cvm, document.body.firstChild);
+  let gl = null, uT = null, uA = null, ready = false;
+  try { gl = cvm.getContext('webgl', { antialias: false, preserveDrawingBuffer: true }); } catch (e) {}
+  const img = new Image(); img.src = 'art/bg_map.webp?v=' + ART_V;
+  const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); return o; };
+  img.onload = () => {
+    if (!gl) { const c2 = cvm.getContext('2d'); cvm.width = 540; cvm.height = 960; c2.drawImage(img, 0, 0, 540, 960); ready = true; return; }
+    const pr = gl.createProgram();
+    gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 uv; void main(){ uv = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }'));
+    gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, 'precision mediump float; varying vec2 uv; uniform sampler2D uB; uniform float uT, uA;\n' +
+      'vec2 rot(vec2 p, vec2 c, float a){ vec2 d = p - c; d.x *= uA; float s = sin(a), k = cos(a); d = vec2(k * d.x - s * d.y, s * d.x + k * d.y); d.x /= uA; return c + d; }\n' +
+      'void main(){ vec2 c = vec2(.47, .52), q = vec2(uv.x, 1. - uv.y); if (uA > .684) q.y = .5 + (q.y - .5) * (.684 / uA); else q.x = .5 + (q.x - .5) * (uA / .684); float r = length((q - c) * vec2(uA, 1.)), fall = 1. / (.18 + r * 1.6);\n' +
+      ' float t1 = fract(uT * .045), t2 = fract(uT * .045 + .5), w = abs(1. - 2. * t1), sw = .9;\n' +
+      ' vec2 n = vec2(sin(q.y * 9. + uT * .35), cos(q.x * 8. + uT * .3)) * .004;\n' +
+      ' vec3 a = texture2D(uB, rot(q, c, t1 * sw * fall) + n).rgb, b = texture2D(uB, rot(q, c, t2 * sw * fall) + n).rgb;\n' +
+      ' vec3 col = mix(a, b, w); float core = exp(-r * 6.); col += vec3(.5, .4, .8) * core * (.06 + .04 * sin(uT * .8));\n' +
+      ' gl_FragColor = vec4(col, 1.); }'));
+    gl.linkProgram(pr); gl.useProgram(pr);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const tx = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tx); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.uniform1i(gl.getUniformLocation(pr, 'uB'), 0); uT = gl.getUniformLocation(pr, 'uT'); uA = gl.getUniformLocation(pr, 'uA'); ready = true;
+  };
+  const MAPS = ['ovLevels', 'ovWorld', 'ovHub'];
+  function mapfxLoop(ts) {
+    requestAnimationFrame(mapfxLoop);
+    const on = MAPS.some(id => { const e = document.getElementById(id); return e && e.style.display === 'flex'; });
+    cvm.style.display = on ? 'block' : 'none'; if (!on || !ready || !gl) return;
+    const w = Math.min(540, Math.round(innerWidth * Math.min(devicePixelRatio || 1, 1.5) / 1.4)), hh = Math.min(960, Math.round(innerHeight * Math.min(devicePixelRatio || 1, 1.5) / 1.4));
+    if (cvm.width !== w || cvm.height !== hh) { cvm.width = w; cvm.height = hh; gl.viewport(0, 0, w, hh); }
+    gl.uniform1f(uT, ts / 1000); gl.uniform1f(uA, w / hh); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  requestAnimationFrame(mapfxLoop);
+}
