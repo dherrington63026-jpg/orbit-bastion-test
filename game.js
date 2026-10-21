@@ -164,13 +164,26 @@ function pickVents(pads, paths, rng) {
 // jagged ice shards scattered off the lane and clear of pads: tap one to shatter it for energy; it regrows later
 function pickShards(pads, paths, rng, n, keep) {
   const S = []; paths.forEach(P => { for (let i = 1; i < P.length; i++) { const a = P[i - 1], b = P[i], l = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.floor(l / 8)); for (let k = 0; k <= m; k++) S.push([a[0] + (b[0] - a[0]) * k / m, a[1] + (b[1] - a[1]) * k / m]); } });
-  const core = paths[0][paths[0].length - 1], out = (keep || []).slice(), res = [];
-  for (let tries = 0; tries < 900 && res.length < n; tries++) {
-    const x = 24 + rng() * 312, y = 40 + rng() * 520;
-    if (S.some(q => Math.hypot(q[0] - x, q[1] - y) < 36) || pads.some(p => Math.hypot(p[0] - x, p[1] - y) < 40) || out.some(o => Math.hypot(o[0] - x, o[1] - y) < 52) || Math.hypot(core[0] - x, core[1] - y) < 60) continue;
-    const sh = [x, y, .85 + rng() * .5, rng() * 100]; out.push(sh); res.push(sh);
+  const out = (keep || []).slice(), res = [], lane = (x, y) => S.reduce((m, q) => Math.min(m, Math.hypot(q[0] - x, q[1] - y)), 1e9);
+  for (let tries = 0; tries < 1200 && res.length < n; tries++) {
+    const p = pads[Math.floor(rng() * pads.length)]; let q = null, d = 1e9; for (const c of S) { const dd = Math.hypot(c[0] - p[0], c[1] - p[1]); if (dd < d) { d = dd; q = c; } }
+    if (!q || d < 38) continue;
+    const off = Math.max(21, Math.min(28, d - 22)), a = Math.atan2(q[1] - p[1], q[0] - p[0]) + (rng() - .5) * .7, x = p[0] + Math.cos(a) * off, y = p[1] + Math.sin(a) * off;
+    if (x < 14 || x > 346 || y < 24 || y > 580 || lane(x, y) < 22 || pads.some(o => Math.hypot(o[0] - x, o[1] - y) < 22 + (o === p ? 0 : 6)) || out.some(o => Math.hypot(o[0] - x, o[1] - y) < 40)) continue;
+    const sh = [x, y, .85 + rng() * .35, rng() * 100]; out.push(sh); res.push(sh);
   }
   return res;
+}
+const SHARD_R = 15;
+// a standing ice shard stops direct shots (Pulse shockwaves, Missiles and flyers pass over it)
+function shardBlocked(kind, p, q, air) {
+  if (air || kind === 'missile' || kind === 'pulse') return false;
+  const dx = q[0] - p[0], dy = q[1] - p[1], L2 = dx * dx + dy * dy || 1;
+  for (const sh of G.shards) {
+    if (sh.dead > 0) continue; const u = ((sh.x - p[0]) * dx + (sh.y - p[1]) * dy) / L2; if (u <= 0 || u >= 1) continue;
+    if (Math.hypot(p[0] + dx * u - sh.x, p[1] + dy * u - sh.y) < SHARD_R) { sh.blk = G.clock; return true; }
+  }
+  return false;
 }
 function buildLevel(w, i, t) {
   const base = LEVELS[w], g = (base.g0 !== undefined ? base.g0 : w * LPW) + i, T = TIERS[t], rng = mulberry(w * 1000 + i * 17 + 5);
@@ -548,8 +561,9 @@ function shardStep(dt) {
 }
 function drawShards(time) {
   for (const sh of G.shards) {
-    if (sh.dead > 0) continue; const grow = Math.min(1, (G.clock - sh.born + .001) / .9), e = 1 - Math.pow(1 - grow, 3), z = sh.sz * e * 14;
+    if (sh.dead > 0) continue; const grow = Math.min(1, (G.clock - sh.born + .001) / .9), e = 1 - Math.pow(1 - grow, 3), z = sh.sz * e * 12;
     ctx.save(); ctx.translate(sh.x, sh.y);
+    if (sh.blk && G.clock - sh.blk < .6) { ctx.beginPath(); ctx.arc(0, -z * .6, SHARD_R + 5 + 3 * Math.sin(time / 90), 0, 7); ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(190,235,255,.9)'; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]); }
     ctx.fillStyle = 'rgba(0,10,30,.45)'; ctx.beginPath(); ctx.ellipse(1, 6, 3 + z * .95, 3.4, 0, 0, 7); ctx.fill();
     ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(0, -z * .5, 0, 0, -z * .5, z * 2.1); gl.addColorStop(0, 'rgba(120,210,255,' + (.34 + .1 * Math.sin(time / 700 + sh.sd)) + ')'); gl.addColorStop(1, 'rgba(120,210,255,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, -z * .5, z * 2.1, 0, 7); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
     // a cluster of 5 jagged spikes: tall centre, leaning sides; each has a lit and a shaded facet
@@ -624,7 +638,9 @@ function step(dt) {
     if (t.frz > 0) { t.beamOn = null; t.has = false; continue; }
     if (t.kind === 'gravity') continue;
     let best = null, bd = -1;
-    for (const e of G.enemies) { if (!canHit(t.kind, e)) continue; const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range && e.d > bd) { best = e; bd = e.d; } }
+    let blocked = false;
+    for (const e of G.enemies) { if (!canHit(t.kind, e)) continue; const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range && e.d > bd) { if (G.shards.length && shardBlocked(t.kind, p, q, ENEMY[e.type].air)) { blocked = true; continue; } best = e; bd = e.d; } }
+    if (blocked && !best && !G.blkTip) { G.blkTip = true; flash('An ice shard blocks the shot: tap it to break it'); }
     if (best) { const q = ePos(best); t.ang = Math.atan2(q[1] - (ENEMY[best.type].air ? 14 : 0) - p[1], q[0] - p[0]); t.has = true; } else t.has = false;
     let ready = true;
     if (ROT[t.kind]) {
@@ -737,7 +753,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792575038';
+const ART_V = '1792575157';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1393,7 +1409,7 @@ cv.addEventListener('pointerdown', ev => {
     if (ph >= 0 && !G.towers.some(o => o.pad === ph) && !(CUR.vents && CUR.vents.includes(ph))) { if (moveTower(mt, ph)) { G.sel = mt; } } else flash('Move cancelled');
     coach(); renderSheet(); return;
   }
-  const shh = G.shards.find(q => !q.dead && Math.hypot(q.x - x, q.y - 8 - y) < 24 * Math.max(.9, q.sz));
+  const shh = PADS().some(p => Math.hypot(p[0] - x, p[1] - y) < 16) ? null : G.shards.find(q => !q.dead && Math.abs(q.x - x) < 15 && y > q.y - 32 && y < q.y + 8);
   if (shh) { breakShard(shh); return; }
   let hit = -1, bd = 26;
   PADS().forEach((p, i) => { const d = Math.hypot(p[0]-x, p[1]-y); if (d < bd) { bd = d; hit = i; } });
