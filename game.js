@@ -197,7 +197,7 @@ KINDS.forEach(k => {
   NODES.push({ id: k + '.rate', scope: k, label: 'Fire rate', desc: '+5% fire rate per rank', max: 3, costs: [2, 3, 4] });
   NODES.push({ id: k + '.sp', scope: k, label: SP_TXT[k][0], desc: SP_TXT[k][1], max: 1, costs: [8], special: 1 });
 });
-[['energy', 'Starting energy', '+15 energy at the start of every level', [2, 3, 4]], ['lives', 'Core lives', '+1 core life per rank', [4, 6, 8]], ['disc', 'Upgrade discount', '-4% tower upgrade cost per rank', [2, 3, 4]], ['cd', 'Ability recharge', 'Abilities recharge 8% faster per rank', [2, 3, 4]], ['sell', 'Salvage', '+5% sell value per rank', [2, 3, 4]]]
+[['energy', 'Starting energy', '+15 energy at the start of every level', [2, 3, 4]], ['lives', 'Core lives', '+1 core life per rank', [4, 6, 8]], ['disc', 'Upgrade discount', '-4% tower upgrade cost per rank', [2, 3, 4]], ['cd', 'Ability recharge', 'Abilities recharge 8% faster per rank', [2, 3, 4]], ['sell', 'Salvage', '+5% sell value per rank', [2, 3, 4]], ['reloc', 'Quick relocation', '-25% tower relocation fee per rank', [2, 3, 4]]]
   .forEach(([id, label, desc, costs]) => NODES.push({ id: 'g.' + id, scope: 'g', label, desc, max: 3, costs }));
 const rk = id => prog.res[id] || 0;
 const resRanks = () => Object.values(prog.res).reduce((a, b) => a + b, 0);
@@ -279,7 +279,7 @@ function burst(x, y, n, col, speed, life, size, add) { for (let i = 0; i < n; i+
 
 function sendWave() {
   if (G.running || G.over || G.wave >= maxWave()) return;
-  G.wave++; G.running = true; G.spawnQ = []; closeSheet();
+  G.wave++; G.running = true; G.spawnQ = []; G.moving = null; closeSheet();
   let t = 0;
   for (const [type, n, gap] of WAVES[G.wave-1]) { for (let i = 0; i < n; i++) { G.spawnQ.push({ at: t, type }); t += gap; } t += 1; }
   G.t = 0; G.waveTotal = G.spawnQ.length; SFX.play('wave'); stats.bestWave = Math.max(stats.bestWave, G.wave); save();
@@ -331,6 +331,15 @@ function mergePartners(t) { return t.lvl === 3 ? G.towers.filter(o => o !== t &&
 function mergeTowers(a, b) {
   SFX.play('merge'); G.towers.splice(G.towers.indexOf(b), 1); a.lvl = 4; a.spent += b.spent; a.born = G.clock - .1; stats.merges++; save();
   const p = PADS()[a.pad]; G.fx.push({ k: 'merge', p, t: 0, col: '#ffd24a' }); burst(p[0], p[1], 26, '#ffd24a', 90, .8, 2.6, true); hud();
+}
+const MOVE_PCT = [.15, .25, .40];
+const moveFee = t => Math.max(5, Math.round(t.spent * MOVE_PCT[TIER] * Math.max(.25, 1 - .25 * rk('g.reloc'))));
+function moveTower(t, pad) {
+  const fee = moveFee(t); if (G.running || G.gold < fee || G.towers.some(o => o.pad === pad)) return false;
+  const from = PADS()[t.pad], to = PADS()[pad];
+  G.gold -= fee; stats.moves = (stats.moves || 0) + 1; stats.moveFees = (stats.moveFees || 0) + fee; save();
+  t.pad = pad; t.born = G.clock - .1; t.cd = .5; SFX.play('build');
+  G.fx.push({ k: 'build', p: from, t: 0 }); G.fx.push({ k: 'build', p: to, t: 0 }); burst(to[0], to[1], 12, tcol(t.kind), 60, .5, 2, true); hud(); return true;
 }
 function sellTower(t) { stats.sells = (stats.sells || 0) + 1; if (G.clock - t.born < 30) { stats.regretSells = (stats.regretSells || 0) + 1; G.regret = true; save(); } SFX.play('sell'); G.gold += sellVal(t); G.towers.splice(G.towers.indexOf(t), 1); hud(); }
 
@@ -518,7 +527,7 @@ function endGame(win) {
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792565957';
+const ART_V = '1792566315';
 const IM = {};
 ['bg_1','bg_2','bg_3','lane_1','lane_2','lane_3','p_pad','p_core'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -678,6 +687,10 @@ function draw(time) {
     const selB = G.build === i, pulse = .5 + .5 * Math.sin(time/500 + i), ps = spr('p_pad');
     if (ps) { const pw = 44, ph = ps.naturalHeight / ps.naturalWidth * pw; ctx.globalAlpha = selB ? 1 : .75 + .25 * pulse * (G.wave === 0 && tips ? 1 : .3); ctx.drawImage(ps, p[0]-pw/2, p[1]-ph/2, pw, ph); ctx.globalAlpha = 1; if (selB) { ctx.beginPath(); ctx.arc(p[0], p[1], 22, 0, 7); ctx.strokeStyle = '#7defff'; ctx.lineWidth = 2; ctx.stroke(); } }
   });
+  if (G.moving) {
+    PADS().forEach((p, i) => { if (G.towers.some(t => t.pad === i)) return; ctx.beginPath(); ctx.arc(p[0], p[1], 24 + 2 * Math.sin(time / 150), 0, 7); ctx.strokeStyle = 'rgba(90,255,150,.95)'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.fillStyle = 'rgba(90,255,150,.12)'; ctx.fill(); });
+    const mp = PADS()[G.moving.pad]; ctx.beginPath(); ctx.arc(mp[0], mp[1], 26, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.95)'; ctx.lineWidth = 3; ctx.stroke();
+  }
   if (G.build != null && G.pick) { const sr = tStats({ kind: G.pick, lvl: 1 }).range, pb = PADS()[G.build]; ctx.beginPath(); ctx.arc(pb[0], pb[1], sr, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.08)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); }
   if (G.sel && G.sel.lvl < 3) { const sn = tStats({ kind: G.sel.kind, lvl: G.sel.lvl + 1 }), pn = PADS()[G.sel.pad]; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(pn[0], pn[1], sn.range, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
   if (G.sel) { const s = tStats(G.sel), p = PADS()[G.sel.pad]; ctx.beginPath(); ctx.arc(p[0], p[1], s.range, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.09)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); }
@@ -807,7 +820,8 @@ function abilityUI() {
   $('aOver').querySelector('.cd').style.height = (G.overCd / (50 * cdMult()) * 100) + '%'; $('aOver').classList.toggle('armed', G.overT > 0);
 }
 function coach() {
-  const c = $('coach'); if (!tips || LV > 0 || IDX > 0 || TIER > 0) { c.style.display = 'none'; return; }
+  const c = $('coach'); if (G.moving) { c.textContent = 'Tap a green pad to move the ' + TOWERS[G.moving.kind].name + '. Tap anywhere else to cancel.'; c.style.display = 'block'; return; }
+  if (!tips || LV > 0 || IDX > 0 || TIER > 0) { c.style.display = 'none'; return; }
   let t = '';
   if (!G.towers.length && G.wave === 0) t = '1 · Tap a glowing + hex to build a tower.';
   else if (G.wave === 0) t = '2 · Press “Send wave 1” when ready.';
@@ -865,6 +879,8 @@ function renderSheet() {
     if (t.lvl < 3) btns += '<button class="act up' + (G.gold < uc ? ' no' : '') + '" id="bUp">Upgrade ⚡ ' + uc + '</button>';
     else if (t.lvl === 3) btns += '<button class="act mer' + (partners.length ? '' : ' no') + '" id="bMerge">' + (partners.length ? 'Merge → Prime' : 'Merge needs a 2nd max ' + b.name) + '</button>';
     else btns += '<button class="act up no">Prime tower</button>';
+    const mfee = moveFee(t), canMove = !G.running && G.gold >= mfee;
+    btns += '<button class="act mv' + (canMove ? '' : ' no') + '" id="bMove">' + (G.running ? 'Move<br><small>between waves</small>' : 'Move ⚡ ' + mfee) + '</button>';
     btns += '<button class="act sell" id="bSell">Sell ⚡ ' + sellVal(t) + '</button>';
     const nextLvl = t.lvl < 3 ? t.lvl + 1 : t.lvl === 3 ? 4 : 0, mm = masteryOf(t.kind);
     sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + (t.lvl < 4 ? '  (green = after upgrade)' : '') + '</h4>' + statGrid(t.kind, t.lvl, t.lvl < 3 ? nextLvl : 0) + (t.lvl === 3 ? '<div class="info">Merge with a second max-tier ' + b.name + ' to make a Prime: about 5x damage.</div>' : '')
@@ -875,6 +891,7 @@ function renderSheet() {
       const p0 = PADS()[t.pad]; partners.sort((x, y) => Math.hypot(PADS()[x.pad][0]-p0[0], PADS()[x.pad][1]-p0[1]) - Math.hypot(PADS()[y.pad][0]-p0[0], PADS()[y.pad][1]-p0[1]));
       mergeTowers(t, partners[0]); G.sel = t; renderSheet();
     };
+    $('bMove').onclick = () => { if (G.running) { flash('Move towers between waves'); return; } if (G.gold < mfee) { flash('Not enough ⚡ to move'); return; } G.moving = t; closeSheet(); coach(); };
     $('bSell').onclick = () => { sellTower(t); closeSheet(); coach(); };
   } else sh.style.display = 'none';
 }
@@ -1024,6 +1041,12 @@ cv.addEventListener('pointerdown', ev => {
   const r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
   const x = ((ev.clientX - r.left) * dpr - OX) / SC, y = ((ev.clientY - r.top) * dpr - OY) / SC;
   if (G.armed) { G.armed = false; useStrike(x, y); abilityUI(); return; }
+  if (G.moving) {
+    let ph = -1, bd2 = 26; PADS().forEach((p, i) => { const d = Math.hypot(p[0] - x, p[1] - y); if (d < bd2) { bd2 = d; ph = i; } });
+    const mt = G.moving; G.moving = null;
+    if (ph >= 0 && !G.towers.some(o => o.pad === ph)) { if (moveTower(mt, ph)) { G.sel = mt; } } else flash('Move cancelled');
+    coach(); renderSheet(); return;
+  }
   let hit = -1, bd = 26;
   PADS().forEach((p, i) => { const d = Math.hypot(p[0]-x, p[1]-y); if (d < bd) { bd = d; hit = i; } });
   if (hit < 0) { closeSheet(); return; }
@@ -1041,7 +1064,7 @@ $('bAuto').onclick = () => { autoWave = !autoWave; try { localStorage.setItem('o
 function autoUI() { $('bAuto').innerHTML = 'Auto<br>' + (autoWave ? 'on' : 'off'); $('bAuto').classList.toggle('on', autoWave); }
 $('bMenu').onclick = () => { $('tipState').textContent = tips ? 'on' : 'off'; show('ovMenu'); };
 $('mResume').onclick = () => hide('ovMenu');
-$('mRestart').onclick = () => startLevel(LV, IDX, TIER, false, CUR.daily ? { tw: TWISTS.find(x => x.id === CUR.daily.tw), sd: dayNum() } : null);
+$('mRestart').onclick = () => { stats.restarts = (stats.restarts || 0) + 1; if (!G.over && G.clock < 60) stats.earlyRestarts = (stats.earlyRestarts || 0) + 1; save(); startLevel(LV, IDX, TIER, false, CUR.daily ? { tw: TWISTS.find(x => x.id === CUR.daily.tw), sd: dayNum() } : null); };
 $('mLevels').onclick = showLevels;
 $('mWorld').onclick = () => showWorld(LV);
 function sndUI() { $('mSound').textContent = 'Sound effects: ' + (SFX.on ? 'on' : 'off'); $('mMusic').textContent = 'Music: ' + (SFX.music ? 'on' : 'off'); }
@@ -1063,7 +1086,7 @@ document.querySelectorAll('[data-fun]').forEach(b => b.onclick = () => {
 });
 function statsText() {
   const days = Object.keys(stats.days).length;
-  return ['Orbit Bastion test stats', 'Days played: ' + days, 'Runs started: ' + stats.runs, 'Wins: ' + stats.wins + '  Losses: ' + stats.losses, 'Waves cleared: ' + stats.wavesCleared, 'Best wave: ' + stats.bestWave, 'Minutes played: ' + Math.round(stats.secs / 60), 'Fun yes/no: ' + stats.funYes + '/' + stats.funNo, 'Unlock taps: ' + stats.unlockTaps, 'Upgrades: ' + stats.upgrades + '  Merges: ' + stats.merges + '  Abilities: ' + stats.abilities, 'Speed taps: ' + stats.speedTaps, 'Auto wave on: ' + autoWave, 'Towers sold: ' + (stats.sells || 0) + '  Sold within 30 s of building: ' + (stats.regretSells || 0) + '  Lost a level after such a sell: ' + (stats.regretLosses || 0), 'More-worlds taps: ' + (stats.soonTaps || 0), 'Callsign set: ' + !!prog.call, 'Stars per sector: ' + prog.stars.join('/'), 'Towers built: ' + JSON.stringify(stats.builds)].join('\n');
+  return ['Orbit Bastion test stats', 'Days played: ' + days, 'Runs started: ' + stats.runs, 'Wins: ' + stats.wins + '  Losses: ' + stats.losses, 'Waves cleared: ' + stats.wavesCleared, 'Best wave: ' + stats.bestWave, 'Minutes played: ' + Math.round(stats.secs / 60), 'Fun yes/no: ' + stats.funYes + '/' + stats.funNo, 'Unlock taps: ' + stats.unlockTaps, 'Upgrades: ' + stats.upgrades + '  Merges: ' + stats.merges + '  Abilities: ' + stats.abilities, 'Speed taps: ' + stats.speedTaps, 'Auto wave on: ' + autoWave, 'Towers moved: ' + (stats.moves || 0) + '  Move fees paid: ' + (stats.moveFees || 0) + '  Restarts from pause menu: ' + (stats.restarts || 0) + '  (within first minute: ' + (stats.earlyRestarts || 0) + ')', 'Towers sold: ' + (stats.sells || 0) + '  Sold within 30 s of building: ' + (stats.regretSells || 0) + '  Lost a level after such a sell: ' + (stats.regretLosses || 0), 'More-worlds taps: ' + (stats.soonTaps || 0), 'Callsign set: ' + !!prog.call, 'Stars per sector: ' + prog.stars.join('/'), 'Towers built: ' + JSON.stringify(stats.builds)].join('\n');
 }
 function showStats() {
   const days = Object.keys(stats.days).length;
