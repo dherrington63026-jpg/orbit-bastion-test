@@ -138,9 +138,11 @@ const QUIPS = { vey: ['The dark is quieter now. It is thinking.', 'Light is only
 
 /* ---------- levels: 10 per world, generated; 3 difficulty tiers ---------- */
 // STORE_LIVE = running inside the phone app (or ?store=sim in a browser to preview the store screens). In store mode ?unlock, ?rp, ?demo, ?lvl do nothing.
-const STORE_LIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || /[?&]store=sim/.test(location.search);
+// OB_TESTER is set only by tester.js, which exists ONLY in the internal tester APK (never in a store build): it keeps the phone app behaving like the web test build.
+const OB_TESTER = !!window.OB_TESTER;
+const STORE_LIVE = (!OB_TESTER && !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) || /[?&]store=sim/.test(location.search);
 const QS = STORE_LIVE ? '' : location.search;
-const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(QS);
+const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(QS) || window.OB_TESTER === 'unlock';
 const TIERS = [{ n: 'Normal', hp: 1, gold: 1, budget: 1, sp: 1 }, { n: 'Hard', hp: 1.7, gold: .92, budget: 1.22, sp: 1.06 }, { n: 'Nightmare', hp: 3.1, gold: .85, budget: 1.6, sp: 1.18 }];
 function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rr = (rng, a, b) => a + (b - a) * rng();
@@ -1045,7 +1047,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792699989';
+const ART_V = '1792700219';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1935,3 +1937,7 @@ function a11yApply() { document.body.classList.toggle('bigtext', !!prog.big); do
 $('mText').onclick = () => { prog.big = !prog.big; save(); a11yApply(); };
 $('mCb').onclick = () => { prog.cb = !prog.cb; save(); a11yApply(); };
 a11yApply();
+
+// privacy and support links (store requirement): inside the menu
+$('mPriv').onclick = () => { window.open('https://games.kelbrasolutions.net/orbitbastion/privacy.html', '_blank'); };
+$('mHelp').onclick = () => { window.open('https://games.kelbrasolutions.net/orbitbastion/support.html', '_blank'); };
