@@ -144,7 +144,9 @@ const OB_TESTER = !!window.OB_TESTER;
 const STORE_LIVE = (!OB_TESTER && !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) || /[?&]store=sim/.test(location.search);
 const QS = STORE_LIVE ? '' : location.search;
 const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(QS) || window.OB_TESTER === 'unlock';
-const TIERS = [{ n: 'Normal', hp: 1, gold: 1, budget: 1, sp: 1 }, { n: 'Hard', hp: 2.0, gold: .92, budget: 1.4, sp: 1.08 }, { n: 'Nightmare', hp: 3.6, gold: .85, budget: 1.85, sp: 1.2 }];
+// tier tuning knobs: extra level difficulty, extra enemy-type variety (worlds with pools), enemy HP growth per wave
+const TOFF = [0, 3, 5], TPOOL = [0, 1, 2], TSLOPE = [.32, .35, .42];
+const TIERS = [{ n: 'Normal', hp: 1, gold: 1, budget: 1, sp: 1 }, { n: 'Hard', hp: 1.45, gold: .92, budget: 1.2, sp: 1.08 }, { n: 'Nightmare', hp: 2.0, gold: .85, budget: 1.45, sp: 1.2 }];
 function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rr = (rng, a, b) => a + (b - a) * rng();
 function serp(n, rng, wide) {
@@ -355,19 +357,19 @@ function shardBlocked(kind, p, q, air) {
   return false;
 }
 function buildLevel(w, i, t) {
-  const base = LEVELS[w], g = (base.g0 !== undefined ? base.g0 : w * LPW) + i + [0, 5, 12][t], T = TIERS[t], rng = mulberry(w * 1000 + i * 17 + 5);
+  const base = LEVELS[w], g = (base.g0 !== undefined ? base.g0 : w * LPW) + i + Math.round(TOFF[t] * Math.min(1, (i + 1) / 5)), T = TIERS[t], rng = mulberry(w * 1000 + i * 17 + 5);
   let paths, pads;
   if (i === 0 && base.paths) { paths = base.paths; pads = base.pads; } else { paths = genPaths(w, i, rng); pads = autoPads(paths, 15 + Math.min(4, i >> 1) + w, rng); }
   const vents = base.hazard === 'heat' ? pickVents(pads, paths, rng) : null, shards = base.hazard === 'frost' ? pickShards(pads, paths, rng, 7) : null;
   const finale = i === LPW - 1, mini = i === 4, bm = (base.bossM || [.4, .75, 1.1][w]) * (finale ? 1 : mini ? .45 : 0);
   return { world: w, idx: i, tier: t, g, name: i === 0 ? base.name : base.name + ' ' + (i + 1), paths, pads,
-    waves: 8 + Math.floor(i * .6) + Math.min(w, 2), hp: (.72 + .03 * g) * T.hp, gold: Math.round((300 + 8 * g) * T.gold), budget: (1 + .02 * g) * T.budget, spMult: T.sp, tb: T.budget, th: T.hp, goff: [0, 5, 12][t],
+    waves: 8 + Math.floor(i * .6) + Math.min(w, 2), hp: (.72 + .03 * g) * T.hp, gold: Math.round((300 + 8 * g) * T.gold), budget: (1 + .02 * g) * T.budget, spMult: T.sp, tb: T.budget, th: T.hp, goff: Math.round(TOFF[t] * Math.min(1, (i + 1) / 5)),
     boss: finale || mini, bossMult: bm, hue: base.hue, bgv: i % 4, hazard: base.hazard, vents, shards, pool: base.pool, poolIntro: base.poolIntro, bossSkin: base.bossSkin, bossElem: base.bossElem };
 }
 
 /* ---------- waves from a recipe (new enemy types are released slowly) ---------- */
 function eligible(lv, w) {
-  if (lv.pool) { const ix = lv.idx + (w < 3 ? 0 : [0, 2, 4][lv.tier || 0]); return lv.pool.filter(t => { const r = lv.poolIntro[t] || [0, 1]; return ix > r[0] || (ix === r[0] && w >= r[1]); }); }
+  if (lv.pool) { const ix = lv.idx + (w < 3 ? 0 : TPOOL[lv.tier || 0]); return lv.pool.filter(t => { const r = lv.poolIntro[t] || [0, 1]; return ix > r[0] || (ix === r[0] && w >= r[1]); }); }
   const g = lv.g - (w < 3 ? (lv.goff || 0) : 0); return Object.keys(ENEMY).filter(t => t !== 'boss' && ENEMY[t].intro[0] < 900 && (g > ENEMY[t].intro[0] || (g === ENEMY[t].intro[0] && w >= ENEMY[t].intro[1])));
 }
 function makeWaves(lv) {
@@ -529,7 +531,7 @@ function startLevel(L, idx, tier, quiet, dly) { crumb('start ' + L + '-' + (idx 
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return CUR.waves; }
-function enemyHp(type, w) { return ENEMY[type].hp * (CUR.hp / (CUR.th || 1)) * (1 + ((CUR.th || 1) - 1) * Math.min(1, (w - 1) / 3)) * (CUR.tier > 0 && G && G.esc ? G.esc : 1) * (1 + (type === 'boss' ? .12 : [.32, .40, .55][CUR.tier || 0]) * (w - 1)) * (type === 'boss' ? (CUR.bossMult || .3) : 1); }
+function enemyHp(type, w) { return ENEMY[type].hp * (CUR.hp / (CUR.th || 1)) * (1 + ((CUR.th || 1) - 1) * Math.min(1, (w - 1) / 3)) * (CUR.tier > 0 && G && G.esc ? G.esc : 1) * (1 + (type === 'boss' ? .12 : TSLOPE[CUR.tier || 0]) * (w - 1)) * (type === 'boss' ? (CUR.bossMult || .3) : 1); }
 function flash(t) { const m = $('msg'); m.textContent = t; m.style.opacity = 1; clearTimeout(flash.t); flash.t = setTimeout(() => m.style.opacity = 0, 1300); }
 function intro(type) {
   if (prog.seen.includes(type)) return; prog.seen.push(type); save();
@@ -1060,7 +1062,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792708274';
+const ART_V = '1792709581';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_harvest','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
