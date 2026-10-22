@@ -355,7 +355,7 @@ function shardBlocked(kind, p, q, air) {
   return false;
 }
 function buildLevel(w, i, t) {
-  const base = LEVELS[w], g = (base.g0 !== undefined ? base.g0 : w * LPW) + i, T = TIERS[t], rng = mulberry(w * 1000 + i * 17 + 5);
+  const base = LEVELS[w], g = (base.g0 !== undefined ? base.g0 : w * LPW) + i + [0, 4, 10][t], T = TIERS[t], rng = mulberry(w * 1000 + i * 17 + 5);
   let paths, pads;
   if (i === 0 && base.paths) { paths = base.paths; pads = base.pads; } else { paths = genPaths(w, i, rng); pads = autoPads(paths, 15 + Math.min(4, i >> 1) + w, rng); }
   const vents = base.hazard === 'heat' ? pickVents(pads, paths, rng) : null, shards = base.hazard === 'frost' ? pickShards(pads, paths, rng, 7) : null;
@@ -367,7 +367,7 @@ function buildLevel(w, i, t) {
 
 /* ---------- waves from a recipe (new enemy types are released slowly) ---------- */
 function eligible(lv, w) {
-  if (lv.pool) return lv.pool.filter(t => { const r = lv.poolIntro[t] || [0, 1]; return lv.idx > r[0] || (lv.idx === r[0] && w >= r[1]); });
+  if (lv.pool) { const ix = lv.idx + [0, 2, 4][lv.tier || 0]; return lv.pool.filter(t => { const r = lv.poolIntro[t] || [0, 1]; return ix > r[0] || (ix === r[0] && w >= r[1]); }); }
   const g = lv.g; return Object.keys(ENEMY).filter(t => t !== 'boss' && ENEMY[t].intro[0] < 900 && (g > ENEMY[t].intro[0] || (g === ENEMY[t].intro[0] && w >= ENEMY[t].intro[1])));
 }
 function makeWaves(lv) {
@@ -1059,7 +1059,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792704728';
+const ART_V = '1792705341';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_harvest','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
