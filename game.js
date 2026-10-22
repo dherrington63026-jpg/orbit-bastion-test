@@ -1041,7 +1041,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792590221';
+const ART_V = '1792647410';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1560,7 +1560,7 @@ let buyWorld = 0;
 function showBuy(w) {
   buyWorld = w; const wd = WORLDS[w], tw = [].concat(wd.tower || []).map(k => TOWERS[k].icon + ' ' + TOWERS[k].name).join(', ');
   $('buyTitle').textContent = wd.name; $('buyList').innerHTML = '<li>10 new levels on 3 difficulty tiers</li><li>New tower: <b>' + tw + '</b> (stays yours, usable everywhere)</li><li>A new hazard and new elemental enemies</li><li>Its own story and a new station ally</li><li>The main story never needs it: this is an optional expansion</li>';
-  $('buyOk').textContent = 'Unlock for $' + wd.price.toFixed(2) + ' (free to try in this test)'; $('buyBundle').textContent = 'All expansions bundle · $9.99 (free to try in this test)'; $('buyMsg').textContent = 'In this test build nothing is charged. Your tap is counted so we know if people would buy it.';
+  $('buyOk').textContent = 'Unlock for $' + wd.price.toFixed(2) + ' (free to try in this test)'; $('buyBundle').textContent = 'All six expansions bundle · $22.99 (free to try in this test)'; $('buyMsg').textContent = 'In this test build nothing is charged. Your tap is counted so we know if people would buy it.';
   hideAll(); show('ovBuy');
 }
 $('buyOk').onclick = () => { prog.owned[buyWorld] = true; stats.buyTaps = (stats.buyTaps || 0) + 1; save(); crumb('unlock ' + WORLDS[buyWorld].name); SFX.play('upgrade'); showWorld(buyWorld); };
