@@ -78,6 +78,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .quote{background:#0000004d;border-radius:12px;padding:8px 10px;margin:8px 0 0;font-size:14px;color:#cfe0ff;text-align:left}.quote b{color:#ffd24a}
 
 img.ic{height:1.15em!important;width:auto!important;max-width:none!important;min-width:0!important;vertical-align:-.22em;display:inline-block;animation:none!important;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))!important;margin:0!important}.wchips img.ic{height:1em!important}.wchips img.ic-ground,.wchips img.ic-air{height:1.1em!important}.ab img.ic{height:26px!important;display:block;margin:0 auto 2px!important}
+body.bigtext .ov .card{max-height:calc(94vh / 1.18);overflow-y:auto}
+body.bigtext #sheet,body.bigtext .ov .card,body.bigtext .story,body.bigtext #wprev,body.bigtext #hub,body.bigtext #wl{zoom:1.18}
 @keyframes pfloat{from{transform:translateY(-3px) rotate(-1.2deg)}to{transform:translateY(4px) rotate(1.2deg)}}
 .pl img{animation:pfloat 7s ease-in-out infinite alternate}.pl:nth-child(2n) img{animation-duration:9s;animation-delay:-3s}.pl:nth-child(3n) img{animation-duration:11s;animation-delay:-6s}
 #ovLevels,#ovWorld,#ovHub{background:transparent!important}
@@ -252,7 +254,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
 
 <div class="ov" id="ovMenu"><div class="card">
   <h2>Paused</h2>
-  <p style="font-size:12px;margin:0 0 4px">Test version. All art was made with AI tools.</p>
+  <p id="mTitleNote" style="font-size:12px;margin:0 0 4px">Test version. All art was made with AI tools.</p>
   <button class="btn" id="mResume">Keep playing</button>
   <button class="btn alt" id="mRestart">Restart this sector</button>
   <button class="btn alt" id="mLevels">World map</button>
@@ -263,6 +265,8 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="mStats">My stats</button>
   <button class="btn alt" id="mFx">Effects: High</button>
   <button class="btn alt" id="mSound">Sound effects: on</button>
+  <button class="btn alt" id="mText">Text size: Normal</button>
+  <button class="btn alt" id="mCb">Colour-blind colours: off</button>
   <button class="btn alt" id="mMusic">Music: on</button>
   <button class="btn alt" id="mTips">Show tips: <span id="tipState">on</span></button>
 </div></div>
@@ -276,6 +280,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <div id="eQuote" class="quote"></div>
   <button class="btn" id="eNext">Next level</button>
   <button class="btn alt" id="eWorld">Level select</button>
+  <button class="btn alt" id="eAd" style="display:none"></button>
   <button class="btn alt" id="eAgain">Play again</button>
   
 </div></div>
@@ -297,7 +302,7 @@ html,body,button,input{font-family:Rajdhani,system-ui,-apple-system,"Segoe UI",R
   <button class="btn alt" id="sClose">Close</button>
 </div></div>
 
-<script src="sfx.js?v=1792647410"></script>
-<script src="game.js?v=1792647410"></script>
+<script src="sfx.js?v=1792699989"></script>
+<script src="store-bridge.js"></script><script src="ads-bridge.js"></script><script src="game.js?v=1792699989"></script>
 </body>
 </html>

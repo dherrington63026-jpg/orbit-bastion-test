@@ -137,7 +137,10 @@ const rankOf = () => { const pts = totalCleared(); let r = RANKS[0][1]; RANKS.fo
 const QUIPS = { vey: ['The dark is quieter now. It is thinking.', 'Light is only a loud kind of absence of dark. Keep it loud.', 'I counted the stars once. Then I stopped, for my own good.', 'Well struck. The Deep noticed.'], solene: ['Gorgeous. Absolutely gorgeous. Mind the glare.', 'Free power and free chaos. It is a package deal.', 'I have burned my eyebrows off twice. Worth it.', 'Light is just patience that moves fast.'], wynn: ['Smooth air. Do not get used to it.', 'That twister had your name on it. It is still looking.', 'I have flown through worse. I was younger and it was stupider.', 'Tie it down or lose it. Same rule as marriage.'], ione: ['That one was meant for you. The rod took it. You are welcome.', 'Quietest forecast I have ever filed.', 'The rods are singing. That means we are winning.', 'Struck twice in my life. Do not recommend it.'], bruck: ['Not a single boot melted. I am going to tell everyone.', 'That is the quietest the smelter has been since the day we built it.', 'Hot work, clean finish. Take the rest of the shift off.', 'The vents are sulking. Good.'], mira: ['The pipes are ticking again. That is the sound of winning.', 'Frost: nothing. Mira: one. Do not tell the frost.', 'Station is warm, tea is hot. You are officially a hero.', 'Another platform saved. I am putting it on the fridge.'], nine: ['Clean work. Do not look so surprised.', 'Efficient. I am almost impressed.', 'Another one down. The core remains unbothered.', 'You are getting good at this, which is inconvenient for me.'], quill: ['Hull is holding! That was lovely.', 'You are a lifesaver. Literally. Station-wise.', 'I will put a sticker on your file.', 'No leaks. I checked twice.'], oru: ['The gates are quiet again.', 'Patience and good aim. Both useful.', 'Well held.', 'The road thanks you, in its way.'] };
 
 /* ---------- levels: 10 per world, generated; 3 difficulty tiers ---------- */
-const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(location.search);
+// STORE_LIVE = running inside the phone app (or ?store=sim in a browser to preview the store screens). In store mode ?unlock, ?rp, ?demo, ?lvl do nothing.
+const STORE_LIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || /[?&]store=sim/.test(location.search);
+const QS = STORE_LIVE ? '' : location.search;
+const LPW = 10, OPEN_ALL = /[?&]unlock=1/.test(QS);
 const TIERS = [{ n: 'Normal', hp: 1, gold: 1, budget: 1, sp: 1 }, { n: 'Hard', hp: 1.7, gold: .92, budget: 1.22, sp: 1.06 }, { n: 'Nightmare', hp: 3.1, gold: .85, budget: 1.6, sp: 1.18 }];
 function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rr = (rng, a, b) => a + (b - a) * rng();
@@ -467,7 +470,7 @@ const PALS = {
 const LANES = { default: { n: 'World default', price: 0, hue: null }, crimson: { n: 'Crimson', price: .99, hue: 350 }, emerald: { n: 'Emerald', price: .99, hue: 140 }, amber: { n: 'Amber', price: .99, hue: 40 }, ultra: { n: 'Ultraviolet', price: .99, hue: 275 } };
 if (!prog.skin) prog.skin = { pal: 'default', lane: 'default' };
 if (!prog.daily) prog.daily = { last: '', streak: 0 };
-{ const m = /[?&]rp=(\d+)/.exec(location.search); if (m) prog.rp = Math.max(prog.rp, +m[1]); }
+{ const m = /[?&]rp=(\d+)/.exec(QS); if (m) prog.rp = Math.max(prog.rp, +m[1]); }
 const tcol = kind => { const p = PALS[prog.skin.pal]; return (p && p.c[kind]) || TOWERS[kind].col; };
 const laneHue = base => { const l = LANES[prog.skin.lane]; return l && l.hue !== null ? l.hue : base; };
 
@@ -517,7 +520,7 @@ function posAt(pi, d) {
 const ePos = e => posAt(e.pi, e.d);
 function startLevel(L, idx, tier, quiet, dly) { crumb('start ' + L + '-' + (idx || 0) + '-' + (tier || 0) + (dly ? ' daily' : ''));
   LV = L; IDX = idx || 0; TIER = tier || 0; CUR = buildLevel(LV, IDX, TIER); if (dly) applyTwist(CUR, dly.tw, dly.sd); SFX.theme(L); PL = pathData(CUR); WAVES = makeWaves(CUR);
-  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus(), wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, vs: (CUR.vents || []).map((pi, k) => ({ pad: pi, t: 7 + k * 4 + Math.random() * 3 })), repairUsed: false, overT: 0, overCd: 0, shards: [], shT: 3, shardHit: 0, ores: [], ls: [], lsT: 6, tw: [], twT: 7, podT: 6, fr: null, frT: 8, moteT: 5, hz: [], hzn: 7 };
+  G = { lives: maxLives(), maxLives: maxLives(), abUsed: 0, gold: CUR.gold + startBonus() + ADBONUS, wave: 0, running: false, spawnQ: [], t: 0, clock: 0, enemies: [], shots: [], waves: [], nums: [], decals: [], warn: 0, slowmo: 0, bossAt: null, waveTotal: 0, fx: [], parts: [], towers: [], sel: null, build: null, speed: G ? G.speed : 1, over: false, funAsked: false, strike: 0, freeze: 0, armed: false, nextPath: 0, freezeT: 0, autoT: 0, shake: 0, hzT: 9, vs: (CUR.vents || []).map((pi, k) => ({ pad: pi, t: 7 + k * 4 + Math.random() * 3 })), repairUsed: false, overT: 0, overCd: 0, shards: [], shT: 3, shardHit: 0, ores: [], ls: [], lsT: 6, tw: [], twT: 7, podT: 6, fr: null, frT: 8, moteT: 5, hz: [], hzn: 7 };
   if (!quiet) stats.runs++; save(); hud(); closeSheet(); coach(); abilityUI(); hideAll(); $('intro').style.display = 'none';
 }
 function maxWave() { return CUR.waves; }
@@ -1032,16 +1035,17 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
   const wd = WORLDS[LV], fin = IDX === LPW - 1 && TIER === 0 && !CUR.daily, spkId = wd.win[0], q = win ? (fin ? wd.win : [spkId, QUIPS[spkId][(IDX + TIER) % QUIPS[spkId].length]]) : wd.lose, spk = SPEAK[q[0]];
   const nextOpen = win && IDX < LPW - 1 && !CUR.daily;
   $('eNext').style.display = nextOpen ? 'block' : 'none';
+  { const ad = adsOn(); $('eAd').style.display = ad ? 'block' : 'none'; $('eAd').dataset.k = win ? 'rp' : 'retry'; $('eAd').textContent = win ? 'Watch an ad: +5 research points' : 'Watch an ad: retry with +60 energy to start'; $('eAd').disabled = false; }
   let extra = (rpGain ? '<br><b>Research:</b> +' + rpGain + ' RP' : '') + dailyMsg;
   if (win && fin && wd.reward && !prog.ab[wd.reward]) { prog.ab[wd.reward] = true; extra = '<br><b>New ability:</b> ' + REWARDS[wd.reward]; save(); }
   if (win && fin) { [].concat(wd.tower || []).forEach(tk => { if (!prog.tw[tk]) { prog.tw[tk] = true; extra += '<br><b>New tower:</b> ' + TWTXT[tk]; save(); } }); }
   $('eQuote').innerHTML = '<b>' + spk.name + ':</b> ' + q[1].replace('{c}', (prog.call || 'Cadet').replace(/</g, '&lt;')) + extra + (win ? '<br><b>Rank:</b> ' + rankOf() : '');
-  const fd = win && funDue(); $('eFun').style.display = fd ? 'block' : 'none'; document.querySelectorAll('#eFun button').forEach(x => x.style.opacity = 1);
+  const fd = win && funDue() && !STORE_LIVE; $('eFun').style.display = fd ? 'block' : 'none'; document.querySelectorAll('#eFun button').forEach(x => x.style.opacity = 1);
   setTimeout(() => show('ovEnd'), 700);
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792647410';
+const ART_V = '1792699989';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1119,7 +1123,7 @@ function drawEnemy(e, time) {
   if (e.flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .65; puppet(sp, w, h, e.type, cyc, time, e); }
   ctx.restore();
   const by = q[1] + hop - h/2 - 8;
-  if (e.hp < e.max) { const bw = Math.max(18, w*.8); ctx.fillStyle = '#000b'; ctx.fillRect(q[0]-bw/2, by, bw, 3.5); ctx.fillStyle = e.hp/e.max > .5 ? '#5be07a' : e.hp/e.max > .25 ? '#ffd24a' : '#ff5470'; ctx.fillRect(q[0]-bw/2, by, bw*Math.max(0, e.hp/e.max), 3.5); }
+  if (e.hp < e.max) { const bw = Math.max(18, w*.8); ctx.fillStyle = '#000b'; ctx.fillRect(q[0]-bw/2, by, bw, 3.5); ctx.fillStyle = prog.cb ? (e.hp/e.max > .5 ? '#3fa9ff' : e.hp/e.max > .25 ? '#ffe14a' : '#ff4fd8') : (e.hp/e.max > .5 ? '#5be07a' : e.hp/e.max > .25 ? '#ffd24a' : '#ff5470'); ctx.fillRect(q[0]-bw/2, by, bw*Math.max(0, e.hp/e.max), 3.5); }
   if (air) { ctx.fillStyle = '#cfe6ff'; ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.fillText('✈', q[0], by - 2); }
   const eel = e.elem || def.elem; if (eel) { const wk = ELEMS[ELEMS[eel].opp]; ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(wk.ic, q[0] + (air ? 12 : 0), by - 4); }
 }
@@ -1552,21 +1556,43 @@ function showWorld(w) {
   $('wlGrid').innerHTML = html;
   $('wlGrid').querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (b.classList.contains('pay')) { showBuy(w); return; } if (b.classList.contains('lock')) { $('wlFoot').textContent = tierOpen(w, i, t) ? 'Clear the level before it first.' : 'Clear this level on ' + TIERS[t - 1].n + ' first.'; return; } startLevel(w, i, t); });
   $('wlFoot').textContent = WORLDS[w].paid && !owned(w) ? 'The first ' + (WORLDS[w].freeLv || 3) + ' levels are free to try. Unlock the rest for $' + WORLDS[w].price.toFixed(2) + '.' : 'Stars: 3 = lose 2 lives or fewer. Hard and Nightmare give tougher waves.';
-  $('wlBuy').style.display = WORLDS[w].paid && !owned(w) ? 'block' : 'none'; $('wlBuy').textContent = 'Unlock ' + WORLDS[w].name + ' · $' + (WORLDS[w].price || 0).toFixed(2);
+  $('wlBuy').style.display = WORLDS[w].paid && !owned(w) ? 'block' : 'none'; $('wlBuy').textContent = 'Unlock ' + WORLDS[w].name + ' · ' + (STORE_LIVE ? px('world_' + SKU[w], '$' + (WORLDS[w].price || 0).toFixed(2)) : '$' + (WORLDS[w].price || 0).toFixed(2));
   hideAll(); show('ovWorld');
 }
 $('wlBack').onclick = showLevels;
+let ADBONUS = 0;
 let buyWorld = 0;
+const SKU = ['', '', '', 'glacier', 'cinder', 'storm', 'gale', 'solspire', 'umbral'], PRICE = {};
+const px = (id, fallback) => PRICE[id] || fallback;
+function applyOwned(ids) {
+  if (!STORE_LIVE || !Array.isArray(ids)) return;
+  prog.owned = {}; prog.bundle = ids.includes('bundle'); prog.noads = ids.includes('remove_ads'); prog.cos = {};
+  WORLDS.forEach((w, i) => { if (SKU[i] && ids.includes('world_' + SKU[i])) prog.owned[i] = true; });
+  ids.forEach(id => { if (/^(pal|lane)_/.test(id)) prog.cos[id] = true; });
+  if (prog.skin && PALS[prog.skin.pal] && PALS[prog.skin.pal].price && !prog.cos['pal_' + prog.skin.pal]) prog.skin.pal = 'default';
+  if (prog.skin && LANES[prog.skin.lane] && LANES[prog.skin.lane].price && !prog.cos['lane_' + prog.skin.lane]) prog.skin.lane = 'default';
+  save();
+}
+function storeBuy(id) {
+  if (!window.ABStore) { flash('The store is not available right now'); return Promise.reject(new Error('no store')); }
+  return window.ABStore.buy(id).then(ids => { applyOwned(ids); SFX.play('upgrade'); return ids; }).catch(e => { if (!/cancel/i.test((e && e.message) || '')) flash('The purchase could not be completed'); throw e; });
+}
+function storeSync() {
+  if (!STORE_LIVE || !window.ABStore) return;
+  window.ABStore.prices().then(p => Object.assign(PRICE, p)).catch(() => {});
+  window.ABStore.owned().then(ids => { applyOwned(ids); if ($('ovLevels').style.display === 'flex') showLevels(); }).catch(() => {});
+}
 function showBuy(w) {
   buyWorld = w; const wd = WORLDS[w], tw = [].concat(wd.tower || []).map(k => TOWERS[k].icon + ' ' + TOWERS[k].name).join(', ');
   $('buyTitle').textContent = wd.name; $('buyList').innerHTML = '<li>10 new levels on 3 difficulty tiers</li><li>New tower: <b>' + tw + '</b> (stays yours, usable everywhere)</li><li>A new hazard and new elemental enemies</li><li>Its own story and a new station ally</li><li>The main story never needs it: this is an optional expansion</li>';
-  $('buyOk').textContent = 'Unlock for $' + wd.price.toFixed(2) + ' (free to try in this test)'; $('buyBundle').textContent = 'All six expansions bundle · $22.99 (free to try in this test)'; $('buyMsg').textContent = 'In this test build nothing is charged. Your tap is counted so we know if people would buy it.';
+  if (STORE_LIVE) { $('buyOk').textContent = 'Unlock for ' + px('world_' + SKU[w], '$' + wd.price.toFixed(2)); $('buyBundle').textContent = 'All six expansions bundle · ' + px('bundle', '$22.99'); $('buyMsg').textContent = 'One-time purchase, no subscription. Purchases are handled by the app store.'; }
+  else { $('buyOk').textContent = 'Unlock for $' + wd.price.toFixed(2) + ' (free to try in this test)'; $('buyBundle').textContent = 'All six expansions bundle · $22.99 (free to try in this test)'; $('buyMsg').textContent = 'In this test build nothing is charged. Your tap is counted so we know if people would buy it.'; }
   hideAll(); show('ovBuy');
 }
-$('buyOk').onclick = () => { prog.owned[buyWorld] = true; stats.buyTaps = (stats.buyTaps || 0) + 1; save(); crumb('unlock ' + WORLDS[buyWorld].name); SFX.play('upgrade'); showWorld(buyWorld); };
+$('buyOk').onclick = () => { if (STORE_LIVE) { storeBuy('world_' + SKU[buyWorld]).then(() => showWorld(buyWorld)).catch(() => {}); return; } prog.owned[buyWorld] = true; stats.buyTaps = (stats.buyTaps || 0) + 1; save(); crumb('unlock ' + WORLDS[buyWorld].name); SFX.play('upgrade'); showWorld(buyWorld); };
 $('buyNo').onclick = () => showWorld(buyWorld);
-$('buyBundle').onclick = () => { prog.bundle = true; stats.bundleTaps = (stats.bundleTaps || 0) + 1; save(); crumb('bundle'); SFX.play('upgrade'); showWorld(buyWorld); };
-$('bkPurch').onclick = () => { $('bkMsg').textContent = 'In the store version this restores expansions you bought on this account. This test build charges nothing, so your unlocks are saved with the backup code above.'; };
+$('buyBundle').onclick = () => { if (STORE_LIVE) { storeBuy('bundle').then(() => showWorld(buyWorld)).catch(() => {}); return; } prog.bundle = true; stats.bundleTaps = (stats.bundleTaps || 0) + 1; save(); crumb('bundle'); SFX.play('upgrade'); showWorld(buyWorld); };
+$('bkPurch').onclick = () => { if (STORE_LIVE) { if (!window.ABStore) { $('bkMsg').textContent = 'The store is not available right now.'; return; } $('bkMsg').textContent = 'Checking your purchases...'; window.ABStore.restore().then(ids => { applyOwned(ids); $('bkMsg').textContent = ids.length ? 'Your purchases were restored.' : 'No purchases were found for this account.'; }).catch(() => { $('bkMsg').textContent = 'Could not reach the store. Try again later.'; }); return; } $('bkMsg').textContent = 'In the store version this restores expansions you bought on this account. This test build charges nothing, so your unlocks are saved with the backup code above.'; };
 let stLines = [], stI = 0, stDone = null;
 function showStory(lines, done) { stLines = lines; stI = 0; stDone = done; renderStory(); hideAll(); show('ovStory'); }
 function renderStory() {
@@ -1620,12 +1646,12 @@ HUB_TABS.push(['armory', 'Armory'], ['loadout', 'Loadout']);
 hubExtra.armory = body => {
   const medals = Object.keys(prog.medals).length, own = (def) => !def.need || medals >= def.need;
   const sw = (c) => Object.values(c).slice(0, 5).map(x => '<i style="background:' + x + '"></i>').join('');
-  let html = '<div class="hubnote">Cosmetics only. They never change how strong anything is. In this test build you can try everything free; the prices show what they would cost later (all together $4.99). Your taps are counted so we know what people like.</div><div class="hubnote"><b>Tower colours</b></div>';
-  html += Object.entries(PALS).map(([id, p]) => '<div class="node' + (prog.skin.pal === id ? ' got' : '') + '"><div class="nt"><b>' + p.n + '</b><span class="swatch">' + (id === 'default' ? 'Original colours' : sw(p.c)) + '</span><span>' + (p.price ? '$' + p.price.toFixed(2) + ' · free to try in test' : own(p) ? 'Unlocked' : 'Locked: ' + (p.need - medals) + ' more medals') + '</span></div><button class="buy' + (own(p) ? '' : ' no') + '" data-pal="' + id + '">' + (prog.skin.pal === id ? 'ON' : 'Equip') + '</button></div>').join('');
-  html += '<div class="hubnote"><b>Lane themes</b></div>' + Object.entries(LANES).map(([id, l]) => '<div class="node' + (prog.skin.lane === id ? ' got' : '') + '"><div class="nt"><b>' + l.n + '</b><span class="swatch">' + (l.hue === null ? 'Each world uses its own colour' : '<i style="background:hsl(' + l.hue + ',90%,60%)"></i>') + '</span><span>' + (l.price ? '$' + l.price.toFixed(2) + ' · free to try in test' : 'Unlocked') + '</span></div><button class="buy" data-lane="' + id + '">' + (prog.skin.lane === id ? 'ON' : 'Equip') + '</button></div>').join('');
+  let html = '<div class="hubnote">Cosmetics only. They never change how strong anything is. ' + (STORE_LIVE ? 'Each one is a small one-time purchase.' : 'In this test build you can try everything free; the prices show what they would cost later (all together $4.99). Your taps are counted so we know what people like.') + '</div><div class="hubnote"><b>Tower colours</b></div>';
+  html += Object.entries(PALS).map(([id, p]) => '<div class="node' + (prog.skin.pal === id ? ' got' : '') + '"><div class="nt"><b>' + p.n + '</b><span class="swatch">' + (id === 'default' ? 'Original colours' : sw(p.c)) + '</span><span>' + (p.price ? (STORE_LIVE ? (prog.cos && prog.cos['pal_' + id] ? 'Owned' : px('pal_' + id, '$' + p.price.toFixed(2))) : '$' + p.price.toFixed(2) + ' · free to try in test') : own(p) ? 'Unlocked' : 'Locked: ' + (p.need - medals) + ' more medals') + '</span></div><button class="buy' + (own(p) ? '' : ' no') + '" data-pal="' + id + '">' + (prog.skin.pal === id ? 'ON' : (STORE_LIVE && p.price && !(prog.cos && prog.cos['pal_' + id]) ? 'Buy' : 'Equip')) + '</button></div>').join('');
+  html += '<div class="hubnote"><b>Lane themes</b></div>' + Object.entries(LANES).map(([id, l]) => '<div class="node' + (prog.skin.lane === id ? ' got' : '') + '"><div class="nt"><b>' + l.n + '</b><span class="swatch">' + (l.hue === null ? 'Each world uses its own colour' : '<i style="background:hsl(' + l.hue + ',90%,60%)"></i>') + '</span><span>' + (l.price ? (STORE_LIVE ? (prog.cos && prog.cos['lane_' + id] ? 'Owned' : px('lane_' + id, '$' + l.price.toFixed(2))) : '$' + l.price.toFixed(2) + ' · free to try in test') : 'Unlocked') + '</span></div><button class="buy" data-lane="' + id + '">' + (prog.skin.lane === id ? 'ON' : (STORE_LIVE && l.price && !(prog.cos && prog.cos['lane_' + id]) ? 'Buy' : 'Equip')) + '</button></div>').join('');
   body.innerHTML = html;
-  body.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => { if (b.classList.contains('no')) return; prog.skin.pal = b.dataset.pal; if (PALS[b.dataset.pal].price) stats.cosTry++; save(); renderHub(); });
-  body.querySelectorAll('[data-lane]').forEach(b => b.onclick = () => { prog.skin.lane = b.dataset.lane; if (LANES[b.dataset.lane].price) stats.cosTry++; save(); renderHub(); });
+  body.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => { if (b.classList.contains('no')) return; if (STORE_LIVE && PALS[b.dataset.pal].price && !(prog.cos && prog.cos['pal_' + b.dataset.pal])) { storeBuy('pal_' + b.dataset.pal).then(() => renderHub()).catch(() => {}); return; } prog.skin.pal = b.dataset.pal; if (PALS[b.dataset.pal].price) stats.cosTry++; save(); renderHub(); });
+  body.querySelectorAll('[data-lane]').forEach(b => b.onclick = () => { if (STORE_LIVE && LANES[b.dataset.lane].price && !(prog.cos && prog.cos['lane_' + b.dataset.lane])) { storeBuy('lane_' + b.dataset.lane).then(() => renderHub()).catch(() => {}); return; } prog.skin.lane = b.dataset.lane; if (LANES[b.dataset.lane].price) stats.cosTry++; save(); renderHub(); });
 };
 hubExtra.loadout = body => {
   const u = KINDS.filter(k => !TOWERS[k].locked || prog.tw[k]);
@@ -1743,7 +1769,7 @@ $('aOver').onclick = () => { useOver(); abilityUI(); };
 $('bSpeed').onclick = () => { G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 3 : 1; $('bSpeed').textContent = G.speed + '×'; stats.speedTaps++; save(); };
 $('bAuto').onclick = () => { autoWave = !autoWave; try { localStorage.setItem('orbitbastion_auto', autoWave ? '1' : '0'); } catch (e) {} autoUI(); if (autoWave && !G.running && G.wave > 0 && G.wave < maxWave()) G.autoT = 4; hud(); };
 function autoUI() { $('bAuto').innerHTML = 'Auto<br>' + (autoWave ? 'on' : 'off'); $('bAuto').classList.toggle('on', autoWave); }
-$('bMenu').onclick = () => { $('tipState').textContent = tips ? 'on' : 'off'; show('ovMenu'); };
+$('bMenu').onclick = () => { $('tipState').textContent = tips ? 'on' : 'off'; menuStore(); show('ovMenu'); };
 $('mResume').onclick = () => hide('ovMenu');
 $('mRestart').onclick = () => { stats.restarts = (stats.restarts || 0) + 1; if (!G.over && G.clock < 60) stats.earlyRestarts = (stats.earlyRestarts || 0) + 1; save(); startLevel(LV, IDX, TIER, false, CUR.daily ? { tw: TWISTS.find(x => x.id === CUR.daily.tw), sd: dayNum() } : null); };
 $('mLevels').onclick = showLevels;
@@ -1761,7 +1787,7 @@ $('mSound').onclick = () => { SFX.setOn(!SFX.on); sndUI(); SFX.play('click'); };
 $('mMusic').onclick = () => { SFX.setMusic(!SFX.music); sndUI(); };
 $('bMenu').addEventListener('click', sndUI);
 $('mTips').onclick = () => { tips = !tips; try { localStorage.setItem('orbitbastion_tips', tips ? '1' : '0'); } catch (e) {} $('tipState').textContent = tips ? 'on' : 'off'; coach(); };
-$('mUnlock').onclick = () => { stats.unlockTaps++; save(); alert('Thanks! More sectors are not for sale yet. Your tap was counted so we know if people want them.'); };
+$('mUnlock').onclick = () => { if (STORE_LIVE) { storeBuy('remove_ads').then(() => menuStore()).catch(() => {}); return; } stats.unlockTaps++; save(); alert('Thanks! More sectors are not for sale yet. Your tap was counted so we know if people want them.'); };
 $('mStats').onclick = () => { hide('ovMenu'); showStats(); };
 $('lvStats').onclick = () => { showStats(); };
 $('sClose').onclick = () => { hide('ovStats'); };
@@ -1799,9 +1825,9 @@ function loop(ts) {
 window.__td = { buildLevel, get CUR() { return CUR; }, LPW, TIERS, prog, avail, endGame, step, get G() { return G; }, startLevel, sendWave, buildTower, upgradeTower, mergeTowers, mergePartners, useFreeze, useStrike, LEVELS, TOWERS, ENEMY, KINDS, PADS, canHit, get WAVES() { return WAVES; }, prog };
 grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { hideAll(); show('ovCall'); } else showLevels(); requestAnimationFrame(loop); setTimeout(resize, 200);
 // ?demo=3 (ice) or ?demo=4 (fire): the game plays itself so you can watch (add &unlock=1 so every tower is available)
-{ const dm = /[?&]demo=(\d)/.exec(location.search); if (dm) {
+{ const dm = /[?&]demo=(\d)/.exec(QS); if (dm) {
   const w = +dm[1], pref = w === 8 ? ['siphon', 'beam', 'prism', 'rail', 'pulse', 'gravity'] : w === 7 ? ['prism', 'beam', 'gravity', 'rail', 'pulse', 'missile'] : w === 6 ? ['wind', 'tesla', 'rail', 'gatling', 'stun', 'pulse'] : w === 5 ? ['stun', 'tesla', 'flak', 'rail', 'pulse', 'missile'] : w === 4 ? ['fire', 'rail', 'flak', 'cryo', 'missile', 'pulse'] : ['pulse', 'cryo', 'rail', 'flak', 'missile', 'tesla'];
-  const lvl = +((/[?&]lvl=(\d+)/.exec(location.search) || [0, 2])[1]);
+  const lvl = +((/[?&]lvl=(\d+)/.exec(QS) || [0, 2])[1]);
   hideAll(); startLevel(w, lvl, 0, true); G.speed = 2; $('bSpeed').textContent = '2×'; let ki = 0;
   setInterval(() => { try {
     if (G.over) { setTimeout(() => { hideAll(); startLevel(w, lvl, 0, true); G.speed = 2; ki = 0; }, 3000); return; }
@@ -1821,7 +1847,7 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
 // the galaxy behind the map screens turns slowly: the whole painted nebula is rotated rigidly around its core (no shear, no ghosting), fading into dark space at the picture's edge
 {
   const cvm = document.createElement('canvas'); cvm.id = 'mapfx'; document.body.insertBefore(cvm, document.body.firstChild);
-  let gl = null, uT = null, uA = null, ready = false;
+  let gl = null, uT = null, uA = null, ready = false, mapDrawn = false;
   try { gl = cvm.getContext('webgl', { antialias: false, preserveDrawingBuffer: true }); } catch (e) {}
   const img = new Image(); img.src = 'art/bg_map.webp?v=' + ART_V;
   const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); return o; };
@@ -1845,11 +1871,12 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
   const MAPS = ['ovLevels', 'ovWorld', 'ovHub'];
   function mapfxLoop(ts) {
     requestAnimationFrame(mapfxLoop);
+    if (LOWFX && mapDrawn) { const o2 = MAPS.some(id => { const e = document.getElementById(id); return e && e.style.display === 'flex'; }); cvm.style.display = o2 ? 'block' : 'none'; return; }
     const on = MAPS.some(id => { const e = document.getElementById(id); return e && e.style.display === 'flex'; });
     cvm.style.display = on ? 'block' : 'none'; if (!on || !ready || !gl) return;
     const w = Math.min(540, Math.round(innerWidth * Math.min(devicePixelRatio || 1, 1.5) / 1.4)), hh = Math.min(960, Math.round(innerHeight * Math.min(devicePixelRatio || 1, 1.5) / 1.4));
     if (cvm.width !== w || cvm.height !== hh) { cvm.width = w; cvm.height = hh; gl.viewport(0, 0, w, hh); }
-    gl.uniform1f(uT, ts / 1000); gl.uniform1f(uA, w / hh); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.uniform1f(uT, ts / 1000); gl.uniform1f(uA, w / hh); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); mapDrawn = true;
   }
   requestAnimationFrame(mapfxLoop);
 }
@@ -1886,3 +1913,25 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
     sh.addEventListener('click', e => { if ((G.shDown || 0) < (G.shAt || 0)) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
 }
+
+// ---- store layer: menu, ads, accessibility ----
+const adsOn = () => STORE_LIVE && !!window.ABAds && window.ABAds.ready() && !prog.noads;
+function menuStore() {
+  if (!STORE_LIVE) return;
+  const b = $('mUnlock'); b.style.display = (window.ABAds && window.ABAds.ready() && !prog.noads) ? 'block' : 'none'; b.textContent = 'Remove ads · ' + px('remove_ads', '$3.99');
+  $('mStats').style.display = 'none';
+}
+$('eAd').onclick = () => {
+  if (!adsOn() || $('eAd').disabled) return; $('eAd').disabled = true; const k = $('eAd').dataset.k;
+  window.ABAds.showRewarded().then(ok => {
+    if (!ok) { $('eAd').disabled = false; flash('No ad is available right now'); return; }
+    $('eAd').style.display = 'none';
+    if (k === 'rp') { prog.rp += 5; save(); flash('+5 research points'); } else { ADBONUS = 60; $('eAgain').click(); setTimeout(() => { ADBONUS = 0; }, 80); }
+  }).catch(() => { $('eAd').disabled = false; });
+};
+if (STORE_LIVE) { $('mTitleNote') && ($('mTitleNote').textContent = 'All art was made with AI tools.'); storeSync(); if (window.ABAds) window.ABAds.init(); }
+// accessibility: text size and colour-blind-friendly health bars
+function a11yApply() { document.body.classList.toggle('bigtext', !!prog.big); document.body.classList.toggle('cbmode', !!prog.cb); $('mText').textContent = 'Text size: ' + (prog.big ? 'Large' : 'Normal'); $('mCb').textContent = 'Colour-blind colours: ' + (prog.cb ? 'on' : 'off'); }
+$('mText').onclick = () => { prog.big = !prog.big; save(); a11yApply(); };
+$('mCb').onclick = () => { prog.cb = !prog.cb; save(); a11yApply(); };
+a11yApply();
