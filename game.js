@@ -687,9 +687,11 @@ function heatStep(dt) {
 }
 let LAVA = null;
 // real flowing lava: work out which way each stretch of the painted river runs (from the shape of the glowing channel), then slide the paint along that direction on the GPU, cross-fading two phases so it never snaps
+// ONE shared WebGL context for every animated map background (a new context per level used to pile up and freeze phones after about ten levels)
+let LGL = null;
 function buildLavaGL(bc, Hm, mw, mh, mode) {
-  let g, gl; try { g = document.createElement('canvas'); g.width = mw; g.height = mh; gl = g.getContext('webgl', { antialias: false, preserveDrawingBuffer: true }); } catch (e) { return null; }
-  if (!gl) return null;
+  if (LGL === false) return null;
+  let g, gl; if (LGL) { g = LGL.g; gl = LGL.gl; g.width = mw; g.height = mh; } else { try { g = document.createElement('canvas'); g.width = mw; g.height = mh; gl = g.getContext('webgl', { antialias: false, preserveDrawingBuffer: true }); } catch (e) { LGL = false; return null; } if (!gl) { LGL = false; return null; } }
   const fw = Math.ceil(mw / 4), fh = Math.ceil(mh / 4), N = fw * fh, hs = new Float32Array(N);
   for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) hs[Math.min(fh - 1, y >> 2) * fw + Math.min(fw - 1, x >> 2)] += Hm[y * mw + x] / 16;
   const box = (a, r) => { const t = new Float32Array(N), o = new Float32Array(N); for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) { let sm = 0, c = 0; for (let k = -r; k <= r; k++) { const xx = x + k; if (xx >= 0 && xx < fw) { sm += a[y * fw + xx]; c++; } } t[y * fw + x] = sm / c; } for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) { let sm = 0, c = 0; for (let k = -r; k <= r; k++) { const yy = y + k; if (yy >= 0 && yy < fh) { sm += t[yy * fw + x]; c++; } } o[y * fw + x] = sm / c; } return o; };
@@ -703,8 +705,9 @@ function buildLavaGL(bc, Hm, mw, mh, mode) {
     let dx = (1 - coh) * 0 + coh * fx, dy = (1 - coh) * 1 + coh * fy; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
     fd[i * 4] = (dx * .5 + .5) * 255; fd[i * 4 + 1] = (dy * .5 + .5) * 255; fd[i * 4 + 2] = Math.min(255, hh[i] * 255 * 1.6); fd[i * 4 + 3] = 255;
   }
+  let pr; if (LGL) { pr = LGL.pr; gl.useProgram(pr); } else {
   const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); return o; };
-  const pr = gl.createProgram();
+  pr = gl.createProgram();
   gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 uv; void main(){ uv = vec2(p.x * .5 + .5, .5 - p.y * .5); gl_Position = vec4(p, 0., 1.); }'));
   gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, 'precision mediump float; varying vec2 uv; uniform sampler2D uB, uF; uniform float uT, uM;\n' +
     'float hs(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }\n' +
@@ -719,10 +722,11 @@ function buildLavaGL(bc, Hm, mw, mh, mode) {
     ' vec3 c1 = texture2D(uB, uv - d * .075 * t1 + wob).rgb, c2 = texture2D(uB, uv - d * .075 * t2 + wob).rgb, base = texture2D(uB, uv).rgb;\n' +
     ' vec3 fc = mix(c1, c2, w); fc *= 1. + .16 * sin(uT * 2.2 + uv.y * 26. + uv.x * 9.) * heat;\n' +
     ' gl_FragColor = vec4(mix(base, fc, smoothstep(.08, .45, heat)), 1.); }'));
-  gl.linkProgram(pr); if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null; gl.useProgram(pr);
+  gl.linkProgram(pr); if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { LGL = false; return null; } gl.useProgram(pr);
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const tex = (unit, fn) => { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); fn(); };
+  LGL = { g, gl, pr, tex: [] }; }
+  const tex = (unit, fn) => { if (LGL.tex[unit]) gl.deleteTexture(LGL.tex[unit]); const t = gl.createTexture(); LGL.tex[unit] = t; gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); fn(); };
   tex(0, () => gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bc));
   tex(1, () => gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, fw, fh, 0, gl.RGBA, gl.UNSIGNED_BYTE, fd));
   gl.uniform1i(gl.getUniformLocation(pr, 'uB'), 0); gl.uniform1i(gl.getUniformLocation(pr, 'uF'), 1);
@@ -1047,7 +1051,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792700219';
+const ART_V = '1792702810';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
