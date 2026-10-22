@@ -36,6 +36,7 @@ const TOWERS = {
   cryo:    { name:'Cryo',    icon:'❄️', cost:90,  range:66,  dmg:9,  rate:1,   col:'#9fd8ff', hits:['ground','air'], type:'cold',      ap:0, slow:.32, locked:1, desc:'Slows everything near it and shoots ice shards. 3 hits freeze an enemy; the next hit shatters it for +50%.', strong:'setting up big hits, fast enemies', weak:'low damage on its own' },
   beam:    { name:'Beam',    icon:'🔆', cost:150, range:92,  dmg:22, rate:.1,  col:'#ff7ae6', hits:['ground','air'], type:'energy',    ap:3, locked:1, desc:'Locks on with a continuous beam that grows stronger the longer it holds a target.', strong:'bosses, brutes, shields', weak:'swarms (one target)' },
   gravity: { name:'Gravity', icon:'🌀', cost:125, range:72,  dmg:0,  rate:1,   col:'#7b8cff', hits:['ground','air'], type:'gravity',   ap:0, locked:1, pull:16, desc:'Pulls enemies backward and slows them. Bosses resist.', strong:'holding crowds in a kill zone', weak:'does no damage' },
+  harvest: { name:'Harvester', icon:':harvest:', cost:100, range:0, dmg:0, rate:99, col:'#ffc83a', hits:[], type:'economy', ap:0, harvest:24, locked:1, desc:'Does no damage. After every wave it pays you energy. Greedy early, risky late: it takes a pad a gun could use. Hazards can knock it offline. Max 3 per sector.', strong:'building up your economy early', weak:'does nothing for defense' },
   siphon:  { name:'Siphon',  icon:':siphon:', cost:130, range:70,  dmg:8,  rate:.9,   col:'#b07aff', hits:['ground','air'], type:'energy',    ap:6, drain:7, locked:1, desc:'Lays a draining void curse on one enemy: damage over time that ignores armor. An enemy that dies cursed bursts and hurts the ones around it.', strong:'armored brutes, bunched enemies', weak:'slow to start, one target at a time' },
   prism:   { name:'Prism',   icon:':prism:', cost:140, range:78,  dmg:18, rate:1.1,  col:'#ffe9a0', hits:['ground','air'], type:'energy',    ap:2, pierce:1, locked:1, desc:'Fires a dazzling beam that pierces in a line and hits every enemy along it, ground and air.', strong:'columns of enemies, shields', weak:'enemies spread out' },
   wind:    { name:'Cyclone', icon:'🌪', cost:115, range:62,  dmg:3,  rate:3.2,  col:'#8fe8d0', hits:['ground','air'], type:'kinetic',   ap:0, push:16, locked:1, desc:'Blasts a gust that shoves every enemy in range backward and chips them, ground and air. Bosses resist.', strong:'buying time, fast flyers', weak:'low damage on its own' },
@@ -47,7 +48,7 @@ const TOWERS = {
 const ELEMS = { fire: { n: 'Fire', ic: '🔥', opp: 'ice' }, ice: { n: 'Ice', ic: '❄', opp: 'fire' }, storm: { n: 'Storm', ic: '⛈', opp: 'wind' }, wind: { n: 'Wind', ic: '🌪', opp: 'storm' }, light: { n: 'Light', ic: '☀', opp: 'void' }, void: { n: 'Void', ic: '🌀', opp: 'light' } };
 TOWERS.fire.elem = 'fire'; TOWERS.missile.elem = 'fire'; TOWERS.flak.elem = 'wind'; TOWERS.cryo.elem = 'ice'; TOWERS.tesla.elem = 'storm'; TOWERS.beam.elem = 'light'; TOWERS.gravity.elem = 'void'; TOWERS.stun.elem = 'storm'; TOWERS.wind.elem = 'wind'; TOWERS.prism.elem = 'light'; TOWERS.siphon.elem = 'void';
 TOWERS.tesla.locked = 1;
-const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla', 'beam', 'gravity', 'fire', 'stun', 'wind', 'gatling', 'prism', 'siphon'];
+const KINDS = ['pulse', 'rail', 'missile', 'flak', 'cryo', 'tesla', 'beam', 'gravity', 'fire', 'stun', 'wind', 'gatling', 'prism', 'siphon', 'harvest'];
 const LOADOUT_N = 6;
 const avail = () => {
   let u = KINDS.filter(k => !TOWERS[k].locked || prog.tw[k] || OPEN_ALL);
@@ -55,7 +56,7 @@ const avail = () => {
   if (u.length > LOADOUT_N) { const lo = (prog.loadout || []).filter(k => u.includes(k)); u = lo.length === LOADOUT_N ? lo : u.slice(0, LOADOUT_N); }
   return u;
 };
-const TAG = k => TOWERS[k].hits.length === 2 ? 'Ground+Air' : TOWERS[k].hits[0] === 'air' ? 'Air only' : 'Ground only';
+const TAG = k => TOWERS[k].harvest ? 'Economy' : TOWERS[k].hits.length === 2 ? 'Ground+Air' : TOWERS[k].hits[0] === 'air' ? 'Air only' : 'Ground only';
 
 /* air: flies (only 'air' towers hit it). armor: flat damage cut per hit. mods: damage type multipliers. intro: [sector, wave] it first appears. */
 const ENEMY = {
@@ -87,7 +88,7 @@ ENEMY.riftdrone = { name: 'Rift Drone', hp: 36, sp: 42, gold: 5, leak: 1, col: '
 ENEMY.voidwing = { name: 'Void Wing', hp: 22, sp: 82, gold: 4, leak: 1, col: '#c9a0ff', cost: 4, air: true, armor: 0, mods: {}, intro: [999, 1], elem: 'void', note: 'FLYING and very fast, a manta of black glass. Flak and Pulse can hit it.' };
 ENEMY.umbrabrute = { name: 'Umbra Brute', hp: 340, sp: 21, gold: 26, leak: 3, col: '#8a5ad0', cost: 26, air: false, armor: 4, mods: { energy: .8, kinetic: 1.2 }, intro: [999, 1], elem: 'void', note: 'Obsidian armor with a void core. Rail pierces it; light hurts it most.' };
 const EH = { riftdrone: 30, voidwing: 30, umbrabrute: 54, glintdrone: 30, sunwing: 30, radiantbrute: 54, galedrone: 30, galewing: 30, gustbrute: 54, voltdrone: 30, stormwing: 30, thunderbrute: 54, emberdrone: 30, cinderwing: 30, magmabrute: 54, frostdrone: 30, rimewing: 30, glacier: 54, drone: 30, scout: 30, swarm: 22, stalker: 34, shield: 42, bomber: 60, brute: 54, boss: 96 };
-const MUZ = { siphon: [0, -.42], prism: [0, -.4], wind: [0, -.42], gatling: [.45, 0], stun: [0, -.42], fire: [.45, 0], beam: [.42, 0], gravity: [0, -.4], pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
+const MUZ = { harvest: [0, -.42], siphon: [0, -.42], prism: [0, -.4], wind: [0, -.42], gatling: [.45, 0], stun: [0, -.42], fire: [.45, 0], beam: [.42, 0], gravity: [0, -.4], pulse: [0, -.4], rail: [.42, -.04], missile: [.34, -.1], flak: [0, -.46], cryo: [0, -.42], tesla: [0, -.46] };
 
 
 /* ---------- story ---------- */
@@ -99,7 +100,7 @@ const WORLDS = [
     lose: ['nine', 'Failed? Nobody fails the exam, they just take it twice. Again.'], reward: null },
   { lv: 1, name: 'Halcyon Ring', tag: 'Orbital habitat', planet: 'u_planet_halcyon', pos: [72, 62],
     intro: [['quill', 'Quill here, Halcyon Ring maintenance. The bombers showed up an hour ago and my coffee is still warm. Please hurry.'], ['nine', 'Bombers fly and wear armor, Cadet {c}. Flak is your friend. So is Arc against shields.']],
-    win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you two: the Repair Pulse for emergencies, and a prototype Beam Prism tower. Do not ask where I got the crystal.'], tower: 'beam',
+    win: ['quill', 'The ring is saved! I owe you a drink, or an upgrade. I made you three things: the Repair Pulse for emergencies, a prototype Beam Prism tower, and a little Harvester that quietly pays you back after every wave. Do not ask where I got the crystal.'], tower: ['beam', 'harvest'],
     lose: ['quill', 'Hang on, I will patch the hull. Want to try again?'], reward: 'repair' },
   { lv: 2, name: 'Gatefall', tag: 'Twin gates', planet: 'u_planet_gate', pos: [28, 25],
     intro: [['oru', 'Two gates, one core, and nowhere to sit down. Welcome to Gatefall.'], ['nine', 'They arrive from both sides and meet at the core. Cover both lanes, Cadet {c}.']],
@@ -130,7 +131,7 @@ WORLDS.push({ lv: 8, name: 'Umbral Deep', tag: 'Expansion · Void', planet: 'u_p
   intro: [['vey', 'Keeper Vey, Umbral Deep. The cartographers marked this place unremarkable and then stopped coming back. The dark here is not empty. It gathers, and where it gathers, your towers go half blind. Do not argue with it. Break the crystal at its heart and it lets go.'], ['nine', 'Void machines shrug off the void and fear light, Cadet {c}. Beam and Prism see straight through the dark. When a haze settles, tap the crystal at its heart. It pays you in energy and the haze breaks.']],
   win: ['vey', 'Light, at last. I had forgotten the color of my own hands. Take the Siphon. It lays a quiet curse on one enemy and the curse does the rest. I was never fond of it. I am very glad you are.'],
   lose: ['vey', 'The dark kept the field. It is patient, so be patient with yourself. Again.'], reward: null });
-const TWTXT = { siphon: 'Siphon tower (a draining void curse that ignores armor and bursts when the enemy dies).', prism: 'Prism tower (a dazzling beam that pierces in a line and hits every enemy along it).', wind: 'Cyclone tower (a gust that shoves every enemy in range backward, ground and air).', gatling: 'Gatling (a rotary gun that sprays small shots at ground and air).', stun: 'EMP tower (freezes every enemy in range for a moment, ground and air).', tesla: 'Arc tower (lightning that jumps between enemies, ground and air).', fire: 'Flame tower (a flame stream that sets ground enemies on fire; burn ignores armor and stacks).', cryo: 'Cryo tower (slows and shoots ice shards; three hits freeze an enemy and the next hit shatters it).', tesla: 'Arc tower (lightning that jumps between enemies).', beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
+const TWTXT = { harvest: 'Harvester (does no damage; pays you energy after every wave; max 3 per sector).', siphon: 'Siphon tower (a draining void curse that ignores armor and bursts when the enemy dies).', prism: 'Prism tower (a dazzling beam that pierces in a line and hits every enemy along it).', wind: 'Cyclone tower (a gust that shoves every enemy in range backward, ground and air).', gatling: 'Gatling (a rotary gun that sprays small shots at ground and air).', stun: 'EMP tower (freezes every enemy in range for a moment, ground and air).', tesla: 'Arc tower (lightning that jumps between enemies, ground and air).', fire: 'Flame tower (a flame stream that sets ground enemies on fire; burn ignores armor and stacks).', cryo: 'Cryo tower (slows and shoots ice shards; three hits freeze an enemy and the next hit shatters it).', tesla: 'Arc tower (lightning that jumps between enemies).', beam: 'Beam Prism tower (a continuous beam that grows stronger the longer it holds a target).', gravity: 'Gravity Well tower (pulls enemies back and slows them).' };
 const REWARDS = { repair: 'Repair Pulse (wrench button): restores 5 lives, once per level.', over: 'Overcharge (bolt button): towers fire 50% faster for 8 seconds.' };
 const RANKS = [[0, 'Cadet'], [1, 'Defender'], [8, 'Guardian'], [16, 'Warden'], [26, 'Commander']];
 const rankOf = () => { const pts = totalCleared(); let r = RANKS[0][1]; RANKS.forEach(x => { if (pts >= x[0]) r = x[1]; }); return r; };
@@ -419,13 +420,15 @@ let tips = true; try { tips = localStorage.getItem('orbitbastion_tips') !== '0';
 /* ---------- rewards: research, mastery, rank perks, medals ---------- */
 if (!prog.res) prog.res = {}; if (prog.rp === undefined) prog.rp = 0; if (!prog.medals) prog.medals = {}; if (!prog.flags) prog.flags = {};
 const NODES = [];
-const SP_TXT = { siphon: ['Hollow', 'Death bursts hit twice as hard.'], prism: ['Refraction', 'The beam hits 25% harder.'], wind: ['Squall', 'Gusts shove enemies 30% farther.'], gatling: ['Overspin', 'Fires 15% faster.'], stun: ['Overload', 'The EMP recharges 20% faster.'], fire: ['Inferno', 'Burn stacks up to 5 instead of 3.'], pulse: ['Concussion', 'Hit enemies are slowed 20% for 1 second.'], rail: ['Critical shots', '20% chance for double damage.'], missile: ['Wide blast', '+25% blast radius.'], flak: ['Double burst', '25% chance of a second burst.'], cryo: ['Brittle frost', 'Slowed enemies take +10% damage from everything.'], tesla: ['Overload', '+1 chain jump and +15% damage.'], beam: ['Fast focus', 'Reaches full power in 1.6 s instead of 2.5 s.'], gravity: ['Heavy well', '+30% pull strength.'] };
+const SP_TXT = { harvest: ['Deep drilling', 'Pays 25% more energy every wave.'], siphon: ['Hollow', 'Death bursts hit twice as hard.'], prism: ['Refraction', 'The beam hits 25% harder.'], wind: ['Squall', 'Gusts shove enemies 30% farther.'], gatling: ['Overspin', 'Fires 15% faster.'], stun: ['Overload', 'The EMP recharges 20% faster.'], fire: ['Inferno', 'Burn stacks up to 5 instead of 3.'], pulse: ['Concussion', 'Hit enemies are slowed 20% for 1 second.'], rail: ['Critical shots', '20% chance for double damage.'], missile: ['Wide blast', '+25% blast radius.'], flak: ['Double burst', '25% chance of a second burst.'], cryo: ['Brittle frost', 'Slowed enemies take +10% damage from everything.'], tesla: ['Overload', '+1 chain jump and +15% damage.'], beam: ['Fast focus', 'Reaches full power in 1.6 s instead of 2.5 s.'], gravity: ['Heavy well', '+30% pull strength.'] };
 KINDS.forEach(k => {
   NODES.push({ id: k + '.dmg', scope: k, label: 'Damage', desc: '+6% damage per rank', max: 3, costs: [2, 3, 4] });
   NODES.push({ id: k + '.rng', scope: k, label: 'Range', desc: '+4% range per rank', max: 3, costs: [2, 3, 4] });
   NODES.push({ id: k + '.rate', scope: k, label: 'Fire rate', desc: '+5% fire rate per rank', max: 3, costs: [2, 3, 4] });
   NODES.push({ id: k + '.sp', scope: k, label: SP_TXT[k][0], desc: SP_TXT[k][1], max: 1, costs: [8], special: 1 });
 });
+for (let i = NODES.length - 1; i >= 0; i--) if (NODES[i].id === 'harvest.rng' || NODES[i].id === 'harvest.rate') NODES.splice(i, 1);
+{ const n = NODES.find(x => x.id === 'harvest.dmg'); n.label = 'Yield'; n.desc = '+6% energy per wave per rank'; }
 [['energy', 'Starting energy', '+15 energy at the start of every level', [2, 3, 4]], ['lives', 'Core lives', '+1 core life per rank', [4, 6, 8]], ['disc', 'Upgrade discount', '-4% tower upgrade cost per rank', [2, 3, 4]], ['cd', 'Ability recharge', 'Abilities recharge 8% faster per rank', [2, 3, 4]], ['sell', 'Salvage', '+5% sell value per rank', [2, 3, 4]], ['reloc', 'Quick relocation', '-25% tower relocation fee per rank', [2, 3, 4]]]
   .forEach(([id, label, desc, costs]) => NODES.push({ id: 'g.' + id, scope: 'g', label, desc, max: 3, costs }));
 const rk = id => prog.res[id] || 0;
@@ -559,6 +562,7 @@ function tStats(t) {
   if (k === 'gatling' && rk('gatling.sp')) r.rate *= .85;
   if (k === 'prism' && rk('prism.sp')) r.dmg *= 1.25;
   if (b.drain) r.drain = b.drain * (r.dmg / b.dmg);
+  if (b.harvest) r.income = Math.round(b.harvest * (t.lvl <= 3 ? 1 + .6 * (t.lvl - 1) : 3.6) * (1 + .06 * rk('harvest.dmg')) * (rk('harvest.sp') ? 1.25 : 1));
   if (t.haze > 0) r.range = Math.round(r.range * .5);
   if (b.stun) { r.stun = b.stun * (t.lvl <= 3 ? 1 + .3 * (t.lvl - 1) : 2.2); if (rk('stun.sp')) r.rate *= .8; }
   r.dmg *= 1 + .06 * rk(k + '.dmg') + masteryOf(k).bonus + perkDmg(); r.range = Math.round(r.range * (1 + .04 * rk(k + '.rng'))); r.rate *= 1 - .05 * rk(k + '.rate');
@@ -586,6 +590,7 @@ function numPop(e, dmg, type) {
 }
 const canHit = (kind, e) => TOWERS[kind].hits.includes(ENEMY[e.type].air ? 'air' : 'ground');
 function buildTower(pad, kind) { crumb('build ' + kind + ' pad ' + pad);
+  if (kind === 'harvest' && G.towers.filter(t => t.kind === 'harvest').length >= 3) { flash('Only 3 Harvesters per sector'); return false; }
   const c = TOWERS[kind].cost; if (G.gold < c || G.towers.some(t => t.pad === pad)) return false;
   G.gold -= c; G.towers.push({ pad, kind, lvl: 1, cd: .2, spent: c, ang: -Math.PI/2, aim: -Math.PI/2, rec: 0, born: G.clock, acc: 0, ring: 0 });
   SFX.play('build'); const p = PADS()[pad]; G.fx.push({ k: 'build', p, t: 0 }); burst(p[0], p[1], 10, TOWERS[kind].col, 50, .5, 2, true);
@@ -925,7 +930,7 @@ function step(dt) {
     t.rec = Math.max(0, t.rec - dt * 5);
     const s = tStats(t), p = PADS()[t.pad];
     if (t.frz > 0) { t.beamOn = null; t.has = false; continue; }
-    if (t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind') continue;
+    if (t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind' || t.kind === 'harvest') continue;
     let best = null, bd = -1;
     let blocked = false;
     for (const e of G.enemies) { if (!canHit(t.kind, e)) continue; const q = ePos(e); if (Math.hypot(q[0]-p[0], q[1]-p[1]) <= s.range && e.d > bd) { if (G.shards.length && shardBlocked(t.kind, p, q, ENEMY[e.type].air)) { blocked = true; continue; } best = e; bd = e.d; } }
@@ -978,7 +983,10 @@ function step(dt) {
   if (G.running && !G.spawnQ.length && !G.enemies.length) {
     G.running = false; stats.wavesCleared++; save();
     if (G.wave >= maxWave()) { endGame(true); return; }
-    SFX.play('clear'); G.autoT = 4; const bonus = 25 + G.wave * 7; G.gold += bonus; flash('Wave clear +' + bonus + '⚡'); hud(); coach();
+    SFX.play('clear'); G.autoT = 4; const bonus = 25 + G.wave * 7; G.gold += bonus;
+    let hv = 0; for (const t of G.towers) if (t.kind === 'harvest' && !(t.frz > 0)) { const v = tStats(t).income, p = PADS()[t.pad]; hv += v; G.nums.push({ x: p[0], y: p[1] - 26, t: 0, text: '+' + v, col: NCOL.gold, big: false }); burst(p[0], p[1] - 10, 12, '#ffd24a', 70, .7, 2.2, true); t.rec = 1; }
+    if (hv) { G.gold += hv; SFX.play('harvest'); stats.harvested = (stats.harvested || 0) + hv; }
+    flash('Wave clear +' + bonus + (hv ? ' · harvested +' + hv : '') + '⚡'); hud(); coach();
     
   }
 }
@@ -1051,9 +1059,9 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792702810';
+const ART_V = '1792704728';
 const IM = {};
-['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
+['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_harvest','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
 const ROT = { rail: 1, missile: 1, flak: 1, beam: 1, fire: 1, gatling: 1 }, TURN = { rail: 5, missile: 5.5, flak: 8, beam: 6, fire: 7, gatling: 9 }, HL = [0, 44, 48, 53, 58];
 let HM = {}; fetch('art/heads.json?v=' + ART_V).then(r => r.json()).then(j => { HM = j; }).catch(() => {});
@@ -1206,17 +1214,18 @@ function drawTower(t, time) {
   ctx.save(); ctx.translate(p[0], p[1]);
   ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(0, 12, w*.42*bs, 8, 0, 0, 7); ctx.fill();
   const lean = t.kind === 'pulse' ? Math.sin(time / 700 + t.pad) * .01 : (t.has ? Math.max(-1, Math.min(1, dy)) * .1 * (flip ? -1 : 1) : Math.sin(time / 900 + t.pad) * .02) + (t.kind === 'flak' && t.has ? dx * .12 : 0);
-  ctx.translate(-dx * 4.5 * r * (t.kind === 'cryo' || t.kind === 'tesla' || t.kind === 'pulse' || t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind' || t.kind === 'prism' ? 0 : 1), -h*.32 + idle * .8 - (1 - bs) * 26 * (age < .5 ? 1 : 0));
+  ctx.translate(-dx * 4.5 * r * (t.kind === 'cryo' || t.kind === 'tesla' || t.kind === 'pulse' || t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind' || t.kind === 'prism' || t.kind === 'harvest' ? 0 : 1), -h*.32 + idle * .8 - (1 - bs) * 26 * (age < .5 ? 1 : 0));
   ctx.rotate(lean); if (flip) ctx.scale(-1, 1); const sq = 1 + .05 * r; ctx.scale(bs * sq, bs / sq);
   ctx.shadowColor = k === 4 ? '#ffd24a' : c; ctx.shadowBlur = (k === 4 ? 16 : 6) + 4 * Math.sin(time / 180 + t.pad) + 10 * r;
   ctx.drawImage(sp, -w/2, -h/2, w, h); ctx.shadowBlur = 0;
   if (r > .3) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = r * .35; ctx.drawImage(sp, -w/2, -h/2, w, h); }
   ctx.restore();
+  if (t.kind === 'harvest') { ctx.globalCompositeOperation = 'lighter'; glow(p[0], p[1] - 6, 22 + 4 * Math.sin(time / 300 + t.pad), '#ffc83a', .3); ctx.globalCompositeOperation = 'source-over'; if (Math.random() < .08) part(p[0] + (Math.random() - .5) * 12, p[1] - 14, (Math.random() - .5) * 10, -22, .7, 1.6, '#ffe08a', true); }
   // muzzle flash / charge glow
   const m = muzzle(t);
   if (r > .35) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 10 + 12 * r, c, Math.min(1, r * 1.1)); ctx.globalCompositeOperation = 'source-over'; }
   else if (t.kind === 'rail' && t.has) { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 6 + 6 * (1 - Math.max(0, t.cd) / tStats(t).rate), '#9fd0ff', .5); ctx.globalCompositeOperation = 'source-over'; }
-  else if (t.kind === 'tesla' || t.kind === 'cryo' || t.kind === 'pulse' || t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind' || t.kind === 'prism') { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 3 * Math.sin(time / 150 + t.pad), c, .35); ctx.globalCompositeOperation = 'source-over'; }
+  else if (t.kind === 'tesla' || t.kind === 'cryo' || t.kind === 'pulse' || t.kind === 'gravity' || t.kind === 'stun' || t.kind === 'wind' || t.kind === 'prism' || t.kind === 'harvest') { ctx.globalCompositeOperation = 'lighter'; glow(m[0], m[1], 9 + 3 * Math.sin(time / 150 + t.pad), c, .35); ctx.globalCompositeOperation = 'source-over'; }
   for (let i = 0; i < Math.min(k, 3); i++) { ctx.beginPath(); ctx.arc(p[0] - (Math.min(k,3)-1)*4 + i*8, p[1] + 21, 2.4, 0, 7); ctx.fillStyle = k === 4 ? '#ffd24a' : '#fff'; ctx.fill(); }
   if (k === 4) { ctx.font = 'bold 9px system-ui'; ctx.fillStyle = '#ffd24a'; ctx.textAlign = 'center'; ctx.fillText('PRIME', p[0], p[1] + 31); }
 }
@@ -1264,15 +1273,15 @@ function draw(time) {
     PADS().forEach((p, i) => { if (G.towers.some(t => t.pad === i) || (CUR.vents && CUR.vents.includes(i))) return; ctx.beginPath(); ctx.arc(p[0], p[1], 24 + 2 * Math.sin(time / 150), 0, 7); ctx.strokeStyle = 'rgba(90,255,150,.95)'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.fillStyle = 'rgba(90,255,150,.12)'; ctx.fill(); });
     const mp = PADS()[G.moving.pad]; ctx.beginPath(); ctx.arc(mp[0], mp[1], 26, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.95)'; ctx.lineWidth = 3; ctx.stroke();
   }
-  if (G.build != null && G.pick) {
+  if (G.build != null && G.pick && G.pick !== 'harvest') {
     const sr = tStats({ kind: G.pick, lvl: 1 }).range, pb = PADS()[G.build], rc = tcol(G.pick), pu = .5 + .5 * Math.sin(time / 300);
     ctx.beginPath(); ctx.arc(pb[0], pb[1], sr, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.14)'; ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = rc; ctx.globalAlpha = .8 + .2 * pu; ctx.shadowColor = rc; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     ctx.font = 'bold 12px Rajdhani, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)';
     const ly = pb[1] + (pb[1] > 300 ? -34 : 34); ctx.strokeText('RANGE ' + sr, pb[0], ly); ctx.fillStyle = '#fff'; ctx.fillText('RANGE ' + sr, pb[0], ly);
   }
-  if (G.sel && G.sel.lvl < 3) { const sn = tStats({ kind: G.sel.kind, lvl: G.sel.lvl + 1 }), pn = PADS()[G.sel.pad]; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(pn[0], pn[1], sn.range, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
-  if (G.sel) {
+  if (G.sel && G.sel.lvl < 3 && G.sel.kind !== 'harvest') { const sn = tStats({ kind: G.sel.kind, lvl: G.sel.lvl + 1 }), pn = PADS()[G.sel.pad]; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(pn[0], pn[1], sn.range, 0, 7); ctx.strokeStyle = 'rgba(255,210,74,.55)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
+  if (G.sel && G.sel.kind !== 'harvest') {
     const s = tStats(G.sel), p = PADS()[G.sel.pad]; ctx.beginPath(); ctx.arc(p[0], p[1], s.range, 0, 7); ctx.fillStyle = 'rgba(125,239,255,.12)'; ctx.fill(); ctx.strokeStyle = 'rgba(125,239,255,.85)'; ctx.lineWidth = 2.5; ctx.stroke();
     ctx.font = 'bold 12px Rajdhani, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)'; const ly2 = p[1] + (p[1] > 300 ? -36 : 36); ctx.strokeText('RANGE ' + s.range, p[0], ly2); ctx.fillStyle = '#fff'; ctx.fillText('RANGE ' + s.range, p[0], ly2);
   }
@@ -1457,7 +1466,8 @@ function statRows(kind, lvl) {
   else if (kind === 'pulse') R.push(['Damage', Math.round(s.dmg) + ' to all', s.dmg]);
   else if (b.dmg > 0) R.push(['Damage', Math.round(s.dmg) + ' / shot', s.dmg]);
   else R.push(['Damage', 'none', 0]);
-  R.push(['Range', String(s.range), s.range]);
+  if (!b.harvest) R.push(['Range', String(s.range), s.range]);
+  if (s.income) R.push(['Income', '+' + s.income + ' energy after every wave', s.income]);
   if (kind === 'beam') R.push(['Fire rate', 'continuous', 0]);
   else if (b.dmg > 0) R.push(['Fire rate', f1(1 / s.rate) + ' / s', 1 / s.rate]);
   if (shooter) R.push(['DPS (one target)', String(Math.round(dps)), dps]);
@@ -1471,12 +1481,12 @@ function statRows(kind, lvl) {
   if (s.pull) R.push(['Pull', f1(s.pull) + ' / s', s.pull]);
   if (b.ap) R.push(['Armor pierce', String(b.ap), b.ap]);
   if (b.elem) R.push(['Element', ELEMS[b.elem].ic + ' ' + ELEMS[b.elem].n, 0]);
-  R.push(['Damage type', b.type, 0]);
+  if (!b.harvest) R.push(['Damage type', b.type, 0]);
   return R;
 }
 function bonusLine(kind) {
-  const d = Math.round((.06 * rk(kind + '.dmg') + masteryOf(kind).bonus + perkDmg()) * 100), r = rk(kind + '.rng') * 4, f = rk(kind + '.rate') * 5, p = [];
-  if (d) p.push('+' + d + '% damage'); if (r) p.push('+' + r + '% range'); if (f) p.push('+' + f + '% fire rate'); if (rk(kind + '.sp')) p.push(SP_TXT[kind][0]);
+  const d = Math.round((.06 * rk(kind + '.dmg') + (kind === 'harvest' ? 0 : masteryOf(kind).bonus + perkDmg())) * 100), r = rk(kind + '.rng') * 4, f = rk(kind + '.rate') * 5, p = [];
+  if (d) p.push('+' + d + (kind === 'harvest' ? '% energy' : '% damage')); if (r) p.push('+' + r + '% range'); if (f) p.push('+' + f + '% fire rate'); if (rk(kind + '.sp')) p.push(SP_TXT[kind][0]);
   return p.length ? '<div class="info"><b>Your upgrades:</b> ' + p.join(' · ') + ' (research, mastery, rank)</div>' : '';
 }
 function statGrid(kind, lvl, nextLvl) {
@@ -1516,8 +1526,8 @@ function renderSheet() {
     if (t.frz > 0) btns = '<button class="act up' + (G.gold < 20 ? ' no' : '') + '" id="bThaw" style="background:' + (t.fzKind === 'heat' ? '#c8531c' : t.fzKind === 'shock' ? '#3a6fd0' : t.fzKind === 'gale' ? '#2fa88a' : t.fzKind === 'blind' ? '#b8921c' : '#2b8fd0') + '">' + (t.fzKind === 'heat' ? 'Cool ⚡ 20' : t.fzKind === 'shock' ? 'Reboot ⚡ 20' : t.fzKind === 'gale' ? 'Realign ⚡ 20' : t.fzKind === 'blind' ? 'Refocus ⚡ 20' : 'Thaw ⚡ 20') + '</button>' + btns;
     btns += '<button class="act sell" id="bSell">Sell ⚡ ' + sellVal(t) + '</button>';
     const nextLvl = t.lvl < 3 ? t.lvl + 1 : t.lvl === 3 ? 4 : 0, mm = masteryOf(t.kind);
-    sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + (t.lvl < 4 ? '  (green = after upgrade)' : '') + '</h4>' + statGrid(t.kind, t.lvl, t.lvl < 3 ? nextLvl : 0) + (t.lvl === 3 ? '<div class="info">Merge with a second max-tier ' + b.name + ' to make a Prime: about 5x damage.</div>' : '')
-      + bonusLine(t.kind) + '<div class="info"><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + '<br><b>Mastery:</b> ' + mm.name + (mm.bonus ? ' (+' + Math.round(mm.bonus * 100) + '%)' : '') + ' · ' + mm.kills + ' kills' + (mm.next ? ' (next at ' + mm.next + ')' : '') + '</div><div class="row">' + btns + '</div>';
+    sh.innerHTML = '<h4>' + b.icon + ' ' + tName(t) + ' · tier ' + Math.min(t.lvl, 3) + (t.lvl === 4 ? ' ★' : '') + (t.lvl < 4 ? '  (green = after upgrade)' : '') + '</h4>' + statGrid(t.kind, t.lvl, t.lvl < 3 ? nextLvl : 0) + (t.lvl === 3 ? '<div class="info">Merge with a second max-tier ' + b.name + ' to make a Prime: ' + (b.harvest ? 'about 3.6x the income.' : 'about 5x damage.') + '</div>' : '')
+      + bonusLine(t.kind) + '<div class="info"><b>Strong:</b> ' + b.strong + ' · <b>Weak:</b> ' + b.weak + (b.harvest ? '' : '<br><b>Mastery:</b> ' + mm.name + (mm.bonus ? ' (+' + Math.round(mm.bonus * 100) + '%)' : '') + ' · ' + mm.kills + ' kills' + (mm.next ? ' (next at ' + mm.next + ')' : '')) + '</div><div class="row">' + btns + '</div>';
     if ($('bUp')) $('bUp').onclick = () => { if (tooSoon()) return; upgradeTower(t); };
     if ($('bMerge')) $('bMerge').onclick = () => {
       if (tooSoon() || !partners.length) return;
@@ -1889,7 +1899,7 @@ grantTowers(); autoUI(); resize(); startLevel(0, 0, 0, true); if (!prog.call) { 
 
 // every emoji in the interface is swapped for an AI-made icon picture (the emoji stays as the alt text)
 {
-  const MAP = { '⚡': 'energy', '❤': 'heart', '★': 'star', '☆': 'staroff', '🔒': 'lock', '🔓': 'unlock', '✈': 'air', '⛰': 'ground', '❄': 'ice', '🔥': 'fire', '🌪': 'wind', '🌋': 'vent', '⛈': 'storm', '⚠': 'warn', '🏅': 'medal', '✓': 'check', '🌀': 'void', '☀': 'light', '🛠': 'repair', '🔧': 'repair', '☄': 'strike', '👍': 'up', '👎': 'down', '🔵': 't_pulse', '➖': 't_rail', '🚀': 't_missile', '🔆': 't_beam', '🔫': 't_gatling', '📡': 't_stun', ':arc:': 'arc', ':boost:': 'boost', ':flak:': 't_flak', ':prism:': 'prism', ':siphon:': 'siphon' };
+  const MAP = { '⚡': 'energy', '❤': 'heart', '★': 'star', '☆': 'staroff', '🔒': 'lock', '🔓': 'unlock', '✈': 'air', '⛰': 'ground', '❄': 'ice', '🔥': 'fire', '🌪': 'wind', '🌋': 'vent', '⛈': 'storm', '⚠': 'warn', '🏅': 'medal', '✓': 'check', '🌀': 'void', '☀': 'light', '🛠': 'repair', '🔧': 'repair', '☄': 'strike', '👍': 'up', '👎': 'down', '🔵': 't_pulse', '➖': 't_rail', '🚀': 't_missile', '🔆': 't_beam', '🔫': 't_gatling', '📡': 't_stun', ':arc:': 'arc', ':boost:': 'boost', ':flak:': 't_flak', ':prism:': 'prism', ':siphon:': 'siphon', ':harvest:': 'harvest' };
   const keys = Object.keys(MAP).sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const RE = new RegExp('(' + keys.join('|') + ')️?', 'g'), TEST = new RegExp('(' + keys.join('|') + ')');
   const SKIP = /^(SCRIPT|STYLE|TEXTAREA|OPTION|TITLE|NOSCRIPT)$/;

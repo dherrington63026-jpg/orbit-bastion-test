@@ -52,6 +52,7 @@ const SFX = (() => {
     lose: () => { [392, 330, 262, 196].forEach((f, i) => tone('sawtooth', f, f * .98, .5, .16, i * .2)); },
     strike: () => { tone('sawtooth', 2000, 60, .8, .3); noise(.9, .5, 'lowpass', 2500, 80, .35); tone('sine', 80, 30, .8, .8, .35); },
     crash: () => { noise(.5, .4, 'lowpass', 1800, 300); tone('sine', 160, 50, .35, .3); noise(.25, .25, 'highpass', 3000, 8000); },
+    harvest: () => { tone('sine', 880, 1320, .12, .08); tone('sine', 1320, 1760, .18, .07, .09); },
     siphon: () => { tone('sawtooth', 200, 90, .35, .12); tone('sine', 120, 60, .4, .12); noise(.2, .1, 'lowpass', 900, 200); },
     prism: () => { tone('sine', 1400, 2200, .25, .09); tone('triangle', 700, 1500, .3, .06); noise(.12, .08, 'highpass', 5000, 9000); },
     gust: () => { noise(.7, .22, 'bandpass', 500, 2600, 0, .9); tone('sine', 220, 120, .5, .06); },
