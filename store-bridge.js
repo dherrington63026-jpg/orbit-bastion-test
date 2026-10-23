@@ -7,7 +7,7 @@
   // game ids -> store product ids are  PRE + id  (for example orbithold_world_glacier). Same ids on Apple and Google.
   var IDS = ['bundle', 'remove_ads',
     'world_glacier', 'world_cinder', 'world_storm', 'world_gale', 'world_solspire', 'world_umbral',
-    'pal_inferno', 'pal_frost', 'pal_toxic', 'pal_royal'];
+    'pal_inferno', 'pal_frost', 'pal_toxic', 'pal_royal', 'lane_crimson', 'lane_emerald', 'lane_amber', 'lane_ultra'];
   var PRE = 'orbithold_';
   var C = window.Capacitor;
   if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
