@@ -1,5 +1,5 @@
 'use strict';
-/* Orbit Bastion sound: everything is synthesized in the browser (no audio files, no fees). */
+/* Orbit Hold sound: everything is synthesized in the browser (no audio files, no fees). */
 const SFX = (() => {
   const THEMES = [[[220, 261.6, 329.6], [174.6, 220, 261.6], [261.6, 329.6, 392], [196, 246.9, 293.7]], [[146.8, 174.6, 220], [233.1, 293.7, 349.2], [174.6, 220, 261.6], [261.6, 329.6, 392]], [[164.8, 196, 246.9], [261.6, 329.6, 392], [196, 246.9, 293.7], [146.8, 185, 220]]];
   let theme = 0, bossOn = false, bossTimer = null, ac = null, master = null, musicGain = null, on = true, musicOn = true, last = {}, musicStarted = false;

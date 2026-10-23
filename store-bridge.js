@@ -4,11 +4,11 @@
 // with no key the game says "the store is not available" and sells nothing.
 (function () {
   var KEYS = { ios: '', android: '' };
-  // game ids -> store product ids are  PRE + id  (for example orbit_world_glacier). Same ids on Apple and Google.
+  // game ids -> store product ids are  PRE + id  (for example orbithold_world_glacier). Same ids on Apple and Google.
   var IDS = ['bundle', 'remove_ads',
     'world_glacier', 'world_cinder', 'world_storm', 'world_gale', 'world_solspire', 'world_umbral',
     'pal_inferno', 'pal_frost', 'pal_toxic', 'pal_royal'];
-  var PRE = 'orbit_';
+  var PRE = 'orbithold_';
   var C = window.Capacitor;
   if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
   var key = KEYS[C.getPlatform()];

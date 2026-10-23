@@ -1,5 +1,5 @@
 'use strict';
-/* Orbit Bastion - small version: 3 sectors, 6 towers x3 tiers + Prime merge, ground/air enemies, 2 abilities. Offline, no account. */
+/* Orbit Hold - small version: 3 sectors, 6 towers x3 tiers + Prime merge, ground/air enemies, 2 abilities. Offline, no account. */
 const W = 360, H = 600, START_LIVES = 20;
 
 const LEVELS = [
@@ -94,8 +94,8 @@ const MUZ = { harvest: [0, -.42], siphon: [0, -.42], prism: [0, -.4], wind: [0, 
 /* ---------- story ---------- */
 const SPEAK = { vey: { name: 'Keeper Vey', img: 'u_vey' }, solene: { name: 'Dr. Solene Marr', img: 'u_solene' }, wynn: { name: 'Captain Wynn Aldous', img: 'u_wynn' }, ione: { name: 'Chief Ione Vael', img: 'u_ione' }, bruck: { name: 'Foreman Bruck', img: 'u_bruck' }, mira: { name: 'Mira', img: 'u_mira' }, nine: { name: 'Nine', img: 'u_nine' }, quill: { name: 'Quill', img: 'u_quill' }, oru: { name: 'Warden Oru', img: 'u_oru' } };
 const WORLDS = [
-  { lv: 0, name: 'Bastion Academy', tag: 'The Exam', planet: 'u_planet_academy', pos: [48, 81], tower: 'gatling',
-    intro: [['nine', 'Welcome to the Bastion Academy, Cadet {c}. I am Nine. I have trained every defender you have ever heard of, and a few you have not.'], ['nine', 'Today is your exam. Build towers on the glowing hexes, send the waves, and do not let anything touch the core.'], ['nine', 'Ground enemies walk. Air enemies fly. Not every tower can hit both, so read the little tags.']],
+  { lv: 0, name: 'Hold Academy', tag: 'The Exam', planet: 'u_planet_academy', pos: [48, 81], tower: 'gatling',
+    intro: [['nine', 'Welcome to the Hold Academy, Cadet {c}. I am Nine. I have trained every defender you have ever heard of, and a few you have not.'], ['nine', 'Today is your exam. Build towers on the glowing hexes, send the waves, and do not let anything touch the core.'], ['nine', 'Ground enemies walk. Air enemies fly. Not every tower can hit both, so read the little tags.']],
     win: ['nine', 'Passed. Do not let it go to your head. It will anyway. Take the Gatling from the armory: it is loud, it is fast, and it is not subtle. Orders just arrived: the Halcyon Ring is under attack. Pack a bag. '],
     lose: ['nine', 'Failed? Nobody fails the exam, they just take it twice. Again.'], reward: null },
   { lv: 1, name: 'Halcyon Ring', tag: 'Orbital habitat', planet: 'u_planet_halcyon', pos: [72, 62],
@@ -506,7 +506,7 @@ function perfTick(dtReal, running) {
 }
 function fpsText() { if (!PERF.f.length) return 'n/a'; const avg = PERF.f.reduce((a, b) => a + b, 0) / PERF.f.length, worst = Math.max(...PERF.f); return Math.round(1000 / avg) + ' avg, ' + Math.round(1000 / worst) + ' worst (last ' + PERF.f.length + ' frames)'; }
 function debugReport() {
-  const lines = ['Orbit Bastion debug report', 'Version: ' + ART_V, 'Time: ' + new Date().toISOString(), 'Device: ' + navigator.userAgent, 'Screen: ' + innerWidth + 'x' + innerHeight + ' @' + (window.devicePixelRatio || 1) + 'x', 'Effects: ' + (LOWFX ? 'LOW' : 'high'), 'FPS: ' + fpsText(), 'Now: world ' + (LV + 1) + ' level ' + (IDX + 1) + ' tier ' + TIERS[TIER].n + ' wave ' + (G ? G.wave : 0) + ' lives ' + (G ? G.lives : '-'), 'Errors (' + LOG.errs.length + '):'];
+  const lines = ['Orbit Hold debug report', 'Version: ' + ART_V, 'Time: ' + new Date().toISOString(), 'Device: ' + navigator.userAgent, 'Screen: ' + innerWidth + 'x' + innerHeight + ' @' + (window.devicePixelRatio || 1) + 'x', 'Effects: ' + (LOWFX ? 'LOW' : 'high'), 'FPS: ' + fpsText(), 'Now: world ' + (LV + 1) + ' level ' + (IDX + 1) + ' tier ' + TIERS[TIER].n + ' wave ' + (G ? G.wave : 0) + ' lives ' + (G ? G.lives : '-'), 'Errors (' + LOG.errs.length + '):'];
   LOG.errs.forEach(e => lines.push('  ' + e.t + ' x' + e.n + ' [' + e.w + '] ' + e.m + (e.at ? ' (at ' + e.at + ')' : '')));
   if (!LOG.errs.length) lines.push('  none');
   lines.push('Recent actions:'); LOG.crumbs.forEach(c => lines.push('  ' + c));
@@ -1062,7 +1062,7 @@ function endGame(win) { crumb('end ' + (win ? 'WIN' : 'LOSS') + ' wave ' + G.wav
 }
 
 /* ---------- drawing ---------- */
-const ART_V = '1792709581';
+const ART_V = '1792717332';
 const IM = {};
 ['bg_1','bg_2','bg_3','bg_4','bg_5','lane_1','lane_2','lane_3','lane_4','lane_5','p_pad','p_core','e_icebreaker','u_planet_glacier','u_mira','e_magmabreaker','bg_5','lane_5','u_bruck','p_ore','p_vent','p_shard','e_stormbreaker','u_planet_storm','u_ione','bg_6','lane_6','p_cell','e_galebreaker','u_planet_gale','u_wynn','bg_7','lane_7','p_pod','p_twister','p_portal','e_abyssbreaker','u_planet_void','u_vey','bg_9','lane_9','p_vcrystal','p_haze','e_dawnbreaker','u_planet_sol','u_solene','bg_8','lane_8','p_mote','ic_energy','ic_heart','ic_star','ic_staroff','ic_lock','ic_unlock','ic_air','ic_ground','ic_ice','ic_fire','ic_wind','ic_vent','ic_storm','ic_void','ic_light','ic_warn','ic_medal','ic_check','ic_repair','ic_strike','ic_boost','ic_prism','ic_siphon','ic_harvest','ic_up','ic_down','ic_t_pulse','ic_t_rail','ic_t_missile','ic_t_flak','ic_t_beam','ic_t_gatling','ic_t_stun','ic_arc'].concat(Object.keys(ENEMY).map(t => 'e_' + t), KINDS.filter(k => k !== 'beam' && k !== 'fire' && k !== 'gatling').flatMap(k => [1,2,3,4].map(n => 't_' + k + '_' + n)), ['pulse','rail','missile','flak','beam','fire','gatling'].flatMap(k => [1,2,3,4].map(n => 'h_' + k + '_' + n))).forEach(n => { const i = new Image(); i.src = 'art/' + n + '.webp?v=' + ART_V; IM[n] = i; });
 const spr = n => { const i = IM[n]; return i && i.complete && i.naturalWidth ? i : null; };
@@ -1556,7 +1556,7 @@ function showLevels() {
   html += '';
   const unusedTeaser = '<button class="pl lock" data-soon="1" style="left:26%;top:12%"><img src="art/u_planet_cinder.webp?v=' + ART_V + '" style="width:70px;height:70px"><b>Cinder Moon</b><small>Expansion · coming soon</small></button>';
   $('mapBody').innerHTML = html;
-  $('mapBody').querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const i = +b.dataset.w; if (b.classList.contains('lock')) { $('mapFoot').textContent = WORLDS[i].paid ? 'Finish the Bastion Academy exam first to unlock expansions.' : 'Clear the final level of the world before it first.'; return; } playWorld(i); });
+  $('mapBody').querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const i = +b.dataset.w; if (b.classList.contains('lock')) { $('mapFoot').textContent = WORLDS[i].paid ? 'Finish the Hold Academy exam first to unlock expansions.' : 'Clear the final level of the world before it first.'; return; } playWorld(i); });
   $('mapBody').querySelectorAll('[data-soon]').forEach(b => b.onclick = () => { stats.soonTaps = (stats.soonTaps || 0) + 1; save(); $('mapFoot').textContent = 'More worlds are on the way. Your tap was counted so we know if you want them.'; });
   $('mapFoot').textContent = (totalCleared() >= 3 && !prog.lastBackup) ? 'Tip: make a backup of your progress (Stats, then Backup & restore).' : 'Tap a world to begin.';
   hideAll(); show('ovLevels');
@@ -1820,7 +1820,7 @@ document.querySelectorAll('[data-fun]').forEach(b => b.onclick = () => {
 });
 function statsText() {
   const days = Object.keys(stats.days).length;
-  return ['Orbit Bastion test stats', 'Days played: ' + days, 'Runs started: ' + stats.runs, 'Wins: ' + stats.wins + '  Losses: ' + stats.losses, 'Waves cleared: ' + stats.wavesCleared, 'Best wave: ' + stats.bestWave, 'Minutes played: ' + Math.round(stats.secs / 60), 'Fun yes/no: ' + stats.funYes + '/' + stats.funNo, 'Unlock taps: ' + stats.unlockTaps, 'Upgrades: ' + stats.upgrades + '  Merges: ' + stats.merges + '  Abilities: ' + stats.abilities, 'Speed taps: ' + stats.speedTaps, 'Auto wave on: ' + autoWave, 'Expansion unlock taps: ' + (stats.buyTaps || 0) + '  Bundle taps: ' + (stats.bundleTaps || 0) + '  Owned: ' + Object.keys(prog.owned || {}).join(','), 'Effects: ' + (LOWFX ? 'low' : 'high') + '  Problems logged: ' + LOG.errs.length + '  FPS: ' + fpsText(), 'Towers moved: ' + (stats.moves || 0) + '  Move fees paid: ' + (stats.moveFees || 0) + '  Restarts from pause menu: ' + (stats.restarts || 0) + '  (within first minute: ' + (stats.earlyRestarts || 0) + ')', 'Towers sold: ' + (stats.sells || 0) + '  Sold within 30 s of building: ' + (stats.regretSells || 0) + '  Lost a level after such a sell: ' + (stats.regretLosses || 0), 'More-worlds taps: ' + (stats.soonTaps || 0), 'Callsign set: ' + !!prog.call, 'Stars per sector: ' + prog.stars.join('/'), 'Towers built: ' + JSON.stringify(stats.builds)].join('\n');
+  return ['Orbit Hold test stats', 'Days played: ' + days, 'Runs started: ' + stats.runs, 'Wins: ' + stats.wins + '  Losses: ' + stats.losses, 'Waves cleared: ' + stats.wavesCleared, 'Best wave: ' + stats.bestWave, 'Minutes played: ' + Math.round(stats.secs / 60), 'Fun yes/no: ' + stats.funYes + '/' + stats.funNo, 'Unlock taps: ' + stats.unlockTaps, 'Upgrades: ' + stats.upgrades + '  Merges: ' + stats.merges + '  Abilities: ' + stats.abilities, 'Speed taps: ' + stats.speedTaps, 'Auto wave on: ' + autoWave, 'Expansion unlock taps: ' + (stats.buyTaps || 0) + '  Bundle taps: ' + (stats.bundleTaps || 0) + '  Owned: ' + Object.keys(prog.owned || {}).join(','), 'Effects: ' + (LOWFX ? 'low' : 'high') + '  Problems logged: ' + LOG.errs.length + '  FPS: ' + fpsText(), 'Towers moved: ' + (stats.moves || 0) + '  Move fees paid: ' + (stats.moveFees || 0) + '  Restarts from pause menu: ' + (stats.restarts || 0) + '  (within first minute: ' + (stats.earlyRestarts || 0) + ')', 'Towers sold: ' + (stats.sells || 0) + '  Sold within 30 s of building: ' + (stats.regretSells || 0) + '  Lost a level after such a sell: ' + (stats.regretLosses || 0), 'More-worlds taps: ' + (stats.soonTaps || 0), 'Callsign set: ' + !!prog.call, 'Stars per sector: ' + prog.stars.join('/'), 'Towers built: ' + JSON.stringify(stats.builds)].join('\n');
 }
 function showStats() {
   $('dbgLine').textContent = LOG.errs.length ? LOG.errs.length + ' problem' + (LOG.errs.length === 1 ? '' : 's') + ' recorded. Tap Copy debug report and send it to me.' : 'No problems recorded.'; $('sDebug').textContent = 'Copy debug report';
@@ -1956,5 +1956,5 @@ $('mCb').onclick = () => { prog.cb = !prog.cb; save(); a11yApply(); };
 a11yApply();
 
 // privacy and support links (store requirement): inside the menu
-$('mPriv').onclick = () => { window.open('https://games.kelbrasolutions.net/orbitbastion/privacy.html', '_blank'); };
-$('mHelp').onclick = () => { window.open('https://games.kelbrasolutions.net/orbitbastion/support.html', '_blank'); };
+$('mPriv').onclick = () => { window.open('https://games.kelbrasolutions.net/orbithold/privacy.html', '_blank'); };
+$('mHelp').onclick = () => { window.open('https://games.kelbrasolutions.net/orbithold/support.html', '_blank'); };
